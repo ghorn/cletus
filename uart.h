@@ -7,6 +7,8 @@
 #include <stdint.h>
 #include <inttypes.h>
 #include <sys/ioctl.h>
+#include <sys/signal.h>
+
 
 
 #include "./print_output.h"
@@ -57,6 +59,7 @@ typedef struct{
     int fd;                        /* serial device fd          */
     struct termios orig_termios;   /* saved tty state structure */
     struct termios cur_termios;    /* tty state structure       */
+    struct sigaction saio;
 }serial_port;
 
 serial_port *serial_stream;
