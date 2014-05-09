@@ -42,7 +42,7 @@ int add_timestamp(uint8_t*const buffer,const int msg_length)
 #if DEBUG  > 1
     printf("Added timestamp: %f\n", floating_time(&timestamp));
 #endif
-    int timestamp_position = msg_length - BYTES_CHECKSUM;
+    int timestamp_position = msg_length - BYTES_CHECKSUM -1;
     memcpy(&buffer[timestamp_position],&timestamp,sizeof(timestamp));
     return timestamp_position + sizeof(timestamp);
 }
@@ -51,7 +51,7 @@ int add_timestamp(uint8_t*const buffer,const int msg_length)
 int read_uart(uint8_t* const buffer,int length)
 {
 #ifdef DEBUG
-    printf("Entering serial_port_read\n");
+//    printf("Entering serial_port_read\n");
 #endif
     int n = read(serial_stream->fd, buffer, length);
 
@@ -380,7 +380,7 @@ void UART_err_handler( UART_errCode err_p,void (*write_error_ptr)(char *,char *,
 
 static int find_startbyte(zmq_pollitem_t* const pollitem, uint8_t* const buffer)
 {
-    if (wait_for_data(pollitem, 100) > 0)
+    if (wait_for_data(pollitem, 1000) > 0)
     {
         ioctl(serial_stream->fd, FIONREAD); //set to number of bytes in buffer
         read_uart(buffer,1);
@@ -395,7 +395,7 @@ int read_lisa_message(zmq_pollitem_t* const pollitem, uint8_t* const buffer)
 {
     if (find_startbyte(pollitem,buffer)>0)
     {
-    if (wait_for_data(pollitem, 100) > 0)
+    if (wait_for_data(pollitem, 1000) > 0)
     {
         ioctl(serial_stream->fd, FIONREAD); //set to number of bytes in buffer
         read_uart(buffer,1);
@@ -405,7 +405,7 @@ int read_lisa_message(zmq_pollitem_t* const pollitem, uint8_t* const buffer)
             int bytes_read = 0;
             while (bytes_read < message_length)
             {
-                if (wait_for_data(pollitem, 100) > 0)
+                if (wait_for_data(pollitem, 1000) > 0)
                 {
                     ioctl(serial_stream->fd, FIONREAD, &bytes_read); //set to number of bytes in buffer
                 }
@@ -427,16 +427,16 @@ int read_lisa_message(zmq_pollitem_t* const pollitem, uint8_t* const buffer)
 
 static int wait_for_data(zmq_pollitem_t* const pollitem, const int timeout_ms)
 {
-//    const int polled = zmq_poll(pollitem,1, timeout_ms);
-//    if (polled > 0)
-//    {
-//        pollitem->revents=0;
-//        return polled;
-//    }
-//    else if (polled == 0)
-//        send_warning(zsock_print,TAG,"No data received from UART may be connection Errors.");
-//    else if (polled < 0)
-//        send_error(zsock_print,TAG,"ZMQ poll returned error.");
+pollitem->events=0;
+ //   const int polled = zmq_poll(pollitem,1, timeout_ms);
+ //   if (polled > 0)
+ //   {
+  //      pollitem->revents=0;
+  //      return polled;
+  //  }    else if (polled == 0)
+  //      send_warning(zsock_print,TAG,"No data received from UART may be connection Errors.");
+  //  else if (polled < 0)
+ //       send_error(zsock_print,TAG,"ZMQ poll returned error.");
 //    return 0;
     pollitem->events=0;
     struct pollfd fds[1];
@@ -449,7 +449,7 @@ static int wait_for_data(zmq_pollitem_t* const pollitem, const int timeout_ms)
     if((result & (1 << 0)) == 0){
         return -1;
     }
-    return 0;
+    return result;
 
 }
 
