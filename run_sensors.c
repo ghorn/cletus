@@ -106,7 +106,7 @@ int main(int argc __attribute__((unused)),
             printf("Failed to read passed frequency. Using DEFAULT value instead.\n");
             frequency = DEFAULT_RT_FREQUENCY;
         }
-        printf("Setting frequency to %li Hz.\n", frequency);
+        printf("Setting frequency to %li Hz. RT-interval: %i\n", frequency, rt_interval);
         rt_interval = (NSEC_PER_SEC/frequency);
     }
     else
@@ -246,135 +246,125 @@ int main(int argc __attribute__((unused)),
    * you'd want to pull most of the actual handling out into functions
    * and simply loop over your polls; I've left it all inline here
    * mostly out of laziness. */
-    for (;;) {
+    if (bail) die(bail);
 
-        /* wait until next shot */
-        clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, &t, NULL);
+    int epolldescriptor =  epoll_create1(0);
+    if (epolldescriptor == -1)
+    {
+        perror ("epoll_create");
+        abort ();
+    }
+    epoll_event_t event;
+
+    event.data.fd = serial_stream->fd;
+    event.events = EPOLLIN | EPOLLET;
+    if (epoll_ctl (epolldescriptor, EPOLL_CTL_ADD, serial_stream->fd, &event) == -1)
+    {
+        perror ("epoll_ctl");
+        abort ();
+    }
+    uint8_t buffer[1024];
+
+
+
+
+
+    //When sensor data is in circular buffer
+    while (1)
+    {
+        msg_length = read_lisa_message(epolldescriptor,&event, buffer);
         if (bail) die(bail);
-
-        int epolldescriptor =  epoll_create1(0);
-        if (epolldescriptor == -1)
+        //messages are never longer than 64 bytes
+        if ((msg_length < LISA_MAX_MSG_LENGTH) && (msg_length > 0))
         {
-            perror ("epoll_create");
-            abort ();
-        }
-        epoll_event_t event;
-
-        event.data.fd = serial_stream->fd;
-        event.events = EPOLLIN | EPOLLET;
-        if (epoll_ctl (epolldescriptor, EPOLL_CTL_ADD, serial_stream->fd, &event) == -1)
-        {
-            perror ("epoll_ctl");
-            abort ();
-        }
-        uint8_t buffer[1024];
-        while (1)
-        {
-            msg_length = read_lisa_message(epolldescriptor,&event, buffer);
-            if (bail) die(bail);
-        }
-
-
-
-        //When sensor data is in circular buffer
-        while (!cbIsEmpty(&cb))
-        {
-            //get sensor message elment
-            cbRead(&cb, &element);
-            //first byte is length of message
-            //startbyte already stripped in signal handler
-            msg_length = element.message[0];
-            //messages are never longer than 64 bytes
-            if ((msg_length < LISA_MAX_MSG_LENGTH) && (msg_length > 0))
+            //Check 1: Sender ID must be correct.
+            if (buffer[LISA_INDEX_SENDER_ID] == SENDER_ID)
             {
-                //Check 1: Sender ID must be correct.
-                if (element.message[LISA_INDEX_SENDER_ID] == SENDER_ID)
+                //Check 2: Checksum must be correct
+                if (check_checksum(&buffer[LISA_INDEX_SENDER_ID]) == UART_ERR_NONE)
                 {
-                    //Check 2: Checksum must be correct
-                    if (check_checksum(element.message) == UART_ERR_NONE)
+                    send_debug(zsock_print,TAG,"Passed Checksum test. Sending Message [%u bytes] with ID %i\n",
+                               msg_length, buffer[LISA_INDEX_MSG_ID]);
+                    //Depending on message type copy data and set it to protobuf message
+                    switch (buffer[LISA_INDEX_MSG_ID])
                     {
-                        send_debug(zsock_print,TAG,"Passed Checksum test. Sending Message [%u bytes] with ID %i\n",
-                                   msg_length, element.message[LISA_INDEX_MSG_ID]);
-                        //Depending on message type copy data and set it to protobuf message
-                        switch (element.message[LISA_INDEX_MSG_ID])
-                        {
-                        case IMU_ALL_SCALED:
-                            memcpy(&data_ptr->imu_all,&element.message, sizeof(imu_all_raw_t));
-                            scaled_to_protobuf(&(data_ptr->imu_all.accel), accel.data, acc_scale_unit_coef);
-                            scaled_to_protobuf(&(data_ptr->imu_all.gyro), gyro.data, gyro_scale_unit_coef);
-                            scaled_to_protobuf(&(data_ptr->imu_all.mag), mag.data, mag_scale_unit_coef);
-                            get_protbetty_timestamp(accel.timestamp);
-                            get_protbetty_timestamp(gyro.timestamp);
-                            get_protbetty_timestamp(mag.timestamp);
-                            sensors.accel = &accel;
-                            sensors.gyro = &gyro;
-                            sensors.mag = &mag;
-                            send_debug(zsock_print,TAG,"Received IMU_ALL (ID:%u; Seq: %u) and timestamp %f sec (Latency:%fms)\n X: %f\t Y: %f\t Z: %f ",
-                                       data_ptr->imu_all.header.msg_id,
-                                       data_ptr->imu_all.sequence_number,
-                                       floating_ProtoTime(accel.timestamp),
-                                       calcCurrentLatencyProto(accel.timestamp)*1e3,
-                                       accel.data->x, accel.data->y, accel.data->z);
-                            break;
-                        case IMU_ACCEL_SCALED:
-                            memcpy(&data_ptr->imu_raw,&element.message, sizeof(imu_raw_t));
-                            scaled_to_protobuf(&(data_ptr->imu_raw.data), accel.data, acc_scale_unit_coef);
-                            get_protbetty_timestamp(accel.timestamp);
-                            sensors.accel = &accel;
-                            send_debug(zsock_print,TAG,"Received ACCEL (ID:%u) and timestamp %f sec (Latency:%fms)\n X: %f\t Y: %f\t Z: %f ",
-                                       data_ptr->imu_raw.header.msg_id,
-                                       floating_ProtoTime(accel.timestamp),
-                                       calcCurrentLatencyProto(accel.timestamp)*1e3,
-                                       accel.data->x, accel.data->y, accel.data->z);
-                            break;
-                        case IMU_GYRO_SCALED:
-                            memcpy(&data_ptr->imu_raw,&element.message, sizeof(imu_raw_t));
-                            scaled_to_protobuf(&(data_ptr->imu_raw.data), gyro.data, gyro_scale_unit_coef);
-                            get_protbetty_timestamp(gyro.timestamp);
-                            sensors.gyro = &gyro;
-                            send_debug(zsock_print,TAG,"Received GYRO (ID:%u) and timestamp %f sec (Latency:%fms)\n X: %f\t Y: %f\t Z: %f ",
-                                       data_ptr->imu_raw.header.msg_id,
-                                       floating_ProtoTime(gyro.timestamp),
-                                       calcCurrentLatencyProto(gyro.timestamp)*1e3,
-                                       gyro.data->x, gyro.data->y, gyro.data->z);
-                            break;
+                    case IMU_ALL_SCALED:
+                        memcpy(&data_ptr->imu_all,&buffer[LISA_INDEX_SENDER_ID], sizeof(imu_all_raw_t));
+                        scaled_to_protobuf(&(data_ptr->imu_all.accel), accel.data, acc_scale_unit_coef);
+                        scaled_to_protobuf(&(data_ptr->imu_all.gyro), gyro.data, gyro_scale_unit_coef);
+                        scaled_to_protobuf(&(data_ptr->imu_all.mag), mag.data, mag_scale_unit_coef);
+                        get_protbetty_timestamp(accel.timestamp);
+                        get_protbetty_timestamp(gyro.timestamp);
+                        get_protbetty_timestamp(mag.timestamp);
+                        sensors.accel = &accel;
+                        sensors.gyro = &gyro;
+                        sensors.mag = &mag;
+                        send_debug(zsock_print,TAG,"Received IMU_ALL (ID:%u; Seq: %u) and timestamp %f sec (Latency:%fms)\n X: %f\t Y: %f\t Z: %f ",
+                                   data_ptr->imu_all.header.msg_id,
+                                   data_ptr->imu_all.sequence_number,
+                                   floating_ProtoTime(accel.timestamp),
+                                   calcCurrentLatencyProto(accel.timestamp)*1e3,
+                                   accel.data->x, accel.data->y, accel.data->z);
+                        break;
+                    case IMU_ACCEL_SCALED:
+                        memcpy(&data_ptr->imu_raw,&element.message, sizeof(imu_raw_t));
+                        scaled_to_protobuf(&(data_ptr->imu_raw.data), accel.data, acc_scale_unit_coef);
+                        get_protbetty_timestamp(accel.timestamp);
+                        sensors.accel = &accel;
+                        send_debug(zsock_print,TAG,"Received ACCEL (ID:%u) and timestamp %f sec (Latency:%fms)\n X: %f\t Y: %f\t Z: %f ",
+                                   data_ptr->imu_raw.header.msg_id,
+                                   floating_ProtoTime(accel.timestamp),
+                                   calcCurrentLatencyProto(accel.timestamp)*1e3,
+                                   accel.data->x, accel.data->y, accel.data->z);
+                        break;
+                    case IMU_GYRO_SCALED:
+                        memcpy(&data_ptr->imu_raw,&element.message, sizeof(imu_raw_t));
+                        scaled_to_protobuf(&(data_ptr->imu_raw.data), gyro.data, gyro_scale_unit_coef);
+                        get_protbetty_timestamp(gyro.timestamp);
+                        sensors.gyro = &gyro;
+                        send_debug(zsock_print,TAG,"Received GYRO (ID:%u) and timestamp %f sec (Latency:%fms)\n X: %f\t Y: %f\t Z: %f ",
+                                   data_ptr->imu_raw.header.msg_id,
+                                   floating_ProtoTime(gyro.timestamp),
+                                   calcCurrentLatencyProto(gyro.timestamp)*1e3,
+                                   gyro.data->x, gyro.data->y, gyro.data->z);
+                        break;
 
-                        case IMU_MAG_SCALED:
-                            memcpy(&data_ptr->imu_raw,&element.message, sizeof(imu_raw_t));
-                            scaled_to_protobuf(&(data_ptr->imu_raw.data), mag.data, mag_scale_unit_coef);
-                            get_protbetty_timestamp(mag.timestamp);
-                            sensors.mag = &mag;
-                            send_debug(zsock_print,TAG,"Received MAG (ID:%u) and timestamp %f sec (Latency:%fms)\n X: %f\t Y: %f\t Z: %f",
-                                       data_ptr->imu_raw.header.msg_id,
-                                       floating_ProtoTime(gyro.timestamp),
-                                       calcCurrentLatencyProto(gyro.timestamp)*1e3,
-                                       mag.data->x, mag.data->y, mag.data->z);
-                            break;
-                        case AIRSPEED_ETS:
-                            memcpy(&data_ptr->airspeed_raw,&element.message, sizeof(airspeed_t));
-                            airspeed.scaled = data_ptr->airspeed_raw.scaled;
-                            get_protbetty_timestamp(airspeed.timestamp);
-                            sensors.airspeed = &airspeed;
-                            send_debug(zsock_print,TAG,"Received AIRSPEED (ID:%u) and timestamp %f sec (Latency:%fms) ",
-                                       data_ptr->airspeed_raw.header.msg_id,
-                                       floating_ProtoTime(airspeed.timestamp),
-                                       calcCurrentLatencyProto(airspeed.timestamp)*1e3);
-                            break;
-                        default:
-                            break;
-                        }
-                    }
-                    else
-                    {
-                        send_warning(zsock_print,TAG,"ERROR Checksum test failed for id %i\n",element.message[LISA_INDEX_MSG_ID]);
+                    case IMU_MAG_SCALED:
+                        memcpy(&data_ptr->imu_raw,&element.message, sizeof(imu_raw_t));
+                        scaled_to_protobuf(&(data_ptr->imu_raw.data), mag.data, mag_scale_unit_coef);
+                        get_protbetty_timestamp(mag.timestamp);
+                        sensors.mag = &mag;
+                        send_debug(zsock_print,TAG,"Received MAG (ID:%u) and timestamp %f sec (Latency:%fms)\n X: %f\t Y: %f\t Z: %f",
+                                   data_ptr->imu_raw.header.msg_id,
+                                   floating_ProtoTime(gyro.timestamp),
+                                   calcCurrentLatencyProto(gyro.timestamp)*1e3,
+                                   mag.data->x, mag.data->y, mag.data->z);
+                        break;
+                    case AIRSPEED_ETS:
+                        memcpy(&data_ptr->airspeed_raw,&element.message, sizeof(airspeed_t));
+                        airspeed.scaled = data_ptr->airspeed_raw.scaled;
+                        get_protbetty_timestamp(airspeed.timestamp);
+                        sensors.airspeed = &airspeed;
+                        send_debug(zsock_print,TAG,"Received AIRSPEED (ID:%u) and timestamp %f sec (Latency:%fms) ",
+                                   data_ptr->airspeed_raw.header.msg_id,
+                                   floating_ProtoTime(airspeed.timestamp),
+                                   calcCurrentLatencyProto(airspeed.timestamp)*1e3);
+                        break;
+                    default:
+                        break;
                     }
                 }
                 else
                 {
-                    send_warning(zsock_print,TAG,"ERROR wrong SENDER ID %i\n",element.message[LISA_INDEX_SENDER_ID]);
+                    send_warning(zsock_print,TAG,"ERROR Checksum test failed for id %i\n",element.message[LISA_INDEX_MSG_ID]);
                 }
             }
+            else
+            {
+                send_warning(zsock_print,TAG,"ERROR wrong SENDER ID %i\n",element.message[LISA_INDEX_SENDER_ID]);
+            }
         }
+
 
 
 
@@ -415,7 +405,6 @@ int main(int argc __attribute__((unused)),
             //Resetting
             protobetty__sensors__init(&sensors);
         }
-        calc_next_shot(&t,rt_interval);
     }
 
     /* Shouldn't get here. */

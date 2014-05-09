@@ -20,7 +20,9 @@ void serial_port_flush(void);
 UART_errCode serial_port_flush_output(void);
 void signal_handler_IO (int status);
 static int wait_for_data(const int descriptor, epoll_event_t *event, const int timeout_ms);
-//static int find_startbyte(const int descriptor, epoll_event_t *event, uint8_t *buffer);
+static int find_startbyte(const int descriptor, epoll_event_t *event, uint8_t *buffer);
+static int read_message_data(const int descriptor, epoll_event_t* event, uint8_t* buffer, int length);
+
 
 
 
@@ -28,7 +30,7 @@ static char FILENAME[] = "uart_communication.c";
 
 //extern serial_port *serial_stream;
 
-speed_t speed = B115200;
+speed_t speed = B921600;
 //Variables for serial port
 const char device[]="/dev/ttyO4";
 const char device_enabled_check[] = "ttyO4_armhf.com"; //For Angstrom: enable-uart5
@@ -58,7 +60,6 @@ int read_uart(uint8_t* const buffer,int length)
     if(n==-1){
         return UART_ERR_READ;
     }
-
     return n;  //return number of read bytes
 }
 
@@ -279,7 +280,7 @@ UART_errCode  serial_port_open_raw(const char* device_ptr, speed_t speed_param) 
         return UART_ERR_SERIAL_PORT_OPEN;
     }
     serial_stream->cur_termios = serial_stream->orig_termios;
-   /* input modes  */
+    /* input modes  */
     serial_stream->cur_termios.c_iflag &= ~(IGNBRK|BRKINT|PARMRK|INPCK|ISTRIP|INLCR|IGNCR
                                             |ICRNL |IUCLC|IXON|IXANY|IXOFF|IMAXBEL);
     serial_stream->cur_termios.c_iflag |= IGNPAR;
@@ -302,7 +303,7 @@ UART_errCode  serial_port_open_raw(const char* device_ptr, speed_t speed_param) 
         return UART_ERR_SERIAL_PORT_OPEN;
     }
     serial_port_flush();
-   return UART_ERR_NONE;
+    return UART_ERR_NONE;
 }
 
 UART_errCode serial_port_close(void) {
@@ -394,18 +395,40 @@ static int find_startbyte(const int descriptor, epoll_event_t* event, uint8_t* b
 
 int read_lisa_message(const int descriptor, epoll_event_t* event, uint8_t* buffer)
 {
-    printf("In Syncing\n");
+    int bytes_read = 0;
+    int message_length = 0;
+    do
+    {
+        bytes_read = find_startbyte(descriptor, event, buffer);
+    } while (bytes_read == 0);
 
-            read_uart(buffer,46);
-            if (buffer[0] != LISA_STARTBYTE)
-            {
-                while (!find_startbyte(descriptor,event,buffer))
-                {
-                    printf("Syncing\n");
-                }
-                read_uart(buffer,45);
-            }
-            return 1;
+    if (wait_for_data(descriptor,event, 1000) > 0)
+    {
+        bytes_read += read_uart(&buffer[bytes_read], 1);
+        message_length = buffer[bytes_read-1];
+        bytes_read += read_message_data(descriptor, event, buffer, message_length- bytes_read);
+        return message_length;
+    }
+    return 0;
+}
+
+static int read_message_data(const int descriptor, epoll_event_t* event, uint8_t* buffer, int length)
+{
+    int bytes_in_buffer = 0;
+    do
+    {
+        if (wait_for_data(descriptor,event, 1000) > 0)
+        {
+            ioctl(serial_stream->fd, FIONREAD, &bytes_in_buffer); //set to number of bytes in buffer
+        }
+    } while (bytes_in_buffer < length);
+
+    int bytes_read = read_uart(buffer, length);
+    if (bytes_read == length)
+    {
+        return length;
+    }
+    return 0;
 }
 
 
