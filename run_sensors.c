@@ -97,7 +97,7 @@ int main(int argc __attribute__((unused)),
     set_priority(&param, RT_PRIORITY);
     stack_prefault();
     struct timespec t;
-    int rt_interval = 5000000; /* 5ms*/
+    int rt_interval = 50000000; /* 5ms*/
 
 
     setbuf(stdin, NULL);
@@ -346,7 +346,7 @@ int main(int argc __attribute__((unused)),
         //Poll on activated channels for messages
         if (bail) die(bail);
         /* Poll for activity; time out after 10 milliseconds. */
-        const int polled = zmq_poll(polls, npolls, 5);
+        const int polled = zmq_poll(polls, npolls, 0);
         if (polled < 0) {
             if (bail) die(bail);
             printf("while polling");
