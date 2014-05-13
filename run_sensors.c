@@ -16,6 +16,7 @@
 #include "./comms.h"
 #include "./structures.h"
 #include "./log.h"
+#include "./sensors.h"
 
 static FILE *open_sensor_file(const char *path) {
   FILE *butts = fopen(path, "r");
@@ -90,7 +91,7 @@ int main(int argc __attribute__((unused)),
   }
 
   /* Sensor data storage. */
-  sensor_data outgoing;
+  sensors_t outgoing;
 
   zmq_pollitem_t polls[] = {
     /* Inputs -- in this case, our sensor file. */
@@ -162,7 +163,8 @@ int main(int argc __attribute__((unused)),
          * data. */
         outputs[0].events = outputs[1].events = 0;
       } else {
-        printf("read OK!\n");
+        double t = get_sensors(&outgoing);
+        printf("read OK!: %.4f\n",t);
         /* Data OK -- enable output sockets. */
         outputs[0].events = outputs[1].events = ZMQ_POLLOUT;
         /* Sleep because it's a test program using /dev/zero for input! */

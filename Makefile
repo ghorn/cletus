@@ -5,6 +5,8 @@ PROJ = run_sensors run_controller run_actuators
 SRC ?= run_sensors.c \
        run_controller.c \
        run_actuators.c \
+       controller.c \
+       sensors.c \
        zmq.c
 
 # What directories must we include?
@@ -13,7 +15,7 @@ INCLUDENAMES ?= # e.g. ../mathlib; the makefile will add the -I
 OTHERINCLUDE ?=
 
 # With what libraries should we link?
-LIBNAMES ?= zmq # e.g. m gsl atlas; the makefile will add the -l
+LIBNAMES ?= zmq m # e.g. m gsl atlas; the makefile will add the -l
 LIBDIRS ?= # e.g. ../; the makefile will add the -L
 OTHERLIB ?=
 

@@ -17,6 +17,8 @@
 #include "./structures.h"
 #include "./log.h"
 
+#include "./controller.h"
+
 /* ZMQ resources */
 static void *zctx = NULL;
 static void *zsock_sensors = NULL;
@@ -68,8 +70,8 @@ int main(int argc __attribute__((unused)),
     die(1);
 
   /* Data storage. */
-  sensor_data incoming;
-  actuator_data outgoing;
+  sensors_t y_incoming;
+  actuators_t u_outgoing;
 
   zmq_pollitem_t polls[] = {
     /* Inputs -- in this case, our sensor file. */
@@ -126,9 +128,9 @@ int main(int argc __attribute__((unused)),
 
     if (bail) die(bail);
     if (inputs[0].revents & ZMQ_POLLIN) {
-      const int zr = zmq_recvm(zsock_sensors, (uint8_t *) &incoming,
-                               sizeof(incoming));
-      if (zr < (int) sizeof(incoming)) {
+      const int zr = zmq_recvm(zsock_sensors, (uint8_t *) &y_incoming,
+                               sizeof(y_incoming));
+      if (zr < (int) sizeof(y_incoming)) {
         err("couldn't read actuator commands!");
         rxfails++;
         /* Better clear the output flag, in case we corrupted the
@@ -138,8 +140,7 @@ int main(int argc __attribute__((unused)),
         printf("read from sensors OK!\n");
         /* Here is where you might run your controller when you get a
          * complete set of sensor inputs. */
-        printf("running controller (loljk)\n");
-        memcpy(&outgoing, &incoming, sizeof(outgoing));
+        run_controller(&y_incoming, &u_outgoing);
         /* Controller went OK (it had damn well better) -- enable
          * output sockets. */
         outputs[0].events = outputs[1].events = ZMQ_POLLOUT;
@@ -150,8 +151,8 @@ int main(int argc __attribute__((unused)),
 
     if (bail) die(bail);
     if (outputs[0].revents & ZMQ_POLLOUT) {
-      const void *bufs[] = {&outgoing};
-      const uint32_t lens[] = {sizeof(outgoing)};
+      const void *bufs[] = {&u_outgoing};
+      const uint32_t lens[] = {sizeof(u_outgoing)};
       const int zs = zmq_sendm(zsock_actuators, bufs, lens,
                                sizeof(lens) / sizeof(lens[0]));
       if (zs < 0) {

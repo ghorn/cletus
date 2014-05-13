@@ -89,7 +89,7 @@ int main(int argc __attribute__((unused)),
   }
 
   /* Actuator data storage. */
-  actuator_data incoming;
+  actuators_t incoming;
 
   zmq_pollitem_t polls[] = {
     /* Inputs -- in this case, our incoming actuator commands. */

@@ -7,17 +7,31 @@
 #ifndef __STRUCTURES_H__
 #define __STRUCTURES_H__
 
-#include <stdint.h>
+#include <inttypes.h>
+#include <time.h>
 
 typedef struct {
-  double my;
-  double butt;
-} sensor_data;
+  double x;
+  double y;
+  double z;
+} xyz_t;
 
 typedef struct {
-  uint16_t left_cheek;
-  uint16_t right_cheek;
-} actuator_data;
+  struct timespec timestamp;
+  xyz_t gyro;
+  xyz_t accel;
+  xyz_t gps_pos;
+  xyz_t gps_vel;
+} sensors_t;
+
+typedef struct {
+  struct timespec start;
+  struct timespec stop;
+  double flaps;
+  double ail;
+  double rudd;
+  double elev;
+} actuators_t;
 
 #define LOG_MESSAGE_SENSORS 0
 #define LOG_MESSAGE_ESTIMATOR 1
