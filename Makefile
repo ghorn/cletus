@@ -1,10 +1,10 @@
 # What's the executable called?
-PROJ = sensors controller actuators
+PROJ = run_sensors run_controller run_actuators
 
 # What C or C++ files must we compile to make the executable?
-SRC ?= sensors.c \
-       controller.c \
-       actuators.c \
+SRC ?= run_sensors.c \
+       run_controller.c \
+       run_actuators.c \
        zmq.c
 
 # What directories must we include?
