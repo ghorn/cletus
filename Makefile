@@ -50,3 +50,7 @@ include $(MKFILE_DIR)test.mk
 include $(MKFILE_DIR)syntax.mk
 include $(MKFILE_DIR)clean.mk
 include $(MKFILE_DIR)common_tail.mk
+
+docs:
+	@echo Generating docs \(requires the 'redcarpet' ruby gem\).
+	$(Q)redcarpet README.md > README.html && x-www-browser README.html

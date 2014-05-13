@@ -3,3 +3,4 @@ sensors
 actuators
 *.lst
 *.o
+*.html
