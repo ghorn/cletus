@@ -1,6 +1,4 @@
 run_controller
 run_sensors
 run_actuators
-*.lst
 *.o
-*.html

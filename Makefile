@@ -2,58 +2,75 @@
 PROJ = run_sensors run_controller run_actuators
 
 # What C or C++ files must we compile to make the executable?
-SRC ?= run_sensors.c \
-       run_controller.c \
-       run_actuators.c \
-       controller.c \
-       sensors.c \
-       misc.c \
-       zmq.c
+C_SRC = run_sensors.c \
+        run_controller.c \
+        run_actuators.c \
+        controller.c \
+        sensors.c \
+        misc.c \
+        zmq.c
 
-# What directories must we include?
-INCLUDENAMES ?= # e.g. ../mathlib; the makefile will add the -I
+CXX_SRC = \
+#	main.cpp \
+#	parsing.cpp
 
-OTHERINCLUDE ?=
+LIBS = -lzmq -lm
 
-# With what libraries should we link?
-LIBNAMES ?= zmq m # e.g. m gsl atlas; the makefile will add the -l
-LIBDIRS ?= # e.g. ../; the makefile will add the -L
-OTHERLIB ?=
+Q ?= @
 
-# You can add custom compiler and linker flags here.  USERFLAGS gets
-# used by all compiler and linker calls, except when creating a static
-# lib.  The others are specific to their stage.
-USERFLAGS ?=
-ifdef DEBUG
-USERFLAGS += -DDEBUG
-endif
-ifdef SPAM
-USERFLAGS += -DSPAM
-endif
-USERCFLAGS ?=
-USERCXXFLAGS ?=
-USERLDFLAGS ?=
+# build in the autopilot
+# this has a makefile format to make it easy to include
+# into the paparazzi build system
+UNAME := $(shell uname)
 
-ifdef DEVNAME
-USERFLAGS += -DDEVNAME=\"$(DEVNAME)\"
+LDFLAGS = -lm -lzmq
+INCLUDES =
+
+#CFLAGS = -O3 -Wall -Wextra -Werror -std=gnu99 -Wimplicit -Wshadow -Wswitch-default -Wswitch-enum -Wundef -Wuninitialized -Wpointer-arith -Wstrict-prototypes -Wmissing-prototypes -Wcast-align -Wformat=2 -Wimplicit-function-declaration -Wredundant-decls -Wformat-security  -Werror -Os -march=native -ftree-vectorize -flto -fPIC -D_FORTIFY_SOURCE=2 -fstack-protector-all -fno-strict-overflow   -g -ftrapv
+
+ifeq ($(UNAME),Darwin)
+	LDFLAGS += -L/opt/local/lib
+	INCLUDES += -I/opt/local/include
+	INCLUDES += -isystem /usr/local/include
 endif
 
-MKFILE_DIR = make/
 
-# Use the Google C++ linter on C files, rather than the 'splint' command
-C_LINT = cpplint.py
+OBJ = $(C_SRC:%.c=%.o) $(CXX_SRC:%.cpp=%.o)
 
-# Use the Google C++ linter for flymake targets.
-EXTRA_CHECKS = lint
+## Compile pedantically and save pain later
+CXX_WARNINGFLAGS = -Wall -Wextra -Wshadow -Werror
+C_WARNINGFLAGS =  -Wall -Wextra -Wshadow -Werror -Wstrict-prototypes
+C_WARNINGFLAGS += -Wimplicit -Wswitch-default -Wswitch-enum -Wundef -Wuninitialized -Wpointer-arith -Wstrict-prototypes -Wmissing-prototypes -Wcast-align -Wformat=2 -Wimplicit-function-declaration -Wredundant-decls -Wformat-security  -Werror -Os -march=native -ftree-vectorize -flto -fPIC -D_FORTIFY_SOURCE=2 -fstack-protector-all -fno-strict-overflow -ftrapv
+DEBUGFLAGS ?= -g -DDEBUG # -pg to generate profiling information
 
-include $(MKFILE_DIR)common_head.mk
-include $(MKFILE_DIR)native.mk
-include $(MKFILE_DIR)build.mk
-include $(MKFILE_DIR)test.mk
-include $(MKFILE_DIR)syntax.mk
-include $(MKFILE_DIR)clean.mk
-include $(MKFILE_DIR)common_tail.mk
+OPTFLAGS = -O3
 
-docs:
-	@echo Generating docs \(requires the 'redcarpet' ruby gem\).
-	$(Q)redcarpet README.md > README.html && x-www-browser README.html
+CFLAGS ?= $(C_WARNINGFLAGS) $(DEBUGFLAGS) $(FEATUREFLAGS) $(INCLUDES) $(OPTFLAGS) -std=gnu99
+CXXFLAGS ?= $(CXX_WARNINGFLAGS) $(DEBUGFLAGS) $(FEATUREFLAGS) $(INCLUDES) $(OPTFLAGS) -std=gnu++0x
+CC ?= gcc
+CXX ?= g++
+
+.PHONY: all
+all: $(PROJ)
+
+.SECONDEXPANSION:
+$(PROJ): % : $$(findstring $$(*:%=%.o),$(OBJ)) $(filter-out $(PROJ:%=%.o),$(OBJ))
+	@echo LD $@
+ifneq (,$(CXX_SRC))
+	$(Q)$(CXX) $(filter %.o %.a %.so, $^) $(LDFLAGS) -o $@
+else
+	$(Q)$(CC) $(filter %.o %.a %.so, $^) $(LDFLAGS) -o $@
+endif
+
+
+%.o : %.c
+	@echo CC $@
+	$(Q)$(CC) $(CFLAGS) -c $< -o $@
+
+%.o : %.cpp
+	@echo CXX $@
+	$(Q)$(CXX) $(CXXFLAGS) -c $< -o $@
+
+clean:
+	rm -f $(PROJ)
+	rm -f $(OBJ)
