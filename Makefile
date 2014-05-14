@@ -7,6 +7,7 @@ SRC ?= run_sensors.c \
        run_actuators.c \
        controller.c \
        sensors.c \
+       misc.c \
        zmq.c
 
 # What directories must we include?

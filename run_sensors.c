@@ -163,12 +163,11 @@ int main(int argc __attribute__((unused)),
          * data. */
         outputs[0].events = outputs[1].events = 0;
       } else {
-        double t = get_sensors(&outgoing);
-        printf("read OK!: %.4f\n",t);
+        get_sensors(&outgoing);
         /* Data OK -- enable output sockets. */
         outputs[0].events = outputs[1].events = ZMQ_POLLOUT;
         /* Sleep because it's a test program using /dev/zero for input! */
-        usleep(500000);
+        usleep(5000); // 200 Hz
       }
       /* Clear the poll state. */
       polls[0].revents = 0;

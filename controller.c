@@ -18,12 +18,12 @@
 #include "./comms.h"
 #include "./structures.h"
 #include "./log.h"
-#include "controller.h"
+#include "./controller.h"
+#include "./misc.h"
 
 
 void run_controller(const sensors_t * const y, actuators_t * const u) {
   clock_gettime(CLOCK_MONOTONIC, &(u->start));
-  printf("running controller haha\n");
   static double integral_term = 0;
   static double reference = 4;
   static int counter = 0;
@@ -39,4 +39,8 @@ void run_controller(const sensors_t * const y, actuators_t * const u) {
   u->rudd  = sin(3*integral_term);
   u->elev  = sin(4*integral_term);
   clock_gettime(CLOCK_MONOTONIC, &(u->stop));
+  double t0 = floating_time(&(u->start));
+  double tf = floating_time(&(u->stop));
+  printf("ran controller, start time: %.4f, end time: %.4f, diff time: %.3f us\n",
+         t0,tf,(tf-t0)*1e6);
 }

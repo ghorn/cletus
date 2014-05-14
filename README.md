@@ -4,16 +4,16 @@ pipeline
 Programs
 --------
 
-The code is broken into three programs: `sensors`, `controller` and
-`actuators`.  They do roughly what you'd expect from the names:
+The code is broken into three programs: `run_sensors`, `run_controller` and
+`run_actuators`.  They do roughly what you'd expect from the names:
 
- - `sensors` gathers data from serial or other devices on the system
+ - `run_sensors` gathers data from serial or other devices on the system
    and packages them into messages to send to the controller.
 
- - `controller` receives sensor input and processes it, then sends the
+ - `run_controller` receives sensor input and processes it, then sends the
    actuator commands it has calculated to `actuators`.
 
- - `actuators` receives actuator commands and sends them to the
+ - `run_actuators` receives actuator commands and sends them to the
    appropriate devices.
 
 Each program is organized as an event loop using the zmq_poll() call.

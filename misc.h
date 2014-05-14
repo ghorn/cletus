@@ -4,11 +4,11 @@
  * system does not recognize such a concept, you may consider it
  * licensed under BSD 3.0.  Use it for good.
  */
+#ifndef __MISC_H__
+#define __MISC_H__
 
-#ifndef __SENSORS_H__
-#define __SENSORS_H__
-#include "./structures.h"
+#include <time.h>
 
-void get_sensors(sensors_t * const y);
+double floating_time(const struct timespec * const t);
 
-#endif // __SENSORS_H__
+#endif // __MISC_H__

@@ -18,7 +18,8 @@
 #include "./comms.h"
 #include "./structures.h"
 #include "./log.h"
-#include "sensors.h"
+#include "./sensors.h"
+#include "./misc.h"
 
 void some_data(xyz_t * v, double t, double scalar);
 void some_data(xyz_t * v, double t, double scalar){
@@ -27,13 +28,12 @@ void some_data(xyz_t * v, double t, double scalar){
   v->z = sin(t*scalar*3);
 }
 
-double get_sensors(sensors_t * const y) {
+void get_sensors(sensors_t * const y) {
   clock_gettime(CLOCK_MONOTONIC, &(y->timestamp));
-  double t = (double)y->timestamp.tv_sec + ((double)y->timestamp.tv_nsec)/1e9;
-
+  double t = floating_time(&(y->timestamp));
   some_data(&(y->gyro), t, 2);
   some_data(&(y->accel), t, 3);
   some_data(&(y->gps_pos), t, 4);
   some_data(&(y->gps_vel), t, 5);
-  return t;
+  printf("read sensors!: %.4f\n",t);
 }
