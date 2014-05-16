@@ -8,6 +8,7 @@ module AeroCoeffs where
 import Data.Foldable ( Foldable )
 import GHC.Generics
 import Linear
+import Data.Serialize
 
 import Dyno.Server.Accessors ( Lookup(..) )
 import Dyno.Vectorize
@@ -22,6 +23,7 @@ data ControlSurfaces a =
                   , csFlaps :: a
                   } deriving (Eq, Functor, Foldable, Generic, Generic1, Show)
 instance Vectorize ControlSurfaces
+instance Serialize a => Serialize (ControlSurfaces a)
 instance (Lookup a, Generic a) => Lookup (ControlSurfaces a)
 
 data AeroForceCoeffs a =

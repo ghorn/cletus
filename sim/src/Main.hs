@@ -4,6 +4,7 @@
 
 module Main where
 
+import Text.Printf
 import qualified Data.ByteString as BS
 import Data.ByteString.Char8 ( pack )
 import Data.ByteString.Unsafe
@@ -16,8 +17,6 @@ import System.Clock
 import Foreign.Marshal.Utils
 import Foreign.Storable
 import Foreign.Ptr
-
-import Dyno.Vectorize
 
 import Aircraft
 import AeroCoeffs
@@ -130,34 +129,35 @@ orthonormalize (V3
            (V3 m20' m21'' m22''))
 
 main :: IO ()
-main = withCallback "ipc:///tmp/sensors" $ \send -> do
-  let u = AcU (ControlSurfaces 0 0 0 0)
-      ts = 0.002
-      go :: AcX Double -> IO ()
-      go x0 = do
-        clock <- getTime Monotonic
-        let y = getSensors x0 u
-            yc = toCSensors y clock
-        ycb <- unsafeToByteString yc
-        send ycb
-        let x1 = integrate ts x0 u
-        print clock
-        CC.threadDelay (round (ts*1e6))
-        go x1
-  go simX0
-  return ()
-
+main =
+  ZMQ.withContext $ \context ->
+  ZMQ.withSocket context ZMQ.Push $ \sensorPublisher ->
+  ZMQ.withSocket context ZMQ.Pub $ \simTelemPublisher -> do
+    ZMQ.connect sensorPublisher "ipc:///tmp/sensors"
+    ZMQ.bind simTelemPublisher "ipc:///tmp/simtelem"
+    let u = AcU (ControlSurfaces 0 0 0 0)
+        ts = 0.002
+        go :: Double -> AcX Double -> IO ()
+        go t0 x0 = do
+          clock <- getTime Monotonic
+          let y = getSensors x0 u
+              yc = toCSensors y clock
+              simTelem = SimTelem { stX = x0
+                                  , stU = u
+                                  , stMessages = [printf "sim time: %.3f" t0]
+                                  , stW0 = 0
+                                  }
+          ycb <- unsafeToByteString yc
+          ZMQ.sendMulti sensorPublisher (NE.fromList [ycb])
+          ZMQ.sendMulti simTelemPublisher (NE.fromList [pack "sim_telemetry", encode simTelem])
+          let x1 = integrate ts x0 u
+          print clock
+          CC.threadDelay (round (ts*1e6))
+          go (t0 + ts) x1
+    
+    go 0 simX0
 
 unsafeToByteString :: Storable a => a -> IO BS.ByteString
 unsafeToByteString x = do
   px <- new x
   unsafePackMallocCStringLen (castPtr px, sizeOf x)
-
-callback :: ZMQ.Socket ZMQ.Push -> BS.ByteString -> IO ()
-callback publisher stuff = ZMQ.sendMulti publisher (NE.fromList [stuff])
-
-withCallback :: String -> ((BS.ByteString -> IO ()) -> IO ()) -> IO ()
-withCallback url userFun =
-  ZMQ.withContext $ \context ->
-    ZMQ.withSocket context ZMQ.Push $ \publisher ->
-      ZMQ.connect publisher url >> userFun (callback publisher)

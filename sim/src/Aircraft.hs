@@ -1,14 +1,15 @@
-{-# OPTIONS_GHC -Wall #-}
+{-# OPTIONS_GHC -Wall -fno-warn-orphans #-}
 {-# Language ScopedTypeVariables #-}
 {-# Language DeriveFunctor #-}
 {-# Language DeriveGeneric #-}
 
-module Aircraft ( AcX(..), AcU(..), aircraftDae, aircraftOde
+module Aircraft ( SimTelem(..), AcX(..), AcU(..), aircraftDae, aircraftOde
                 ) where
 
 import GHC.Generics
 import Control.Applicative
 import Linear
+import Data.Serialize
 
 import Dyno.Vectorize
 import Dyno.Server.Accessors ( Lookup(..) )
@@ -22,6 +23,14 @@ data AcX a = AcX { ac_r_n2b_n :: V3 a
                  } deriving (Eq, Functor, Generic, Generic1, Show)
 data AcU a = AcU { acSurfaces :: ControlSurfaces a
                  } deriving (Eq, Functor, Generic, Generic1, Show)
+data SimTelem =
+  SimTelem
+  { stX :: AcX Double
+  , stU :: AcU Double
+  , stMessages :: [String]
+  , stW0 :: Double
+  } deriving (Generic, Show)
+instance Serialize SimTelem
 instance Applicative AcX where
   pure = fill
   AcX x0 y0 (V3 z00 z01 z02) w0 <*> AcX x1 y1 (V3 z10 z11 z12) w1 =
@@ -30,12 +39,14 @@ instance Applicative AcX where
     (y0 <*> y1)
     (V3 (z00 <*> z10) (z01 <*> z11) (z02 <*> z12))
     (w0 <*> w1)
-    
   
 newtype AcZ a = AcZ (None a) deriving (Eq, Functor, Generic, Generic1, Show)
 newtype AcR a = AcR (AcX a) deriving (Eq, Functor, Generic, Generic1, Show)
 newtype AcP a = AcP (None a) deriving (Eq, Functor, Generic, Generic1, Show)
 
+instance Serialize a => Serialize (V3 a)
+instance Serialize a => Serialize (AcX a)
+instance Serialize a => Serialize (AcU a)
 instance Vectorize AcX
 instance Vectorize AcZ
 instance Vectorize AcU
