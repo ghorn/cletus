@@ -38,9 +38,12 @@ endif
 OBJ = $(C_SRC:%.c=%.o) $(CXX_SRC:%.cpp=%.o)
 
 ## Compile pedantically and save pain later
-CXX_WARNINGFLAGS = -Wall -Wextra -Wshadow -Werror
-C_WARNINGFLAGS =  -Wall -Wextra -Wshadow -Werror -Wstrict-prototypes
-C_WARNINGFLAGS += -Wimplicit -Wswitch-default -Wswitch-enum -Wundef -Wuninitialized -Wpointer-arith -Wstrict-prototypes -Wmissing-prototypes -Wcast-align -Wformat=2 -Wimplicit-function-declaration -Wredundant-decls -Wformat-security  -Werror -Os -march=native -ftree-vectorize -flto -fPIC -D_FORTIFY_SOURCE=2 -fstack-protector-all -fno-strict-overflow -ftrapv
+CXX_WARNINGFLAGS = -Wall -Wextra -Wshadow
+C_WARNINGFLAGS =  -Wall -Wextra -Wshadow -Wstrict-prototypes
+C_WARNINGFLAGS += -Wimplicit -Wswitch-default -Wswitch-enum -Wundef -Wuninitialized -Wpointer-arith -Wstrict-prototypes -Wmissing-prototypes -Wcast-align -Wformat=2 -Wimplicit-function-declaration -Wredundant-decls -Wformat-security -march=native -ftree-vectorize -flto -fPIC -D_FORTIFY_SOURCE=2 -fstack-protector-all -fno-strict-overflow -ftrapv
+
+C_WARNINGFLAGS += -Werror
+CXX_WARNINGFLAGS += -Werror
 DEBUGFLAGS ?= -g -DDEBUG # -pg to generate profiling information
 
 OPTFLAGS = -O3

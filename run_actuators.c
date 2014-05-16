@@ -16,6 +16,7 @@
 #include "./comms.h"
 #include "./structures.h"
 #include "./log.h"
+#include "./misc.h"
 
 static FILE *open_actuator_file(const char *path) {
   FILE *butts = fopen(path, "r");
@@ -162,7 +163,7 @@ int main(int argc __attribute__((unused)),
          * data. */
         outputs[0].events = outputs[1].events = 0;
       } else {
-        printf("read from controller OK!\n");
+        printf("read from controller OK!, time: %.3f\n",floating_time(&(incoming.stop)));
         /* Data OK -- enable output sockets. */
         outputs[0].events = outputs[1].events = ZMQ_POLLOUT;
       }

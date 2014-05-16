@@ -17,6 +17,7 @@
 #include "./structures.h"
 #include "./log.h"
 #include "./sensors.h"
+#include "./misc.h"
 
 static FILE *open_sensor_file(const char *path) {
   FILE *butts = fopen(path, "r");
@@ -163,11 +164,11 @@ int main(int argc __attribute__((unused)),
          * data. */
         outputs[0].events = outputs[1].events = 0;
       } else {
+        usleep(5000); // 200 Hz
         get_sensors(&outgoing);
         /* Data OK -- enable output sockets. */
         outputs[0].events = outputs[1].events = ZMQ_POLLOUT;
         /* Sleep because it's a test program using /dev/zero for input! */
-        usleep(5000); // 200 Hz
       }
       /* Clear the poll state. */
       polls[0].revents = 0;
