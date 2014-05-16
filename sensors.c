@@ -11,7 +11,6 @@
 #include <string.h>
 #include <signal.h>
 #include <zmq.h>
-#include <time.h>
 #include <math.h>
 
 #include "./zmq.h"
@@ -29,7 +28,7 @@ void some_data(xyz_t * v, double t, double scalar){
 }
 
 void get_sensors(sensors_t * const y) {
-  clock_gettime(CLOCK_MONOTONIC, &(y->timestamp));
+  gettime(&(y->timestamp));
   double t = floating_time(&(y->timestamp));
   some_data(&(y->gyro), t, 2);
   some_data(&(y->accel), t, 3);

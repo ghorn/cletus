@@ -8,7 +8,9 @@
 #define __MISC_H__
 
 #include <time.h>
+#include "./structures.h"
 
-double floating_time(const struct timespec * const t);
+double floating_time(const timestamp_t * const t);
+void gettime(timestamp_t * const t);
 
 #endif // __MISC_H__

@@ -8,7 +8,11 @@
 #define __STRUCTURES_H__
 
 #include <inttypes.h>
-#include <time.h>
+
+typedef struct {
+  uint64_t tsec;
+  uint64_t tnsec;
+} timestamp_t;
 
 typedef struct {
   double x;
@@ -17,7 +21,7 @@ typedef struct {
 } xyz_t;
 
 typedef struct {
-  struct timespec timestamp;
+  timestamp_t timestamp;
   xyz_t gyro;
   xyz_t accel;
   xyz_t gps_pos;
@@ -25,8 +29,8 @@ typedef struct {
 } sensors_t;
 
 typedef struct {
-  struct timespec start;
-  struct timespec stop;
+  timestamp_t start;
+  timestamp_t stop;
   double flaps;
   double ail;
   double rudd;

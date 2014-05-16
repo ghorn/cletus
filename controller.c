@@ -12,7 +12,6 @@
 #include <signal.h>
 #include <zmq.h>
 #include <math.h>
-#include <time.h>
 
 #include "./zmq.h"
 #include "./comms.h"
@@ -23,7 +22,7 @@
 
 
 void run_controller(const sensors_t * const y, actuators_t * const u) {
-  clock_gettime(CLOCK_MONOTONIC, &(u->start));
+  gettime(&(u->start));
   static double integral_term = 0;
   static double reference = 4;
   static int counter = 0;
@@ -38,7 +37,7 @@ void run_controller(const sensors_t * const y, actuators_t * const u) {
   u->ail   = sin(2*integral_term);
   u->rudd  = sin(3*integral_term);
   u->elev  = sin(4*integral_term);
-  clock_gettime(CLOCK_MONOTONIC, &(u->stop));
+  gettime(&(u->stop));
   double t0 = floating_time(&(u->start));
   double tf = floating_time(&(u->stop));
   printf("ran controller, start time: %.4f, end time: %.4f, diff time: %.3f us\n",

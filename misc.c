@@ -7,7 +7,15 @@
 #include <time.h>
 
 #include "./misc.h"
+#include "./structures.h"
 
-double floating_time(const struct timespec * const t) {
-  return (double)t->tv_sec + ((double)t->tv_nsec)/1e9;
+double floating_time(const timestamp_t * const t) {
+  return (double)t->tsec + ((double)t->tnsec)/1e9;
+}
+
+void gettime(timestamp_t * const t) {
+  struct timespec ts;
+  clock_gettime(CLOCK_MONOTONIC, &ts);
+  t->tsec = ts.tv_sec;
+  t->tnsec = ts.tv_nsec;
 }
