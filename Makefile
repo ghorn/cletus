@@ -50,8 +50,11 @@ CXXFLAGS ?= $(CXX_WARNINGFLAGS) $(DEBUGFLAGS) $(FEATUREFLAGS) $(INCLUDES) $(OPTF
 CC ?= gcc
 CXX ?= g++
 
+HS_STRUCTS = sim/src/Structs/Structures.hs sim/src/Structs/Structures.hsc
+
 .PHONY: all
-all: $(PROJ)
+all: $(PROJ) hs
+hs: $(HS_STRUCTS)
 
 .SECONDEXPANSION:
 $(PROJ): % : $$(findstring $$(*:%=%.o),$(OBJ)) $(filter-out $(PROJ:%=%.o),$(OBJ))
@@ -62,6 +65,13 @@ else
 	$(Q)$(CC) $(filter %.o %.a %.so, $^) $(LDFLAGS) -o $@
 endif
 
+sim/src/Structs/Structures.hsc : structures.h
+	@echo c2hsc $@
+	$(Q)cd sim/src/Structs && c2hsc --prefix=Structs ../../../$<
+
+sim/src/Structs/Structures.hs : sim/src/Structs/Structures.hsc
+	@echo hsc2hs $@
+	$(Q)hsc2hs -Isim/src/Structs $< -o $@
 
 %.o : %.c
 	@echo CC $@
@@ -74,3 +84,4 @@ endif
 clean:
 	rm -f $(PROJ)
 	rm -f $(OBJ)
+	rm -f $(HS_STRUCTS)
