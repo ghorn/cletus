@@ -194,7 +194,7 @@ int main(int argc __attribute__((unused)),
       if (zs < 0) {
         txfails++;
       } else {
-        printf("Sent to controller!\n");
+        printf("Sent to controller!, size: %d\n", (int)sizeof(sensors_t));
         /* Clear the events flag so we won't try to send until we
          * have more data. */
         outputs[0].events = 0;

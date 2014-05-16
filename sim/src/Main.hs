@@ -4,7 +4,7 @@
 
 module Main where
 
-import Data.ByteString ( ByteString )
+import qualified Data.ByteString as BS
 import Data.ByteString.Char8 ( pack )
 import Data.ByteString.Unsafe
 import Data.Serialize
@@ -84,11 +84,6 @@ simX0 =
       , ac_w_bn_b = V3 0 0 0
       }
 
-unsafeToByteString :: Storable a => a -> IO ByteString
-unsafeToByteString x = do
-  px <- new x
-  unsafePackMallocCStringLen (castPtr px, sizeOf x)
-
 orthonormalize :: Floating a => M33 a -> M33 a
 orthonormalize (V3
                 (V3 m00 m01 m02)
@@ -144,20 +139,24 @@ main = withCallback "ipc:///tmp/sensors" $ \send -> do
         let y = getSensors x0 u
             yc = toCSensors y clock
         ycb <- unsafeToByteString yc
-        putStrLn "sending message"
         send ycb
         let x1 = integrate ts x0 u
         print clock
-        CC.threadDelay 200000
+        CC.threadDelay (round (ts*1e6))
         go x1
   go simX0
   return ()
 
 
-callback :: (Serialize a) => ZMQ.Socket ZMQ.Push -> a -> IO ()
-callback publisher stuff = ZMQ.sendMulti publisher (NE.fromList [encode stuff])
+unsafeToByteString :: Storable a => a -> IO BS.ByteString
+unsafeToByteString x = do
+  px <- new x
+  unsafePackMallocCStringLen (castPtr px, sizeOf x)
 
-withCallback :: Serialize a => String -> ((a -> IO ()) -> IO ()) -> IO ()
+callback :: ZMQ.Socket ZMQ.Push -> BS.ByteString -> IO ()
+callback publisher stuff = ZMQ.sendMulti publisher (NE.fromList [stuff])
+
+withCallback :: String -> ((BS.ByteString -> IO ()) -> IO ()) -> IO ()
 withCallback url userFun =
   ZMQ.withContext $ \context ->
     ZMQ.withSocket context ZMQ.Push $ \publisher ->

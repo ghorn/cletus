@@ -131,7 +131,7 @@ int main(int argc __attribute__((unused)),
       const int zr = zmq_recvm(zsock_sensors, (uint8_t *) &y_incoming,
                                sizeof(y_incoming));
       if (zr < (int) sizeof(y_incoming)) {
-        err("couldn't read actuator commands!");
+        err("couldn't read sensors!");
         rxfails++;
         /* Better clear the output flag, in case we corrupted the
          * data. */
