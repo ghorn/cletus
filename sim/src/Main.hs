@@ -36,7 +36,7 @@ toCSensors :: forall a . Real a => Sensors a -> TimeSpec -> C'sensors_t
 toCSensors y ts =
   C'sensors_t { c'sensors_t'timestamp = toTimestamp ts
               , c'sensors_t'gyro = toXyz $ y_gyro y
-              , c'sensors_t'accel = toXyz (V3 0 0 (0::a))
+              , c'sensors_t'accel = toXyz $ y_accel y
               , c'sensors_t'gps_pos = toXyz $ y_gps_pos y
               , c'sensors_t'gps_vel = toXyz $ y_gps_vel y
               }
@@ -44,7 +44,7 @@ toCSensors y ts =
 data Sensors a =
   Sensors
   { y_gyro :: V3 a
---  , y_accel :: V3 a
+  , y_accel :: V3 a
   , y_gps_pos :: V3 a
   , y_gps_vel :: V3 a
   }
@@ -57,23 +57,39 @@ rk4 f h x0 = x0 ^+^ (k1 ^+^ 2 *^ k2 ^+^ 2 *^ k3 ^+^ k4) ^/ 6
     k3 = (f (x0 ^+^ k2^/2)) ^* h
     k4 = (f (x0 ^+^ k3))   ^* h
 
+r_b2m_b :: Fractional a => V3 a
+r_b2m_b = V3 0.0 0.0 0.0
 
-getSensors :: (Num a, Conjugate a) => AcX a -> AcU a -> Sensors a
-getSensors x _ = Sensors { y_gyro = ac_w_bn_b x
---                         , y_accel = ac_v_bn_bac_w_bn_b x
+dcm_b2m :: Fractional a => M33 a
+dcm_b2m = V3
+          (V3 1 0 0)
+          (V3 0 1 0)
+          (V3 0 0 1)
+
+getSensors :: (Floating a, Conjugate a) => AcX a -> AcU a -> Sensors a
+getSensors x u = Sensors { y_gyro = ac_w_bn_b x
+                         , y_accel = accel
                          , y_gps_pos = ac_r_n2b_n x
                          , y_gps_vel = (adjoint (ac_R_n2b x)) !* (ac_v_bn_b x)
                          }
   where
-    --x' = bettyOde x u
+    (x', v_bn_n') = bettyOde x u
+    w_bn_b' = ac_w_bn_b x'
+    w_bn_b = ac_w_bn_b x
 
-bettyOde :: Floating a => AcX a -> AcU a -> AcX a
+    dcm_n2b = ac_R_n2b x
+    accel = dcm_b2m !* (dcm_n2b !* (v_bn_n' - (V3 0 0 9.81)) +
+                        w_bn_b' `cross` r_b2m_b + w_bn_b `cross` (w_bn_b `cross` r_b2m_b))
+
+
+
+bettyOde :: Floating a => AcX a -> AcU a -> (AcX a, V3 a)
 bettyOde = aircraftOde (bettyMass, bettyInertia) bettyFc bettyMc bettyRefs
 
 integrate :: (Floating a, Additive AcX) => a -> AcX a -> AcU a -> AcX a
 integrate h x0 u = AcX z0 z1 (orthonormalize z2) z3
   where
-    AcX z0 z1 z2 z3 = rk4 (flip bettyOde u) h x0
+    AcX z0 z1 z2 z3 = rk4 (fst . flip bettyOde u) h x0
 
 simX0 :: AcX Double
 simX0 =
@@ -154,7 +170,7 @@ main =
           print clock
           CC.threadDelay (round (ts*1e6))
           go (t0 + ts) x1
-    
+
     go 0 simX0
 
 unsafeToByteString :: Storable a => a -> IO BS.ByteString
