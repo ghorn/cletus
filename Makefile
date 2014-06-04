@@ -56,7 +56,7 @@ CXX ?= g++
 HS_STRUCTS = sim/src/Structs/Structures.hs sim/src/Structs/Structures.hsc
 
 .PHONY: all
-all: $(PROJ) hs
+all: $(PROJ)
 hs: $(HS_STRUCTS)
 
 .SECONDEXPANSION:
