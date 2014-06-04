@@ -91,16 +91,6 @@ static DEC_errCode data_to_struct(unsigned char sender,unsigned char stream[], i
 
     switch(sender)
     {
-    case BONE_PLANE: //sender_id of beaglebone
-        switch(stream[MESSAGE_ID_INDEX])
-        {
-        case BEAGLE_ERROR:
-            data_write(stream, (void *)&write_data->bone_plane.error, sizeof(Beagle_error)-1);
-            write_data->bone_plane.error.new_data = 0;
-            break;
-        default: return DEC_ERR_UNKNOWN_BONE_PACKAGE; break;
-        }
-        break;
     case LISA: //sender_id of lisa
 #if DEBUG  > 1
         printf("Received data packet from LISA of type");
@@ -193,25 +183,17 @@ static DEC_errCode data_to_struct(unsigned char sender,unsigned char stream[], i
             return DEC_ERR_UNKNOWN_LISA_PACKAGE;break;
         }
         break;
-    case BONE_WIND:
-        switch(stream[MESSAGE_ID_INDEX]){
-        case NMEA_IIMWV_ID:
-            data_write(stream, (void *)&write_data->bone_wind.nmea_iimmwv, sizeof(NMEA_IIMWV)-1);
-            break;
-        case NMEA_WIXDR_ID:
-            data_write(stream, (void *)&write_data->bone_wind.nmea_wixdr, sizeof(NMEA_WIXDR)-1);
-            break;
-        default: return DEC_ERR_UNKNOWN_WIND_PACKAGE; break;
-        }
-        break;
-    case BONE_ARM:
-        switch(stream[MESSAGE_ID_INDEX]){
-        case LINE_ANGLE_ID:
-            data_write(stream, (void *)&write_data->bone_arm.line_angle, sizeof(LINE_ANGLE)-1);
-            break;
-        default: return DEC_ERR_UNKNOWN_WIND_PACKAGE; break;
-        }
-        break;
+//    case BONE_WIND:
+//        switch(stream[MESSAGE_ID_INDEX]){
+//        case NMEA_IIMWV_ID:
+//            data_write(stream, (void *)&write_data->bone_wind.nmea_iimmwv, sizeof(NMEA_IIMWV)-1);
+//            break;
+//        case NMEA_WIXDR_ID:
+//            data_write(stream, (void *)&write_data->bone_wind.nmea_wixdr, sizeof(NMEA_WIXDR)-1);
+//            break;
+//        default: return DEC_ERR_UNKNOWN_WIND_PACKAGE; break;
+//        }
+//        break;
 
     default: return DEC_ERR_UNKNOWN_SENDER; break;
     }
