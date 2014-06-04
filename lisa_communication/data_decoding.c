@@ -18,13 +18,11 @@ void data_write(unsigned char stream[],void *destination, int length);
  * GLOBALS
  * ******************************/
 
-//one writes to ping and another can read data from pong and upside down
-static Data ping;
-static Data pong;
+//data variable
+static Data data;
 
-//pointers to ping and pong
-static Data* read_data;
-static Data* write_data;
+//pointer to data
+static Data* data_ptr;
 
 
 /********************************
@@ -36,21 +34,10 @@ void init_decoding(){
     printf("Entering init_decoding\n");
 #endif
 
-    read_data = &ping;
-    write_data = &pong;
+    data_ptr = &data;
 }
 
-void switch_read_write()
-{
-#if DEBUG  > 1
-    printf("Entering switch_read_write\n");
-#endif
 
-    Data* temp = read_data;
-
-    read_data = write_data;
-    write_data = temp;
-}
 
 DEC_errCode data_decode(unsigned char stream[])
 {
@@ -101,80 +88,80 @@ static DEC_errCode data_to_struct(unsigned char sender,unsigned char stream[], i
 #if DEBUG  > 1
             printf("SVINFO\n");
 #endif
-            data_write(stream, (void *)&write_data->lisa_plane.svinfo, sizeof(Svinfo)-1);
+            data_write(stream, (void *)&data_ptr->lisa_plane.svinfo, sizeof(Svinfo)-1);
             break;
         case SYSMON:
 #if DEBUG  > 1
             printf("SYSMON\n");
 #endif
-            data_write(stream, (void *)&write_data->lisa_plane.sys_mon, sizeof(Sys_mon)-1);
+            data_write(stream, (void *)&data_ptr->lisa_plane.sys_mon, sizeof(Sys_mon)-1);
             break;
         case AIRSPEED_ETS:
 #if DEBUG  > 1
             printf("AIRSPEED_ETS\n");
 #endif
-            data_write(stream, (void *)&write_data->lisa_plane.airspeed_ets, sizeof(Airspeed_ets)-1);
+            data_write(stream, (void *)&data_ptr->lisa_plane.airspeed_ets, sizeof(Airspeed_ets)-1);
             break;
         case ACTUATORS:
 #if DEBUG  > 1
             printf("ACTUATORS\n");
 #endif
-            data_write(stream, (void *)&write_data->lisa_plane.actuators, sizeof(Actuators)-1);
+            data_write(stream, (void *)&data_ptr->lisa_plane.actuators, sizeof(Actuators)-1);
             break;
         case GPS_INT:
 #if DEBUG  > 1
             printf("GPS_INT\n");
 #endif
-            data_write(stream, (void *)&write_data->lisa_plane.gps_int, sizeof(Gps_int)-1);
-            write_data->zmq_sensors.gps_pos.x = read_data->lisa_plane.gps_int.ecef_x;
-            write_data->zmq_sensors.gps_pos.y = read_data->lisa_plane.gps_int.ecef_y;
-            write_data->zmq_sensors.gps_pos.z = read_data->lisa_plane.gps_int.ecef_z;
-            write_data->zmq_sensors.gps_vel.x = read_data->lisa_plane.gps_int.ecef_xd;
-            write_data->zmq_sensors.gps_vel.y = read_data->lisa_plane.gps_int.ecef_yd;
-            write_data->zmq_sensors.gps_vel.z = read_data->lisa_plane.gps_int.ecef_zd;
-            write_data->counter += GPS_MSG;
+            data_write(stream, (void *)&data_ptr->lisa_plane.gps_int, sizeof(Gps_int)-1);
+            data_ptr->zmq_sensors.gps_pos.x = data_ptr->lisa_plane.gps_int.ecef_x;
+            data_ptr->zmq_sensors.gps_pos.y = data_ptr->lisa_plane.gps_int.ecef_y;
+            data_ptr->zmq_sensors.gps_pos.z = data_ptr->lisa_plane.gps_int.ecef_z;
+            data_ptr->zmq_sensors.gps_vel.x = data_ptr->lisa_plane.gps_int.ecef_xd;
+            data_ptr->zmq_sensors.gps_vel.y = data_ptr->lisa_plane.gps_int.ecef_yd;
+            data_ptr->zmq_sensors.gps_vel.z = data_ptr->lisa_plane.gps_int.ecef_zd;
+            data_ptr->counter += GPS_MSG;
             break;
         case IMU_GYRO_RAW:
 #if DEBUG  > 1
             printf("IMU_GYRO_RAW\n");
 #endif
-            data_write(stream, (void *)&write_data->lisa_plane.imu_gyro_raw, sizeof(Imu_gyro_raw)-1);
-            write_data->zmq_sensors.gyro.x = read_data->lisa_plane.imu_gyro_raw.gp;
-            write_data->zmq_sensors.gyro.y = read_data->lisa_plane.imu_gyro_raw.gq;
-            write_data->zmq_sensors.gyro.z = read_data->lisa_plane.imu_gyro_raw.gr;
-            write_data->counter += GYRO_MSG;
+            data_write(stream, (void *)&data_ptr->lisa_plane.imu_gyro_raw, sizeof(Imu_gyro_raw)-1);
+            data_ptr->zmq_sensors.gyro.x = data_ptr->lisa_plane.imu_gyro_raw.gp;
+            data_ptr->zmq_sensors.gyro.y = data_ptr->lisa_plane.imu_gyro_raw.gq;
+            data_ptr->zmq_sensors.gyro.z = data_ptr->lisa_plane.imu_gyro_raw.gr;
+            data_ptr->counter += GYRO_MSG;
             break;
 
         case IMU_ACCEL_RAW:
 #if DEBUG  > 1
             printf("IMU_ACCEL_RAW\n");
 #endif
-            data_write(stream, (void *)&write_data->lisa_plane.imu_accel_raw, sizeof(Imu_accel_raw)-1);
-            write_data->zmq_sensors.accel.x = read_data->lisa_plane.imu_accel_raw.ax;
-            write_data->zmq_sensors.accel.y = read_data->lisa_plane.imu_accel_raw.ay;
-            write_data->zmq_sensors.accel.z = read_data->lisa_plane.imu_accel_raw.az;
-            write_data->counter += ACC_MSG;
+            data_write(stream, (void *)&data_ptr->lisa_plane.imu_accel_raw, sizeof(Imu_accel_raw)-1);
+            data_ptr->zmq_sensors.accel.x = data_ptr->lisa_plane.imu_accel_raw.ax;
+            data_ptr->zmq_sensors.accel.y = data_ptr->lisa_plane.imu_accel_raw.ay;
+            data_ptr->zmq_sensors.accel.z = data_ptr->lisa_plane.imu_accel_raw.az;
+            data_ptr->counter += ACC_MSG;
             break;
 
         case IMU_MAG_RAW:
 #if DEBUG  > 1
             printf("IMU_MAG_RAW\n");
 #endif
-            data_write(stream, (void *)&write_data->lisa_plane.imu_mag_raw, sizeof(Imu_mag_raw)-1);
+            data_write(stream, (void *)&data_ptr->lisa_plane.imu_mag_raw, sizeof(Imu_mag_raw)-1);
             break;
 
         case UART_ERRORS:
 #if DEBUG  > 1
             printf("UART_ERRORS\n");
 #endif
-            data_write(stream, (void *)&write_data->lisa_plane.uart_errors, sizeof(UART_errors)-1);
+            data_write(stream, (void *)&data_ptr->lisa_plane.uart_errors, sizeof(UART_errors)-1);
             break;
 
         case BARO_RAW:
 #if DEBUG  > 1
             printf("BARO_RAW\n");
 #endif
-            data_write(stream, (void *)&write_data->lisa_plane.baro_raw, sizeof(Baro_raw)-1);
+            data_write(stream, (void *)&data_ptr->lisa_plane.baro_raw, sizeof(Baro_raw)-1);
             break;
         default:
 #if DEBUG  > 1
@@ -408,12 +395,12 @@ void DEC_err_handler(DEC_errCode err,void (*write_error_ptr)(char *,char *,int))
     }
 }
 
-int get_new_sensor_struct(sensors_t * const data)
+int get_new_sensor_struct(sensors_t * const data_struct)
 {
-    if (read_data->counter >= NEW_STRUCT_THRESHOLD)
+    if (data_ptr->counter >= NEW_STRUCT_THRESHOLD)
     {
-        memcpy(data,&(read_data->zmq_sensors), sizeof(sensors_t));
-        write_data->counter = 0;
+        memcpy(data_struct,&(data_ptr->zmq_sensors), sizeof(sensors_t));
+        data_ptr->counter = 0;
         return 1;
     }
     return 0;
