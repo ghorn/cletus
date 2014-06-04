@@ -4,7 +4,7 @@ CC=gcc
 # Hey!, I am comment number 2. I want to say that CFLAGS will be the
 # options I'll pass to the compiler.
 CFLAGS=-c -Wall -std=c99 -Werror -DDEBUG=1 -D _BSD_SOURCE -O3
-INCLUDES= -I. -I/usr/include -pthread 
+INCLUDES= -I. -I/usr/include -I.. -pthread 
 
 all: hello
 
