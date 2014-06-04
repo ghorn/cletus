@@ -8,7 +8,9 @@ C_SRC = run_sensors.c \
         controller.c \
         sensors.c \
         misc.c \
-        zmq.c
+        zmq.c \
+	lisa_communication/uart_communication.c \
+	lisa_communication/data_decoding.c
 
 CXX_SRC = \
 #	main.cpp \
