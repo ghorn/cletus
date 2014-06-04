@@ -84,8 +84,10 @@ DEC_errCode data_decode(unsigned char stream[])
 static DEC_errCode data_to_struct(unsigned char sender,unsigned char stream[], int length) // start = 0
 {
 #if DEBUG  > 1
-    printf("Entering data_to_struct\n");
+    printf("Entering data_to_struct %i \n", length);
 #endif
+    if (length == 0)
+        printf("Datapacket is empty \n");
 
     switch(sender)
     {
@@ -134,12 +136,23 @@ static DEC_errCode data_to_struct(unsigned char sender,unsigned char stream[], i
             printf("GPS_INT\n");
 #endif
             data_write(stream, (void *)&write_data->lisa_plane.gps_int, sizeof(Gps_int)-1);
+            write_data->zmq_sensors.gps_pos.x = read_data->lisa_plane.gps_int.ecef_x;
+            write_data->zmq_sensors.gps_pos.y = read_data->lisa_plane.gps_int.ecef_y;
+            write_data->zmq_sensors.gps_pos.z = read_data->lisa_plane.gps_int.ecef_z;
+            write_data->zmq_sensors.gps_vel.x = read_data->lisa_plane.gps_int.ecef_xd;
+            write_data->zmq_sensors.gps_vel.y = read_data->lisa_plane.gps_int.ecef_yd;
+            write_data->zmq_sensors.gps_vel.z = read_data->lisa_plane.gps_int.ecef_zd;
+            write_data->counter += GPS_MSG;
             break;
         case IMU_GYRO_RAW:
 #if DEBUG  > 1
             printf("IMU_GYRO_RAW\n");
 #endif
             data_write(stream, (void *)&write_data->lisa_plane.imu_gyro_raw, sizeof(Imu_gyro_raw)-1);
+            write_data->zmq_sensors.gyro.x = read_data->lisa_plane.imu_gyro_raw.gp;
+            write_data->zmq_sensors.gyro.y = read_data->lisa_plane.imu_gyro_raw.gq;
+            write_data->zmq_sensors.gyro.z = read_data->lisa_plane.imu_gyro_raw.gr;
+            write_data->counter += GYRO_MSG;
             break;
 
         case IMU_ACCEL_RAW:
@@ -147,6 +160,10 @@ static DEC_errCode data_to_struct(unsigned char sender,unsigned char stream[], i
             printf("IMU_ACCEL_RAW\n");
 #endif
             data_write(stream, (void *)&write_data->lisa_plane.imu_accel_raw, sizeof(Imu_accel_raw)-1);
+            write_data->zmq_sensors.accel.x = read_data->lisa_plane.imu_accel_raw.ax;
+            write_data->zmq_sensors.accel.y = read_data->lisa_plane.imu_accel_raw.ay;
+            write_data->zmq_sensors.accel.z = read_data->lisa_plane.imu_accel_raw.az;
+            write_data->counter += ACC_MSG;
             break;
 
         case IMU_MAG_RAW:
@@ -293,14 +310,14 @@ DEC_errCode data_encode(unsigned char message[],long unsigned int message_length
 }
 
 
-Data* get_read_pointer()
-{
-#if DEBUG  > 1
-    printf("Entering get_read_pointer\n");
-#endif
+//Data* get_read_pointer()
+//{
+//#if DEBUG  > 1
+//    printf("Entering get_read_pointer\n");
+//#endif
 
-    return read_data;
-}
+//    return read_data;
+//}
 
 void calculate_checksum(uint8_t buffer[],uint8_t *checksum_1,uint8_t *checksum_2){
 #if DEBUG  > 1
@@ -407,6 +424,17 @@ void DEC_err_handler(DEC_errCode err,void (*write_error_ptr)(char *,char *,int))
         break;
     default: break;
     }
+}
+
+int get_new_sensor_struct(sensors_t * const data)
+{
+    if (read_data->counter >= NEW_STRUCT_THRESHOLD)
+    {
+        memcpy(data,&(read_data->zmq_sensors), sizeof(sensors_t));
+        write_data->counter = 0;
+        return 1;
+    }
+    return 0;
 }
 
 

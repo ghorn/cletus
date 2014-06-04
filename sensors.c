@@ -20,6 +20,13 @@
 #include "./sensors.h"
 #include "./misc.h"
 
+
+
+
+
+
+
+
 void some_data(xyz_t * v, double t, double scalar);
 void some_data(xyz_t * v, double t, double scalar){
   v->x = sin(t*scalar);
@@ -35,4 +42,27 @@ void get_sensors(sensors_t * const y) {
   some_data(&(y->gps_pos), t, 4);
   some_data(&(y->gps_vel), t, 5);
   printf("read sensors!: %.4f\n",t);
+}
+
+
+int get_lisa_data(sensors_t * const data, uint8_t input_buffer[]) {
+    int message_length = serial_input_get_lisa_data(input_buffer); //blocking !!!
+    if(message_length > 0){
+        //add timestamp
+        message_length=add_timestamp(input_buffer);
+        //Decode messages to see what we receive
+        int err_decode = data_decode(input_buffer);
+        if (err_decode != DEC_ERR_NONE)
+        {
+            printf("Error while decoding data messages.");
+            return 0;
+        }
+        if(get_new_sensor_struct(data))
+        {
+            return 1;
+        }
+    }
+    return 0;
+
+
 }

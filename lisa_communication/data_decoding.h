@@ -21,7 +21,9 @@ extern "C"
 #include <sys/time.h>
 #include <time.h>
 #include "time_highwind.h"
+#include "../structures.h"
 
+#define NEW_STRUCT_THRESHOLD  111
 /********************************
  * GLOBALS
  * ******************************/
@@ -242,11 +244,15 @@ typedef struct{
 
 typedef struct
 {
-	Bone_plane bone_plane;
 	Lisa_plane lisa_plane;
-	Bone_wind bone_wind;
-	Bone_arm bone_arm;
+    sensors_t zmq_sensors;
+    unsigned int counter; //GPS +1 ACC +10 GYRO +100
 } Data;
+
+#define GPS_MSG  1
+#define ACC_MSG  10
+#define GYRO_MSG 100
+
 
 #pragma pack(pop)   /* restore original alignment from stack */
 
@@ -257,12 +263,14 @@ extern void init_decoding(void);/*initalize read/write pointers*/
 extern DEC_errCode data_decode(unsigned char stream[]);/*decodes data stream to the right structure*/
 extern void switch_read_write(void);
 extern DEC_errCode data_encode(unsigned char message[],long unsigned int message_length,unsigned char encoded_data[],int sender_id,int message_id);
-extern Data* get_read_pointer(); /*to get read access to data structure*/
+//extern Data* get_read_pointer(); /*to get read access to data structure*/
 extern void calculate_checksum(unsigned char buffer[],uint8_t *checksum_1,uint8_t *checksum2);
 extern int add_timestamp(unsigned char buffer[]);/*add timestamp to existing package, updates the checksum and the length byte*/
 extern int strip_timestamp(unsigned char buffer[]);/*removes timestamp, update checksums and length byte*/
 DEC_errCode NMEA_asci_encode(const unsigned char buffer[], unsigned char encoded_data[]);/*Encodes NMEA packages coming from windsensor*/
 void DEC_err_handler(DEC_errCode err,void (*write_error_ptr)(char *,char *,int));  
+int get_new_sensor_struct(sensors_t * const data);
+
  
 #ifdef __cplusplus
 }
