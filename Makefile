@@ -16,7 +16,7 @@ CXX_SRC = \
 #	main.cpp \
 #	parsing.cpp
 
-LIBS = -lzmq -lm -lrt
+LIBS = $(shell pkg-config --libs libzmq) -lm -lrt
 
 Q ?= @
 
