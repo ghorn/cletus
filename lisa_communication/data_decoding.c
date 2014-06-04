@@ -170,18 +170,6 @@ static DEC_errCode data_to_struct(unsigned char sender,unsigned char stream[], i
             return DEC_ERR_UNKNOWN_LISA_PACKAGE;break;
         }
         break;
-//    case BONE_WIND:
-//        switch(stream[MESSAGE_ID_INDEX]){
-//        case NMEA_IIMWV_ID:
-//            data_write(stream, (void *)&write_data->bone_wind.nmea_iimmwv, sizeof(NMEA_IIMWV)-1);
-//            break;
-//        case NMEA_WIXDR_ID:
-//            data_write(stream, (void *)&write_data->bone_wind.nmea_wixdr, sizeof(NMEA_WIXDR)-1);
-//            break;
-//        default: return DEC_ERR_UNKNOWN_WIND_PACKAGE; break;
-//        }
-//        break;
-
     default: return DEC_ERR_UNKNOWN_SENDER; break;
     }
     return DEC_ERR_NONE;
@@ -197,48 +185,7 @@ void data_write(unsigned char stream[],void *destination, int length)
 }
 
 
-DEC_errCode NMEA_asci_encode(const unsigned char buffer[], unsigned char encoded_data[])
-{
-#if DEBUG  > 1
-    printf("Entering NMEA_asci_encode\n");
-#endif
-    char str_IIMWV[6];
-    strcpy(str_IIMWV,"IIMWV");
-    char str_WIXDR[6];
-    strcpy(str_WIXDR,"WIXDR");
 
-    if(strncmp((const char *) &buffer[1],str_IIMWV,5)==0){
-        NMEA_IIMWV wind;
-        sscanf((const char *) &buffer[7],"%lf",&wind.wind_angle);
-        sscanf((const char *) &buffer[13],"%c",&wind.relative);
-        sscanf((const char *) &buffer[15],"%lf",&wind.wind_speed);
-        sscanf((const char *) &buffer[22],"%c",&wind.wind_speed_unit);
-        sscanf((const char *) &buffer[24],"%c",&wind.status);
-        data_encode((unsigned char *)&wind,sizeof(NMEA_IIMWV)-16-1,encoded_data,BONE_WIND,NMEA_IIMWV_ID); //- timestamp and - new data flag
-
-        /*printf("wind angle %lf\n",wind.wind_angle);
-        printf("relative %c\n",wind.relative);
-        printf("wind speed %lf\n",wind.wind_speed);
-        printf("wind speed unit %c\n",wind.wind_speed_unit);
-        printf("status %c\n",wind.status);
-        printf("\n");*/
-
-    }else if(strncmp((const char *) &buffer[1],str_WIXDR,5)==0){
-        if(buffer[7]=='C'){
-            NMEA_WIXDR temp;
-            sscanf((const char *) &buffer[9],"%lf",&temp.temperature);
-            sscanf((const char *) &buffer[15],"%c",&temp.unit);
-            data_encode((unsigned char *)&temp,sizeof(NMEA_WIXDR)-16-1,encoded_data,BONE_WIND,NMEA_WIXDR_ID); //- timestamp and - new data flag
-
-            /*printf("Temperature %lf\n",temp.temperature);
-                printf("unit %c\n",temp.unit);
-                printf("\n");*/
-        }
-    }else{
-        return DEC_ERR_UNKNOWN_WIND_PACKAGE;
-    }
-    return DEC_ERR_NONE;
-}
 
 DEC_errCode data_encode(unsigned char message[],long unsigned int message_length,unsigned char encoded_data[],int sender_id,int message_id)
 {
@@ -279,14 +226,6 @@ DEC_errCode data_encode(unsigned char message[],long unsigned int message_length
 }
 
 
-//Data* get_read_pointer()
-//{
-//#if DEBUG  > 1
-//    printf("Entering get_read_pointer\n");
-//#endif
-
-//    return read_data;
-//}
 
 void calculate_checksum(uint8_t buffer[],uint8_t *checksum_1,uint8_t *checksum_2){
 #if DEBUG  > 1
