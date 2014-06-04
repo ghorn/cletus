@@ -86,22 +86,24 @@ aircraftDae
 
 aircraftOde :: forall a. Floating a =>
        (a, M33 a) -> AeroForceCoeffs a -> AeroMomentCoeffs a -> AeroRefs a ->
-       AcX a -> AcU a -> AcX a
+       AcX a -> AcU a -> (AcX a, V3 a)
 aircraftOde
   (mass, inertia)
   forceCoeffs
   momentCoeffs
   refs
   (AcX       _  v_bn_b  dcm_n2b  w_bn_b )
-  (AcU controlSurfaces) = daeResidual
+  (AcU controlSurfaces) = (daeResidual, v_bn_n')
   where
     v_bw_b = v_bn_b -- no relative wind
     (aero_forces_body, moments_body) = aeroForcesMoments forceCoeffs momentCoeffs refs v_bw_b w_bn_b controlSurfaces
-    forces_body = aero_forces_body + dcm_n2b !* (V3 0 0 (9.81*mass))
-
+    forces_body = aero_forces_body + dcm_n2b !* g
+    g = V3 0 0 (9.81*mass)
+    
+    v_bn_n' = forces_body ^/ mass
     daeResidual =
       AcX { ac_r_n2b_n = (trans dcm_n2b) !* v_bn_b
-          , ac_v_bn_b = forces_body ^/ mass - cross w_bn_b v_bn_b
+          , ac_v_bn_b = v_bn_n' - cross w_bn_b v_bn_b
           , ac_R_n2b = (trans (skew w_bn_b)) !*! dcm_n2b
           , ac_w_bn_b = inertiaInv !* (moments_body - cross w_bn_b (inertia !* w_bn_b))
           }
