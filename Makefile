@@ -14,7 +14,7 @@ CXX_SRC = \
 #	main.cpp \
 #	parsing.cpp
 
-LIBS = -lzmq -lm
+LIBS = -lzmq -lm -lrt
 
 Q ?= @
 
