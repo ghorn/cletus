@@ -15,17 +15,23 @@ typedef struct {
 } timestamp_t;
 
 typedef struct {
-  double x;
-  double y;
-  double z;
+  int x;
+  int y;
+  int z;
 } xyz_t;
+
+typedef struct{
+  uint8_t updated;
+  xyz_t data;
+}data_t;
+
 
 typedef struct {
   timestamp_t timestamp;
-  xyz_t gyro;
-  xyz_t accel;
-  xyz_t gps_pos;
-  xyz_t gps_vel;
+  data_t gyro;
+  data_t accel;
+  data_t gps_pos;
+  data_t gps_vel;
 } sensors_t;
 
 typedef struct {

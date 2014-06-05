@@ -241,7 +241,6 @@ typedef struct
 {
   Lisa_plane lisa_plane;
   sensors_t zmq_sensors;
-  unsigned int counter; //GPS +1 ACC +10 GYRO +100
 } Data;
 
 #define GPS_MSG  1
@@ -264,7 +263,7 @@ extern int add_timestamp(unsigned char buffer[]);/*add timestamp to existing pac
 extern int strip_timestamp(unsigned char buffer[]);/*removes timestamp, update checksums and length byte*/
 DEC_errCode NMEA_asci_encode(const unsigned char buffer[], unsigned char encoded_data[]);/*Encodes NMEA packages coming from windsensor*/
 void DEC_err_handler(DEC_errCode err,void (*write_error_ptr)(char *,char *,int));  
-int get_new_sensor_struct(sensors_t * const data_struct);
+void get_new_sensor_struct(sensors_t * const data_struct);
 
 
 #ifdef __cplusplus
