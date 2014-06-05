@@ -148,24 +148,30 @@ int main(int argc __attribute__((unused)),
             {
               printf("Received Acceleration data (X:%i ; Y:%i ; Z:%i\n",
                      outgoing.accel.data.x,outgoing.accel.data.y,outgoing.accel.data.z);
+              outputs[0].events =  ZMQ_POLLOUT;
+              outputs[1].events = ZMQ_POLLOUT;
             }
           if (outgoing.gps_vel.updated)
             {
               printf("Received GPS Velocity data (X:%i ; Y:%i ; Z:%i\n",
                      outgoing.gps_vel.data.x,outgoing.gps_vel.data.y,outgoing.gps_vel.data.z);
+              outputs[0].events =  ZMQ_POLLOUT;
+              outputs[1].events = ZMQ_POLLOUT;
             }
           if (outgoing.gps_pos.updated)
             {
               printf("Received GPS Position data (X:%i ; Y:%i ; Z:%i\n",
                      outgoing.gps_pos.data.x,outgoing.gps_pos.data.y,outgoing.gps_pos.data.z);
+              outputs[0].events =  ZMQ_POLLOUT;
+              outputs[1].events = ZMQ_POLLOUT;
             }
           if (outgoing.gyro.updated)
             {
               printf("Received Gyro data (X:%i ; Y:%i ; Z:%i\n",
                      outgoing.gyro.data.x,outgoing.gyro.data.y,outgoing.gyro.data.z);
+              outputs[0].events =  ZMQ_POLLOUT;
+              outputs[1].events = ZMQ_POLLOUT;
             }
-          outputs[0].events =  ZMQ_POLLOUT;
-          outputs[1].events = ZMQ_POLLOUT;
         }
 
 
