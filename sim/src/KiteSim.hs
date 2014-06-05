@@ -33,8 +33,10 @@ import Data.Serialize
 
 import SpatialMath
 import Vis
+
 import DrawAC
 import Aircraft
+import SpatialMathT
 
 data State = State { sTrails :: [[V3 Double]]
                    , sTelem :: Maybe SimTelem
@@ -89,8 +91,8 @@ drawFun state@(State {sTelem=Just telem}) =
   VisObjects [axes, txt, ac, plane, trailLines, zLine, points]
   where
     cs = stX telem
-    pos@(V3 x y z) = ac_r_n2b_n cs
-    quat = quatOfDcm $ ac_R_n2b cs
+    V3T pos@(V3 x y z) = ac_r_n2b_n cs
+    quat = quatOfDcm $ unR (ac_R_n2b cs)
     visSpan = 1
 
     points = Points (sParticles state) (Just 2) $ makeColor 1 1 1 0.5
@@ -178,8 +180,8 @@ updateState telem x0 =
   where
     w0 = stW0 telem
     trails0 = sTrails x0
-    pos = ac_r_n2b_n $ stX telem
-    q = quatOfDcm $ ac_R_n2b $ stX telem
+    pos = unV $ ac_r_n2b_n $ stX telem
+    q = quatOfDcm $ unR $ ac_R_n2b $ stX telem
     (_,trails) = drawAc 1 pos q
 
 

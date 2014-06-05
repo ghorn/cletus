@@ -12,7 +12,7 @@ import Data.Serialize
 import qualified Data.List.NonEmpty as NE
 import qualified System.ZMQ4 as ZMQ
 import qualified Control.Concurrent as CC
-import Linear
+import Linear hiding ( cross )
 import System.Clock
 import Foreign.Marshal.Utils
 import Foreign.Storable
@@ -22,15 +22,18 @@ import Aircraft
 import AeroCoeffs
 import Betty
 import Structs.Structures
+import SpatialMathT
+
+data M
 
 toTimestamp :: TimeSpec -> C'timestamp_t
 toTimestamp t = C'timestamp_t { c'timestamp_t'tsec = fromIntegral $ sec t
                               , c'timestamp_t'tnsec = fromIntegral $ nsec t
                               }
-toXyz :: Real a => V3 a -> C'xyz_t
+toXyz :: Real a => V3T f a -> C'xyz_t
 toXyz xyz = C'xyz_t x y z
   where
-    V3 x y z = fmap realToFrac xyz
+    V3T (V3 x y z) = fmap realToFrac xyz
 
 toCSensors :: forall a . Real a => Sensors a -> TimeSpec -> C'sensors_t
 toCSensors y ts =
@@ -43,10 +46,10 @@ toCSensors y ts =
 
 data Sensors a =
   Sensors
-  { y_gyro :: V3 a
-  , y_accel :: V3 a
-  , y_gps_pos :: V3 a
-  , y_gps_vel :: V3 a
+  { y_gyro :: V3T M a
+  , y_accel :: V3T M a
+  , y_gps_pos :: V3T N a
+  , y_gps_vel :: V3T N a
   }
 
 rk4 :: (Fractional a, Additive x) => (x a -> x a) -> a -> x a -> x a
@@ -57,34 +60,33 @@ rk4 f h x0 = x0 ^+^ (k1 ^+^ 2 *^ k2 ^+^ 2 *^ k3 ^+^ k4) ^/ 6
     k3 = (f (x0 ^+^ k2^/2)) ^* h
     k4 = (f (x0 ^+^ k3))   ^* h
 
-r_b2m_b :: Fractional a => V3 a
-r_b2m_b = V3 0.0 0.0 0.0
+r_b2m_b :: Fractional a => V3T B a
+r_b2m_b = V3T $ V3 0.0 0.0 0.0
 
-dcm_b2m :: Fractional a => M33 a
-dcm_b2m = V3
-          (V3 1 0 0)
-          (V3 0 1 0)
-          (V3 0 0 1)
+dcm_b2m :: Fractional a => Rot B M (M33 a)
+dcm_b2m = Rot eye3
 
-getSensors :: (Floating a, Conjugate a) => AcX a -> AcU a -> Sensors a
-getSensors x u = Sensors { y_gyro = ac_w_bn_b x
-                         , y_accel = accel
+getSensors :: forall a . (Floating a, Conjugate a) => AcX a -> AcU a -> Sensors a
+getSensors x u = Sensors { y_gyro = rot dcm_b2m (ac_w_bn_b x)
+                         , y_accel = rot dcm_b2m accel_b
                          , y_gps_pos = ac_r_n2b_n x
-                         , y_gps_vel = (adjoint (ac_R_n2b x)) !* (ac_v_bn_b x)
+                         , y_gps_vel = rot' (ac_R_n2b x) (ac_v_bn_b x)
                          }
   where
-    (x', v_bn_n') = bettyOde x u
+    (x', v_bn_b') = bettyOde x u
     w_bn_b' = ac_w_bn_b x'
     w_bn_b = ac_w_bn_b x
 
     dcm_n2b = ac_R_n2b x
-    accel = dcm_b2m !* (dcm_n2b !* (v_bn_n' - (V3 0 0 9.81)) +
-                        w_bn_b' `cross` r_b2m_b + w_bn_b `cross` (w_bn_b `cross` r_b2m_b))
+
+    g :: V3T N a
+    g = V3T (V3 0 0 9.81)
+
+    accel_b = (v_bn_b' - rot dcm_n2b g) + w_bn_b' `cross` r_b2m_b + w_bn_b `cross` (w_bn_b `cross` r_b2m_b)
 
 
-
-bettyOde :: Floating a => AcX a -> AcU a -> (AcX a, V3 a)
-bettyOde = aircraftOde (bettyMass, bettyInertia) bettyFc bettyMc bettyRefs
+bettyOde :: Floating a => AcX a -> AcU a -> (AcX a, V3T B a)
+bettyOde = aircraftOde (bettyMass, V3T (fmap V3T bettyInertia)) bettyFc bettyMc bettyRefs
 
 integrate :: (Floating a, Additive AcX) => a -> AcX a -> AcU a -> AcX a
 integrate h x0 u = AcX z0 z1 (orthonormalize z2) z3
@@ -93,17 +95,17 @@ integrate h x0 u = AcX z0 z1 (orthonormalize z2) z3
 
 simX0 :: AcX Double
 simX0 =
-  AcX { ac_r_n2b_n = V3 0 0 0
-      , ac_v_bn_b = V3 20 0 0
-      , ac_R_n2b = eye3
-      , ac_w_bn_b = V3 0 0 0
+  AcX { ac_r_n2b_n = V3T $ V3 0 0 0
+      , ac_v_bn_b = V3T $ V3 20 0 0
+      , ac_R_n2b = Rot $ eye3
+      , ac_w_bn_b = V3T $ V3 0 0 0
       }
 
-orthonormalize :: Floating a => M33 a -> M33 a
-orthonormalize (V3
-                (V3 m00 m01 m02)
-                (V3 m10 m11 m12)
-                (V3 m20 m21 m22)) = ret
+orthonormalize :: Floating a => Rot f1 f2 (M33 a) -> Rot f1 f2 (M33 a)
+orthonormalize (Rot (V3
+                     (V3 m00 m01 m02)
+                     (V3 m10 m11 m12)
+                     (V3 m20 m21 m22))) = Rot ret
   where
     -- compute q0
     fInvLength0 = 1.0/sqrt(m00*m00 + m10*m10 + m20*m20)

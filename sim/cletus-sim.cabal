@@ -14,9 +14,10 @@ cabal-version:       >=1.10
 
 executable cletus-sim
   main-is:             Main.hs
-  other-modules:       Aircraft, AeroCoeffs, Betty
+  other-modules:       Aircraft, AeroCoeffs, Betty, SpatialMathT
   -- other-extensions:    
   build-depends:         base >=4.7 && <4.8
+                       , spatial-math
                        , clock
                        , linear >=1.10 && <1.11
                        , cereal
