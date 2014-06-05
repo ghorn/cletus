@@ -32,7 +32,7 @@ void run_controller(const sensors_t * const y, actuators_t * const u) {
     counter = 0;
   }
 
-  integral_term += reference*0.1 + y->gyro.x;
+  integral_term += reference*0.1 + y->gyro.data.x;
   u->flaps = sin(1*integral_term);
   u->ail   = sin(2*integral_term);
   u->rudd  = sin(3*integral_term);
