@@ -142,28 +142,7 @@ int main(int argc __attribute__((unused)),
    * mostly out of laziness. */
   for (;;) {
 
-
-
-
-
-
-      if (bail) die(bail);
-      /* Poll for activity; time out after 10 milliseconds. */
-      const int polled = zmq_poll(polls, npolls, 10);
-      if (polled < 0) {
-          if (bail) die(bail);
-          zerr("while polling");
-          /* not sure what to do about it. */
-          continue;
-        } else if (polled == 0) {
-          if (bail) die(bail);
-          /* timeout! */
-          continue;
-        }
-
-      if (bail) die(bail);
-      usleep(5000); // 200 Hz
-      if (get_lisa_data(&outgoing, input_buffer))
+      if (get_lisa_data(&outgoing, input_buffer) == 1)
         {
           if (outgoing.accel.updated)
             {
@@ -185,8 +164,27 @@ int main(int argc __attribute__((unused)),
               printf("Received Gyro data (X:%i ; Y:%i ; Z:%i\n",
                      outgoing.gyro.data.x,outgoing.gyro.data.y,outgoing.gyro.data.z);
             }
-          outputs[0].events = outputs[1].events = ZMQ_POLLOUT;
+          outputs[0].events =  ZMQ_POLLOUT;
+          outputs[1].events = ZMQ_POLLOUT;
         }
+
+
+      if (bail) die(bail);
+      /* Poll for activity; time out after 10 milliseconds. */
+      const int polled = zmq_poll(polls, npolls, 10);
+      if (polled < 0) {
+          if (bail) die(bail);
+          zerr("while polling");
+          /* not sure what to do about it. */
+          continue;
+        } else if (polled == 0) {
+          if (bail) die(bail);
+          /* timeout! */
+          continue;
+        }
+
+      if (bail) die(bail);
+      usleep(5000); // 200 Hz
 
 
       if (bail) die(bail);
