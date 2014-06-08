@@ -38,8 +38,12 @@ enum Message_id{
   BARO_RAW = 221,
   IMU_GYRO_RAW = 203,
   IMU_ACCEL_RAW = 204,
-  SERVO_COMMANDS = 72,
-  IMU_MAG_RAW = 205
+  IMU_MAG_RAW = 205,
+  IMU_GYRO = 200,
+  IMU_ACCEL = 202,
+  IMU_MAG = 201,
+  SERVO_COMMANDS = 72
+
 };
 
 //sender ids
@@ -192,12 +196,39 @@ typedef struct { // id = 155
   int8_t new_data;
 } Gps_int;
 
+
+typedef struct { // id = 202
+  float ax;
+  float ay;
+  float az;
+  struct timeval tv;
+  int8_t new_data;
+} Imu_accel;
+
+typedef struct { // id = 200
+  float gp;
+  float gq;
+  float gr;
+  struct timeval tv;
+  int8_t new_data;
+} Imu_gyro;
+
+
+typedef struct { // id = 201
+  float mx;
+  float my;
+  float mz;
+  struct timeval tv;
+  int8_t new_data;
+} Imu_mag;
+
 typedef struct { // id = 221
   int32_t abs;
   int32_t diff;
   struct timeval tv;
   int8_t new_data;
 } Baro_raw;
+
 
 typedef struct { // id = 203
   int32_t gp;
@@ -214,6 +245,7 @@ typedef struct { // id = 204
   struct timeval tv;
   int8_t new_data;
 } Imu_accel_raw;
+
 
 typedef struct { // id = 205
   int32_t mx;
@@ -235,6 +267,9 @@ typedef struct { // sender id = 165
   Sys_mon sys_mon;
   UART_errors uart_errors;
   Actuators actuators;
+  Imu_gyro imu_gyro;
+  Imu_accel imu_accel;
+  Imu_mag imu_mag;
 } Lisa_plane;
 
 typedef struct

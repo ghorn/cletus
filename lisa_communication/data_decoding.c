@@ -133,8 +133,6 @@ static DEC_errCode data_to_struct(unsigned char sender,unsigned char stream[], i
           data_ptr->zmq_sensors.gyro.data.z = data_ptr->lisa_plane.imu_gyro_raw.gr;
           data_ptr->zmq_sensors.gyro.updated = 1;
           memcpy(&(data_ptr->zmq_sensors.timestamp),&(data_ptr->lisa_plane.imu_gyro_raw.tv),sizeof(timeval)) ;
-
-
           break;
 
         case IMU_ACCEL_RAW:
@@ -145,6 +143,29 @@ static DEC_errCode data_to_struct(unsigned char sender,unsigned char stream[], i
           data_ptr->zmq_sensors.accel.data.x = data_ptr->lisa_plane.imu_accel_raw.ax;
           data_ptr->zmq_sensors.accel.data.y = data_ptr->lisa_plane.imu_accel_raw.ay;
           data_ptr->zmq_sensors.accel.data.z = data_ptr->lisa_plane.imu_accel_raw.az;
+          data_ptr->zmq_sensors.accel.updated = 1;
+          memcpy(&(data_ptr->zmq_sensors.timestamp),&(data_ptr->lisa_plane.imu_accel_raw.tv),sizeof(timeval)) ;
+          break;
+        case IMU_GYRO:
+#if DEBUG  > 1
+          printf("IMU_GYRO\n");
+#endif
+          data_write(stream, (void *)&data_ptr->lisa_plane.imu_gyro, sizeof(Imu_gyro)-1);
+          data_ptr->zmq_sensors.gyro.data.x = data_ptr->lisa_plane.imu_gyro.gp;
+          data_ptr->zmq_sensors.gyro.data.y = data_ptr->lisa_plane.imu_gyro.gq;
+          data_ptr->zmq_sensors.gyro.data.z = data_ptr->lisa_plane.imu_gyro.gr;
+          data_ptr->zmq_sensors.gyro.updated = 1;
+          memcpy(&(data_ptr->zmq_sensors.timestamp),&(data_ptr->lisa_plane.imu_gyro_raw.tv),sizeof(timeval)) ;
+          break;
+
+        case IMU_ACCEL:
+#if DEBUG  > 1
+          printf("IMU_ACCELn");
+#endif
+          data_write(stream, (void *)&data_ptr->lisa_plane.imu_accel, sizeof(Imu_accel)-1);
+          data_ptr->zmq_sensors.accel.data.x = data_ptr->lisa_plane.imu_accel.ax;
+          data_ptr->zmq_sensors.accel.data.y = data_ptr->lisa_plane.imu_accel.ay;
+          data_ptr->zmq_sensors.accel.data.z = data_ptr->lisa_plane.imu_accel.az;
           data_ptr->zmq_sensors.accel.updated = 1;
           memcpy(&(data_ptr->zmq_sensors.timestamp),&(data_ptr->lisa_plane.imu_accel_raw.tv),sizeof(timeval)) ;
           break;
