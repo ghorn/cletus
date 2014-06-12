@@ -32,7 +32,7 @@ void run_controller(const sensors_t * const y, actuators_t * const u) {
     counter = 0;
   }
 
-  integral_term += reference*0.1 + y->gyro.data.x;
+  integral_term += reference*0.1 + y->imu_gyro_scaled.data.x;
   u->flaps = sin(1*integral_term);
   u->ail   = sin(2*integral_term);
   u->rudd  = sin(3*integral_term);
@@ -41,5 +41,5 @@ void run_controller(const sensors_t * const y, actuators_t * const u) {
   double t0 = floating_time(&(u->start));
   double tf = floating_time(&(u->stop));
   printf("ran controller, start time: %.4f, end time: %.4f, diff time: %.3f us, time delay: %3.3fus\n",
-         t0,tf,(tf-t0)*1e6, (t0 - floating_time(&(y->timestamp)))*1e6);
+         t0,tf,(tf-t0)*1e6, (t0 - floating_time(&(y->imu_accel_scaled.timestamp)))*1e6);
 }

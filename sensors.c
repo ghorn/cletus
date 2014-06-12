@@ -27,22 +27,22 @@
 
 
 
-void some_data(xyz_t * v, double t, double scalar);
-void some_data(xyz_t * v, double t, double scalar){
+void some_data(xyz_double * v, double t, double scalar);
+void some_data(xyz_double * v, double t, double scalar){
   v->x = sin(t*scalar);
   v->y = sin(t*scalar*2);
   v->z = sin(t*scalar*3);
 }
 
-void get_sensors(sensors_t * const y) {
-  gettime(&(y->timestamp));
-  double t = floating_time(&(y->timestamp));
-  some_data(&(y->gyro.data), t, 2);
-  some_data(&(y->accel.data), t, 3);
-  some_data(&(y->gps_pos.data), t, 4);
-  some_data(&(y->gps_vel.data), t, 5);
-  printf("read sensors!: %.4f\n",t);
-}
+
+
+//void get_sensors(sensors_t * const y) {
+////  gettime(&(y->timestamp));
+////  double t = floating_time(&(y->timestamp));
+////  some_data(&(y->gyro.data), t, 2);
+////  some_data(&(y->accel.data), t, 3);
+////  printf("read sensors!: %.4f\n",t);
+//}
 
 
 int get_lisa_data(sensors_t * const data, uint8_t input_buffer[]) {
@@ -58,7 +58,7 @@ int get_lisa_data(sensors_t * const data, uint8_t input_buffer[]) {
           return 0;
         }
       get_new_sensor_struct(data);
-      return 1;
+      return input_buffer[MESSAGE_ID_INDEX];
     }
   return 0;
 }

@@ -18,6 +18,9 @@
 #include "./log.h"
 #include "./misc.h"
 
+#include "lisa_communication/data_decoding.h"
+#include "lisa_communication/uart_communication.h"
+
 static FILE *open_actuator_file(const char *path) {
   FILE *butts = fopen(path, "r");
   if (NULL == butts)
@@ -127,6 +130,8 @@ int main(int argc __attribute__((unused)),
   /* const int noutputs = npolls - ninputs; */
   zmq_pollitem_t *outputs = &polls[ninputs];
 
+  uint8_t encoded_actuators[36];
+
   /* Here's the main loop -- we only do stuff when input or output
    * happens.  The timeout can be put to good use, or you can also use
    * timerfd_create() to create a file descriptor with a timer under
@@ -188,6 +193,9 @@ int main(int argc __attribute__((unused)),
         printf("Sent to actuators!\n");
         /* Clear the events flag so we won't try to send until we
          * have more data. */
+        actuators_t new_data;
+        int new_length = set_actuators(&new_data,encoded_actuators);
+        serial_port_write(encoded_actuators,new_length);
         outputs[0].events = 0;
       }
       outputs[0].revents = 0;
