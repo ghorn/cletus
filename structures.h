@@ -9,29 +9,78 @@
 
 #include <inttypes.h>
 
+//DATATYPES
 typedef struct {
   uint64_t tsec;
   uint64_t tnsec;
 } timestamp_t;
 
 typedef struct {
+  double x;
+  double y;
+  double z;
+} xyz_double;
+
+typedef struct {
   int x;
   int y;
   int z;
-} xyz_t;
+} xyz_int;
+
+
+//SENSORS STRUCTS
+typedef struct
+{
+  xyz_int data;
+  timestamp_t timestamp;
+}gyro_raw_t;
+
+typedef struct
+{
+  xyz_int data;
+  timestamp_t timestamp;
+}mag_raw_t;
+
+typedef struct
+{
+  xyz_int data;
+  timestamp_t timestamp;
+}accel_raw_t;
+
+typedef struct
+{
+  xyz_double data;
+  timestamp_t timestamp;
+}gyro_scaled_t;
+
+typedef struct
+{
+  xyz_double data;
+  timestamp_t timestamp;
+}mag_scaled_t;
+
+typedef struct
+{
+  xyz_double data;
+  timestamp_t timestamp;
+}accel_scaled_t;
 
 typedef struct{
-  uint8_t updated;
-  xyz_t data;
-}data_t;
+  xyz_int pos_data;
+  xyz_int vel_data;
+  timestamp_t timestamp;
+}gps_t;
 
 
 typedef struct {
-  timestamp_t timestamp;
-  data_t gyro;
-  data_t accel;
-  data_t gps_pos;
-  data_t gps_vel;
+  accel_raw_t imu_accel;
+  accel_scaled_t imu_accel_scaled;
+  gyro_raw_t imu_gyro;
+  gyro_scaled_t imu_gyro_scaled;
+  mag_raw_t imu_mag;
+  mag_scaled_t imu_mag_scaled;
+  gps_t gps;
+
 } sensors_t;
 
 typedef struct {
