@@ -24,6 +24,10 @@ static Data data;
 //pointer to data
 static Data* data_ptr;
 
+const double gyro_scale_unit_coef = 0.0139882;
+const double acc_scale_unit_coef = 0.0009766;
+const double mag_scale_unit_coef = 0.0004883;
+
 
 /********************************
  * FUNCTIONS
@@ -113,26 +117,20 @@ static DEC_errCode data_to_struct(unsigned char sender,unsigned char stream[], i
           printf("GPS_INT\n");
 #endif
           data_write(stream, (void *)&data_ptr->lisa_plane.gps_int, sizeof(Gps_int)-1);
-          data_ptr->zmq_sensors.gps_pos.data.x = data_ptr->lisa_plane.gps_int.ecef_x;
-          data_ptr->zmq_sensors.gps_pos.data.y = data_ptr->lisa_plane.gps_int.ecef_y;
-          data_ptr->zmq_sensors.gps_pos.data.z = data_ptr->lisa_plane.gps_int.ecef_z;
-          data_ptr->zmq_sensors.gps_pos.updated = 1;
-          data_ptr->zmq_sensors.gps_vel.data.x = data_ptr->lisa_plane.gps_int.ecef_xd;
-          data_ptr->zmq_sensors.gps_vel.data.y = data_ptr->lisa_plane.gps_int.ecef_yd;
-          data_ptr->zmq_sensors.gps_vel.data.z = data_ptr->lisa_plane.gps_int.ecef_zd;
-          data_ptr->zmq_sensors.gps_vel.updated = 1;
-          memcpy(&(data_ptr->zmq_sensors.timestamp),&(data_ptr->lisa_plane.gps_int.tv),sizeof(timeval)) ;
+          data_write(stream, (void *)&data_ptr->zmq_sensors.gps.pos_data, sizeof(xyz_int));
+          memcpy(&(data_ptr->zmq_sensors.gps.vel_data),&stream[7*sizeof(int32_t)],sizeof(xyz_int));
+          memcpy(&(data_ptr->zmq_sensors.gps.timestamp),&stream[16*sizeof(int32_t)],sizeof(timestamp_t)) ;
           break;
         case IMU_GYRO_RAW:
 #if DEBUG  > 1
           printf("IMU_GYRO_RAW\n");
 #endif
           data_write(stream, (void *)&data_ptr->lisa_plane.imu_gyro_raw, sizeof(Imu_gyro_raw)-1);
-          data_ptr->zmq_sensors.gyro.data.x = data_ptr->lisa_plane.imu_gyro_raw.gp;
-          data_ptr->zmq_sensors.gyro.data.y = data_ptr->lisa_plane.imu_gyro_raw.gq;
-          data_ptr->zmq_sensors.gyro.data.z = data_ptr->lisa_plane.imu_gyro_raw.gr;
-          data_ptr->zmq_sensors.gyro.updated = 1;
-          memcpy(&(data_ptr->zmq_sensors.timestamp),&(data_ptr->lisa_plane.imu_gyro_raw.tv),sizeof(timeval)) ;
+          //          data_ptr->zmq_sensors.gyro.data.x = data_ptr->lisa_plane.imu_gyro_raw.gp;
+          //          data_ptr->zmq_sensors.gyro.data.y = data_ptr->lisa_plane.imu_gyro_raw.gq;
+          //          data_ptr->zmq_sensors.gyro.data.z = data_ptr->lisa_plane.imu_gyro_raw.gr;
+          //          data_ptr->zmq_sensors.gyro.updated = 1;
+          //          memcpy(&(data_ptr->zmq_sensors.timestamp),&(data_ptr->lisa_plane.imu_gyro_raw.tv),sizeof(timeval)) ;
           break;
 
         case IMU_ACCEL_RAW:
@@ -140,34 +138,11 @@ static DEC_errCode data_to_struct(unsigned char sender,unsigned char stream[], i
           printf("IMU_ACCEL_RAW\n");
 #endif
           data_write(stream, (void *)&data_ptr->lisa_plane.imu_accel_raw, sizeof(Imu_accel_raw)-1);
-          data_ptr->zmq_sensors.accel.data.x = data_ptr->lisa_plane.imu_accel_raw.ax;
-          data_ptr->zmq_sensors.accel.data.y = data_ptr->lisa_plane.imu_accel_raw.ay;
-          data_ptr->zmq_sensors.accel.data.z = data_ptr->lisa_plane.imu_accel_raw.az;
-          data_ptr->zmq_sensors.accel.updated = 1;
-          memcpy(&(data_ptr->zmq_sensors.timestamp),&(data_ptr->lisa_plane.imu_accel_raw.tv),sizeof(timeval)) ;
-          break;
-        case IMU_GYRO:
-#if DEBUG  > 1
-          printf("IMU_GYRO\n");
-#endif
-          data_write(stream, (void *)&data_ptr->lisa_plane.imu_gyro, sizeof(Imu_gyro)-1);
-          data_ptr->zmq_sensors.gyro.data.x = data_ptr->lisa_plane.imu_gyro.gp;
-          data_ptr->zmq_sensors.gyro.data.y = data_ptr->lisa_plane.imu_gyro.gq;
-          data_ptr->zmq_sensors.gyro.data.z = data_ptr->lisa_plane.imu_gyro.gr;
-          data_ptr->zmq_sensors.gyro.updated = 1;
-          memcpy(&(data_ptr->zmq_sensors.timestamp),&(data_ptr->lisa_plane.imu_gyro_raw.tv),sizeof(timeval)) ;
-          break;
-
-        case IMU_ACCEL:
-#if DEBUG  > 1
-          printf("IMU_ACCELn");
-#endif
-          data_write(stream, (void *)&data_ptr->lisa_plane.imu_accel, sizeof(Imu_accel)-1);
-          data_ptr->zmq_sensors.accel.data.x = data_ptr->lisa_plane.imu_accel.ax;
-          data_ptr->zmq_sensors.accel.data.y = data_ptr->lisa_plane.imu_accel.ay;
-          data_ptr->zmq_sensors.accel.data.z = data_ptr->lisa_plane.imu_accel.az;
-          data_ptr->zmq_sensors.accel.updated = 1;
-          memcpy(&(data_ptr->zmq_sensors.timestamp),&(data_ptr->lisa_plane.imu_accel_raw.tv),sizeof(timeval)) ;
+          //          data_ptr->zmq_sensors.accel.data.x = data_ptr->lisa_plane.imu_accel_raw.ax;
+          //          data_ptr->zmq_sensors.accel.data.y = data_ptr->lisa_plane.imu_accel_raw.ay;
+          //          data_ptr->zmq_sensors.accel.data.z = data_ptr->lisa_plane.imu_accel_raw.az;
+          //          data_ptr->zmq_sensors.accel.updated = 1;
+          //          memcpy(&(data_ptr->zmq_sensors.timestamp),&(data_ptr->lisa_plane.imu_accel_raw.tv),sizeof(timeval)) ;
           break;
 
         case IMU_MAG_RAW:
@@ -176,6 +151,54 @@ static DEC_errCode data_to_struct(unsigned char sender,unsigned char stream[], i
 #endif
           data_write(stream, (void *)&data_ptr->lisa_plane.imu_mag_raw, sizeof(Imu_mag_raw)-1);
           break;
+
+        case IMU_GYRO:
+#if DEBUG  > 1
+          printf("IMU_GYRO\n");
+#endif
+          data_write(stream, (void *)&data_ptr->lisa_plane.imu_gyro, sizeof(Imu_gyro)-1);
+          //          data_ptr->zmq_sensors.gyro.data.x = data_ptr->lisa_plane.imu_gyro.gp;
+          //          data_ptr->zmq_sensors.gyro.data.y = data_ptr->lisa_plane.imu_gyro.gq;
+          //          data_ptr->zmq_sensors.gyro.data.z = data_ptr->lisa_plane.imu_gyro.gr;
+          //          data_ptr->zmq_sensors.gyro.updated = 1;
+          //          memcpy(&(data_ptr->zmq_sensors.timestamp),&(data_ptr->lisa_plane.imu_gyro_raw.tv),sizeof(timeval)) ;
+          break;
+
+        case IMU_ACCEL:
+#if DEBUG  > 1
+          printf("IMU_ACCELn");
+#endif
+          data_write(stream, (void *)&data_ptr->lisa_plane.imu_accel, sizeof(Imu_accel)-1);
+          //          data_ptr->zmq_sensors.accel.data.x = data_ptr->lisa_plane.imu_accel.ax;
+          //          data_ptr->zmq_sensors.accel.data.y = data_ptr->lisa_plane.imu_accel.ay;
+          //          data_ptr->zmq_sensors.accel.data.z = data_ptr->lisa_plane.imu_accel.az;
+          //          data_ptr->zmq_sensors.accel.updated = 1;
+          //          memcpy(&(data_ptr->zmq_sensors.timestamp),&(data_ptr->lisa_plane.imu_accel_raw.tv),sizeof(timeval)) ;
+          break;
+        case IMU_MAG_SCALED:
+#if DEBUG  > 1
+          printf("IMU_MAG_RAW\n");
+#endif
+          data_write(stream, (void *)&data_ptr->lisa_plane.imu_mag, sizeof(Imu_mag_raw)-1);
+          data_write(stream, (void *)&data_ptr->zmq_sensors.imu_mag, sizeof(mag_raw_t));
+          break;
+
+        case IMU_GYRO_SCALED:
+#if DEBUG  > 1
+          printf("IMU_GYRO\n");
+#endif
+          data_write(stream, (void *)&data_ptr->lisa_plane.imu_gyro, sizeof(Imu_gyro_raw)-1);
+          data_write(stream, (void *)&data_ptr->zmq_sensors.imu_gyro, sizeof(gyro_raw_t));
+          break;
+
+        case IMU_ACC_SCALED:
+#if DEBUG  > 1
+          printf("IMU_ACCELn");
+#endif
+          data_write(stream, (void *)&data_ptr->lisa_plane.imu_accel, sizeof(Imu_accel_raw)-1);
+          data_write(stream, (void *)&data_ptr->zmq_sensors.imu_accel, sizeof(accel_raw_t));
+          break;
+
 
         case UART_ERRORS:
 #if DEBUG  > 1
@@ -364,11 +387,31 @@ void DEC_err_handler(DEC_errCode err,void (*write_error_ptr)(char *,char *,int))
 void get_new_sensor_struct(sensors_t * const data_struct)
 {
   memcpy(data_struct,&(data_ptr->zmq_sensors), sizeof(sensors_t));
-  data_ptr->zmq_sensors.accel.updated =0;
-  data_ptr->zmq_sensors.gyro.updated =0;
-  data_ptr->zmq_sensors.gps_pos.updated =0;
-  data_ptr->zmq_sensors.gps_vel.updated =0;
 }
+
+uint8_t set_actuators(actuators_t* const message, unsigned char encoded_data[])
+{
+  uint8_t checksum_1 = 0;
+  uint8_t checksum_2 = 0;
+  uint8_t length = sizeof(actuators_t)+6; //message length + 6 info bytes + 16 timestamp bytes
+
+  encoded_data[STARTBYTE_INDEX] = 0x99;
+  encoded_data[LENGTH_INDEX] = length;
+  encoded_data[SENDER_ID_INDEX] = BONE_PLANE; // sender id of server
+  encoded_data[MESSAGE_ID_INDEX] = SERVO_COMMANDS; // message id
+
+  //add message
+  memcpy(&(encoded_data[MESSAGE_START_INDEX]),(void *)message,sizeof(actuators_t));
+
+  calculate_checksum(encoded_data,&checksum_1,&checksum_2);
+
+  encoded_data[length-2] = checksum_1;
+  encoded_data[length-1] = checksum_2;
+
+  return length;
+
+}
+
 
 
 

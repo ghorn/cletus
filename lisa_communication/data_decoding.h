@@ -23,7 +23,6 @@ extern "C"
 #include "time_highwind.h"
 #include "../structures.h"
 
-#define NEW_STRUCT_THRESHOLD  111
 /********************************
  * GLOBALS
  * ******************************/
@@ -35,6 +34,9 @@ enum Message_id{
   SVINFO=25,
   AIRSPEED_ETS = 57,
   GPS_INT=155,
+  IMU_GYRO_SCALED=131,
+  IMU_ACC_SCALED=132,
+  IMU_MAG_SCALED=133,
   BARO_RAW = 221,
   IMU_GYRO_RAW = 203,
   IMU_ACCEL_RAW = 204,
@@ -230,6 +232,9 @@ typedef struct { // id = 221
 } Baro_raw;
 
 
+
+
+
 typedef struct { // id = 203
   int32_t gp;
   int32_t gq;
@@ -278,9 +283,6 @@ typedef struct
   sensors_t zmq_sensors;
 } Data;
 
-#define GPS_MSG  1
-#define ACC_MSG  10
-#define GYRO_MSG 100
 
 
 #pragma pack(pop)   /* restore original alignment from stack */
@@ -299,6 +301,7 @@ extern int strip_timestamp(unsigned char buffer[]);/*removes timestamp, update c
 DEC_errCode NMEA_asci_encode(const unsigned char buffer[], unsigned char encoded_data[]);/*Encodes NMEA packages coming from windsensor*/
 void DEC_err_handler(DEC_errCode err,void (*write_error_ptr)(char *,char *,int));  
 void get_new_sensor_struct(sensors_t * const data_struct);
+uint8_t set_actuators(actuators_t* const message, unsigned char encoded_data[]);
 
 
 #ifdef __cplusplus
