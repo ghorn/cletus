@@ -19,9 +19,6 @@
 #define MAX_OUTPUT_STREAM_SIZE 36
 #define INPUT_BUFFER_SIZE 255
 
-const double gyro_scale_unit_coef = 0.0139882;
-const double acc_scale_unit_coef = 0.0009766;
-const double mag_scale_unit_coef = 0.0004883;
 
 
 void get_sensors(sensors_t * const y);

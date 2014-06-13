@@ -20,6 +20,9 @@
 #include "./misc.h"
 
 
+const double gyro_scale_unit_coef = 0.0139882;
+const double acc_scale_unit_coef = 0.0009766;
+const double mag_scale_unit_coef = 0.0004883;
 
 
 
