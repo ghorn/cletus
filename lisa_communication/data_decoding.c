@@ -221,13 +221,13 @@ static DEC_errCode data_to_struct(unsigned char sender,unsigned char stream[], i
           data_write(stream, (void *)&data_ptr->lisa_plane.baro_raw, sizeof(Baro_raw)-1);
           break;
         default:
-#if DEBUG  > 1
-          printf("UNKNOWN\n");
-#endif
+          printf("UNKNOWN ID %i\n",stream[MESSAGE_ID_INDEX] );
           return DEC_ERR_UNKNOWN_LISA_PACKAGE;break;
         }
       break;
-    default: return DEC_ERR_UNKNOWN_SENDER; break;
+    default:
+      printf("UNKNOWN Sender %i\n",stream[MESSAGE_ID_INDEX] );
+      return DEC_ERR_UNKNOWN_SENDER; break;
     }
   return DEC_ERR_NONE;
 }

@@ -219,7 +219,7 @@ int main(int argc __attribute__((unused)),
         case IMU_MAG_SCALED:
           {
             convert_to_double(&(outgoing.imu.imu_mag.data), &(outgoing.imu.imu_mag_scaled.data),mag_scale_unit_coef );
-            printf("Received Gyro data (X:%f ; Y:%f ; Z:%f\n",
+            printf("Received Mag data (X:%f ; Y:%f ; Z:%f\n",
                    outgoing.imu.imu_mag_scaled.data.x,outgoing.imu.imu_mag_scaled.data.y,outgoing.imu.imu_mag_scaled.data.z);
             poll_imu.events =  ZMQ_POLLOUT;
             poll_log.events = ZMQ_POLLOUT;
@@ -235,8 +235,8 @@ int main(int argc __attribute__((unused)),
           }
         case AHRS_QUAT_INT:
           {
-            printf("Received AHRS data (X:%f ; Y:%f ; Z:%f\n",
-                   outgoing.imu.imu_gyro_scaled.data.x,outgoing.imu.imu_gyro_scaled.data.y,outgoing.imu.imu_gyro_scaled.data.z);
+            printf("Received AHRS data (I:%i X:%i ; Y:%i ; Z:%i\n",
+                   outgoing.ahrs.imu.qi,outgoing.ahrs.imu.qx,outgoing.ahrs.imu.qy,outgoing.ahrs.imu.qy);
             poll_airspeed.events =  ZMQ_POLLOUT;
             poll_log.events = ZMQ_POLLOUT;
             break;
