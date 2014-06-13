@@ -34,6 +34,13 @@ typedef struct{
   int qz;
 }quaternion_t;
 
+typedef struct{
+  double qi;
+  double qx;
+  double qy;
+  double qz;
+}quaternion__double_t;
+
 
 //SENSORS STRUCTS
 typedef struct
@@ -91,6 +98,8 @@ typedef struct{
   quaternion_t imu;
   quaternion_t body;
   timestamp_t timestamp;
+  quaternion__double_t imu_converted;
+  quaternion__double_t body_converted;
 }ahrs_t;
 
 

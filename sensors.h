@@ -23,7 +23,9 @@
 
 void get_sensors(sensors_t * const y);
 int get_lisa_data(sensors_t * const data, uint8_t input_buffer[]);
-void convert_to_double(xyz_int* source, xyz_double* dest, double coef);
+void xyz_convert_to_double(const xyz_int* const source, xyz_double* dest, double coef);
+void quat_convert_to_double(const quaternion_t* const source, quaternion__double_t *dest, double coef);
+
 
 
 #endif // __SENSORS_H__

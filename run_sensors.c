@@ -23,6 +23,7 @@
 const double gyro_scale_unit_coef = 0.0139882;
 const double acc_scale_unit_coef = 0.0009766;
 const double mag_scale_unit_coef = 0.0004883;
+const double ahrs_unit_coef = 0.0000305;
 
 
 
@@ -192,7 +193,7 @@ int main(int argc __attribute__((unused)),
         {
         case IMU_ACC_SCALED:
           {
-            convert_to_double(&(outgoing.imu.imu_accel.data), &(outgoing.imu.imu_accel_scaled.data),acc_scale_unit_coef );
+            xyz_convert_to_double(&(outgoing.imu.imu_accel.data), &(outgoing.imu.imu_accel_scaled.data),acc_scale_unit_coef );
             printf("Received Acceleration data (X:%f ; Y:%f; Z:%f\n",
                    outgoing.imu.imu_accel_scaled.data.x,outgoing.imu.imu_accel_scaled.data.y,outgoing.imu.imu_accel_scaled.data.z);
             poll_imu.events =  ZMQ_POLLOUT;
@@ -209,7 +210,7 @@ int main(int argc __attribute__((unused)),
           }
         case IMU_GYRO_SCALED:
           {
-            convert_to_double(&(outgoing.imu.imu_gyro.data), &(outgoing.imu.imu_gyro_scaled.data),gyro_scale_unit_coef );
+            xyz_convert_to_double(&(outgoing.imu.imu_gyro.data), &(outgoing.imu.imu_gyro_scaled.data),gyro_scale_unit_coef );
             printf("Received Gyro data (X:%f ; Y:%f ; Z:%f\n",
                    outgoing.imu.imu_gyro_scaled.data.x,outgoing.imu.imu_gyro_scaled.data.y,outgoing.imu.imu_gyro_scaled.data.z);
             poll_imu.events =  ZMQ_POLLOUT;
@@ -218,7 +219,7 @@ int main(int argc __attribute__((unused)),
           }
         case IMU_MAG_SCALED:
           {
-            convert_to_double(&(outgoing.imu.imu_mag.data), &(outgoing.imu.imu_mag_scaled.data),mag_scale_unit_coef );
+            xyz_convert_to_double(&(outgoing.imu.imu_mag.data), &(outgoing.imu.imu_mag_scaled.data),mag_scale_unit_coef );
             printf("Received Mag data (X:%f ; Y:%f ; Z:%f\n",
                    outgoing.imu.imu_mag_scaled.data.x,outgoing.imu.imu_mag_scaled.data.y,outgoing.imu.imu_mag_scaled.data.z);
             poll_imu.events =  ZMQ_POLLOUT;
@@ -235,8 +236,12 @@ int main(int argc __attribute__((unused)),
           }
         case AHRS_QUAT_INT:
           {
-            printf("Received AHRS data (I:%i X:%i ; Y:%i ; Z:%i\n",
-                   outgoing.ahrs.imu.qi,outgoing.ahrs.imu.qx,outgoing.ahrs.imu.qy,outgoing.ahrs.imu.qy);
+            quat_convert_to_double(&(outgoing.ahrs.body), &(outgoing.ahrs.body_converted),ahrs_unit_coef );
+            quat_convert_to_double(&(outgoing.ahrs.imu), &(outgoing.ahrs.imu_converted),ahrs_unit_coef );
+            printf("Received AHRS body data (I:%f X:%f ; Y:%f ; Z:%f\n",
+                   outgoing.ahrs.body_converted.qi,outgoing.ahrs.body_converted.qx,outgoing.ahrs.body_converted.qy,outgoing.ahrs.body_converted.qz);
+            printf("Received AHRS IMU data (I:%f X:%f ; Y:%f ; Z:%f\n",
+                   outgoing.ahrs.imu_converted.qi,outgoing.ahrs.imu_converted.qx,outgoing.ahrs.imu_converted.qy,outgoing.ahrs.imu_converted.qz);
             poll_airspeed.events =  ZMQ_POLLOUT;
             poll_log.events = ZMQ_POLLOUT;
             break;
