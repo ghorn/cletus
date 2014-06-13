@@ -205,6 +205,13 @@ static DEC_errCode data_to_struct(unsigned char sender,unsigned char stream[], i
           data_write(stream, (void *)&data_ptr->zmq_sensors.ahrs, sizeof(ahrs_t));
           break;
 
+        case ROTORCRAFT_RADIO_CONTROL:
+#if DEBUG  > 1
+          printf("Radio Control\n");
+#endif
+          data_write(stream, (void *)&data_ptr->zmq_sensors.rc, sizeof(rc_t));
+          break;
+
 
 
         case UART_ERRORS:

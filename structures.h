@@ -102,12 +102,20 @@ typedef struct{
   quaternion__double_t body_converted;
 }ahrs_t;
 
-
+typedef struct{
+  short roll;
+  short pitch;
+  short yaw;
+  short mode;
+  short kill;
+  char status;
+} rc_t;
 
 typedef struct {
   imu_t imu;
   gps_t gps;
   ahrs_t ahrs;
+  rc_t rc;
 } sensors_t;
 
 typedef struct {

@@ -45,7 +45,8 @@ enum Message_id{
   IMU_ACCEL = 202,
   IMU_MAG = 201,
   SERVO_COMMANDS = 72,
-  AHRS_QUAT_INT = 157
+  AHRS_QUAT_INT = 157,
+  ROTORCRAFT_RADIO_CONTROL = 160
 };
 
 //sender ids

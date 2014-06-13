@@ -246,6 +246,10 @@ int main(int argc __attribute__((unused)),
             poll_log.events = ZMQ_POLLOUT;
             break;
           }
+        case ROTORCRAFT_RADIO_CONTROL:
+          {
+            printf("RC Data: Mode: %i Status: %i \n", outgoing.rc.mode,outgoing.rc.status);
+          }
         default:
           {
             break;
