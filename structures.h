@@ -27,6 +27,13 @@ typedef struct {
   int z;
 } xyz_int;
 
+typedef struct{
+  int qi;
+  int qx;
+  int qy;
+  int qz;
+}quaternion_t;
+
 
 //SENSORS STRUCTS
 typedef struct
@@ -71,16 +78,27 @@ typedef struct{
   timestamp_t timestamp;
 }gps_t;
 
-
-typedef struct {
+typedef struct{
   accel_raw_t imu_accel;
   accel_scaled_t imu_accel_scaled;
   gyro_raw_t imu_gyro;
   gyro_scaled_t imu_gyro_scaled;
   mag_raw_t imu_mag;
   mag_scaled_t imu_mag_scaled;
-  gps_t gps;
+}imu_t;
 
+typedef struct{
+  quaternion_t imu;
+  quaternion_t body;
+  timestamp_t timestamp;
+}ahrs_t;
+
+
+
+typedef struct {
+  imu_t imu;
+  gps_t gps;
+  ahrs_t ahrs;
 } sensors_t;
 
 typedef struct {

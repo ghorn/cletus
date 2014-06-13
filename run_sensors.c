@@ -187,39 +187,57 @@ int main(int argc __attribute__((unused)),
 
       switch (get_lisa_data(&outgoing, input_buffer))
         {
-          case IMU_ACC_SCALED:
-            {
-              printf("Received Acceleration data (X:%f ; Y:%f; Z:%f\n",
-                     outgoing.imu_accel_scaled.data.x,outgoing.imu_accel_scaled.data.y,outgoing.imu_accel_scaled.data.z);
-              poll_imu.events =  ZMQ_POLLOUT;
-              poll_log.events = ZMQ_POLLOUT;
-              break;
-            }
+        case IMU_ACC_SCALED:
+          {
+            convert_to_double(&(outgoing.imu.imu_accel.data), &(outgoing.imu.imu_accel_scaled.data),acc_scale_unit_coef );
+            printf("Received Acceleration data (X:%f ; Y:%f; Z:%f\n",
+                   outgoing.imu.imu_accel_scaled.data.x,outgoing.imu.imu_accel_scaled.data.y,outgoing.imu.imu_accel_scaled.data.z);
+            poll_imu.events =  ZMQ_POLLOUT;
+            poll_log.events = ZMQ_POLLOUT;
+            break;
+          }
         case GPS_INT:
-            {
-              printf("Received GPS Position data (X:%i ; Y:%i ; Z:%i\n",
-                     outgoing.gps.pos_data.x,outgoing.gps.pos_data.y,outgoing.gps.pos_data.z);
-              poll_gps.events =  ZMQ_POLLOUT;
-              poll_log.events = ZMQ_POLLOUT;
-              break;
-            }
+          {
+            printf("Received GPS Position data (X:%i ; Y:%i ; Z:%i\n",
+                   outgoing.gps.pos_data.x,outgoing.gps.pos_data.y,outgoing.gps.pos_data.z);
+            poll_gps.events =  ZMQ_POLLOUT;
+            poll_log.events = ZMQ_POLLOUT;
+            break;
+          }
         case IMU_GYRO_SCALED:
-            {
-              printf("Received Gyro data (X:%f ; Y:%f ; Z:%f\n",
-                     outgoing.imu_gyro_scaled.data.x,outgoing.imu_gyro_scaled.data.y,outgoing.imu_gyro_scaled.data.z);
-              poll_imu.events =  ZMQ_POLLOUT;
-              poll_log.events = ZMQ_POLLOUT;
-              break;
+          {
+            convert_to_double(&(outgoing.imu.imu_gyro.data), &(outgoing.imu.imu_gyro_scaled.data),gyro_scale_unit_coef );
+            printf("Received Gyro data (X:%f ; Y:%f ; Z:%f\n",
+                   outgoing.imu.imu_gyro_scaled.data.x,outgoing.imu.imu_gyro_scaled.data.y,outgoing.imu.imu_gyro_scaled.data.z);
+            poll_imu.events =  ZMQ_POLLOUT;
+            poll_log.events = ZMQ_POLLOUT;
+            break;
+          }
+        case IMU_MAG_SCALED:
+          {
+            convert_to_double(&(outgoing.imu.imu_mag.data), &(outgoing.imu.imu_mag_scaled.data),mag_scale_unit_coef );
+            printf("Received Gyro data (X:%f ; Y:%f ; Z:%f\n",
+                   outgoing.imu.imu_mag_scaled.data.x,outgoing.imu.imu_mag_scaled.data.y,outgoing.imu.imu_mag_scaled.data.z);
+            poll_imu.events =  ZMQ_POLLOUT;
+            poll_log.events = ZMQ_POLLOUT;
+            break;
           }
         case AIRSPEED_ETS:
-            {
-              printf("Received Airspeed data (X:%f ; Y:%f ; Z:%f\n",
-                     outgoing.imu_gyro_scaled.data.x,outgoing.imu_gyro_scaled.data.y,outgoing.imu_gyro_scaled.data.z);
-              poll_airspeed.events =  ZMQ_POLLOUT;
-              poll_log.events = ZMQ_POLLOUT;
-              break;
-
-            }
+          {
+            printf("Received Airspeed data (X:%f ; Y:%f ; Z:%f\n",
+                   outgoing.imu.imu_gyro_scaled.data.x,outgoing.imu.imu_gyro_scaled.data.y,outgoing.imu.imu_gyro_scaled.data.z);
+            poll_airspeed.events =  ZMQ_POLLOUT;
+            poll_log.events = ZMQ_POLLOUT;
+            break;
+          }
+        case AHRS_QUAT_INT:
+          {
+            printf("Received AHRS data (X:%f ; Y:%f ; Z:%f\n",
+                   outgoing.imu.imu_gyro_scaled.data.x,outgoing.imu.imu_gyro_scaled.data.y,outgoing.imu.imu_gyro_scaled.data.z);
+            poll_airspeed.events =  ZMQ_POLLOUT;
+            poll_log.events = ZMQ_POLLOUT;
+            break;
+          }
         default:
           {
             break;
@@ -246,42 +264,65 @@ int main(int argc __attribute__((unused)),
 
 
       if (bail) die(bail);
-//      if (poll_sensors.revents & ZMQ_POLLOUT) {
-//          /* In here is the stuff specific to what this socket does; as
-//       * before, this might get broken out if you were to report
-//       * different sensor values to more than one place. */
-//          const void *bufs[] = {&outgoing};
-//          const uint32_t lens[] = {sizeof(outgoing)};
-//          const int zs = zmq_sendm(zsock_sensors, bufs, lens,
-//                                   sizeof(lens) / sizeof(lens[0]));
-//          if (zs < 0) {
-//              txfails++;
-//            } else {
-//              printf("Sent to controller!, size: %d\n", (int)sizeof(sensors_t));
-//              /* Clear the events flag so we won't try to send until we
-//         * have more data. */
-//             poll_sensors.events = 0;
-//            }
-//          poll_sensors.revents = 0;
-//        }
+      if (poll_gps.revents & ZMQ_POLLOUT) {
+          const void *bufs[] = {&outgoing.gps};
+          const uint32_t lens[] = {sizeof(gps_t)};
+          const int zs = zmq_sendm(zsock_gps, bufs, lens,
+                                   sizeof(lens) / sizeof(lens[0]));
+          if (zs < 0) {
+              txfails++;
+            } else {
+              printf("GPS sent to controller!, size: %d\n", (int)sizeof(gps_t));
+              poll_gps.events = 0;
+            }
+          poll_gps.revents = 0;
+        }
+
+      if (poll_imu.revents & ZMQ_POLLOUT) {
+          const void *bufs[] = {&outgoing.imu};
+          const uint32_t lens[] = {sizeof(imu_t)};
+          const int zs = zmq_sendm(zsock_imu, bufs, lens,
+                                   sizeof(lens) / sizeof(lens[0]));
+          if (zs < 0) {
+              txfails++;
+            } else {
+              printf("IMU sent to controller!, size: %d\n", (int)sizeof(imu_t));
+              poll_imu.events = 0;
+            }
+          poll_imu.revents = 0;
+        }
+
+      if (poll_ahrs.revents & ZMQ_POLLOUT) {
+          const void *bufs[] = {&outgoing.ahrs};
+          const uint32_t lens[] = {sizeof(ahrs_t)};
+          const int zs = zmq_sendm(zsock_imu, bufs, lens,
+                                   sizeof(lens) / sizeof(lens[0]));
+          if (zs < 0) {
+              txfails++;
+            } else {
+              printf("AHRS sent to controller!, size: %d\n", (int)sizeof(ahrs_t));
+              poll_ahrs.events = 0;
+            }
+          poll_ahrs.revents = 0;
+        }
 
       if (bail) die(bail);
-//      if (poll_log.revents & ZMQ_POLLOUT) {
-//          const uint8_t type = LOG_MESSAGE_SENSORS;
-//          const void *bufs[] = {&type, &outgoing};
-//          const uint32_t lens[] = {sizeof(type), sizeof(outgoing)};
-//          const int zs = zmq_sendm(zsock_log, bufs, lens,
-//                                   sizeof(lens) / sizeof(lens[0]));
-//          if (zs < 0) {
-//              txfails++;
-//            } else {
-//              printf("Sent to logger!\n");
-//              /* Clear the events flag so we won't try to send until we
-//         * have more data. */
-//              poll_log.events = 0;
-//            }
-//          poll_log.revents = 0;
-//        }
+      if ((poll_log.revents > 3) & ZMQ_POLLOUT) {
+          const uint8_t type = LOG_MESSAGE_SENSORS;
+          const void *bufs[] = {&type, &outgoing};
+          const uint32_t lens[] = {sizeof(type), sizeof(outgoing)};
+          const int zs = zmq_sendm(zsock_log, bufs, lens,
+                                   sizeof(lens) / sizeof(lens[0]));
+          if (zs < 0) {
+              txfails++;
+            } else {
+              printf("Sent to logger!\n");
+              /* Clear the events flag so we won't try to send until we
+               * have more data. */
+              poll_log.events = 0;
+            }
+          poll_log.revents = 0;
+        }
     }
 
   /* Shouldn't get here. */

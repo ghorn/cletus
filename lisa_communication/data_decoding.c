@@ -24,9 +24,7 @@ static Data data;
 //pointer to data
 static Data* data_ptr;
 
-const double gyro_scale_unit_coef = 0.0139882;
-const double acc_scale_unit_coef = 0.0009766;
-const double mag_scale_unit_coef = 0.0004883;
+
 
 
 /********************************
@@ -82,7 +80,8 @@ static DEC_errCode data_to_struct(unsigned char sender,unsigned char stream[], i
 
   switch(sender)
     {
-    case LISA: //sender_id of lisa
+    case BETTY: //sender_id of lisa
+    case BABY_BETTY:
 #if DEBUG  > 1
       printf("Received data packet from LISA of type");
 #endif
@@ -180,7 +179,7 @@ static DEC_errCode data_to_struct(unsigned char sender,unsigned char stream[], i
           printf("IMU_MAG_RAW\n");
 #endif
           data_write(stream, (void *)&data_ptr->lisa_plane.imu_mag, sizeof(Imu_mag_raw)-1);
-          data_write(stream, (void *)&data_ptr->zmq_sensors.imu_mag, sizeof(mag_raw_t));
+          data_write(stream, (void *)&data_ptr->zmq_sensors.imu.imu_mag, sizeof(mag_raw_t));
           break;
 
         case IMU_GYRO_SCALED:
@@ -188,7 +187,7 @@ static DEC_errCode data_to_struct(unsigned char sender,unsigned char stream[], i
           printf("IMU_GYRO\n");
 #endif
           data_write(stream, (void *)&data_ptr->lisa_plane.imu_gyro, sizeof(Imu_gyro_raw)-1);
-          data_write(stream, (void *)&data_ptr->zmq_sensors.imu_gyro, sizeof(gyro_raw_t));
+          data_write(stream, (void *)&data_ptr->zmq_sensors.imu.imu_gyro, sizeof(gyro_raw_t));
           break;
 
         case IMU_ACC_SCALED:
@@ -196,8 +195,16 @@ static DEC_errCode data_to_struct(unsigned char sender,unsigned char stream[], i
           printf("IMU_ACCELn");
 #endif
           data_write(stream, (void *)&data_ptr->lisa_plane.imu_accel, sizeof(Imu_accel_raw)-1);
-          data_write(stream, (void *)&data_ptr->zmq_sensors.imu_accel, sizeof(accel_raw_t));
+          data_write(stream, (void *)&data_ptr->zmq_sensors.imu.imu_accel, sizeof(accel_raw_t));
           break;
+
+        case AHRS_QUAT_INT:
+#if DEBUG  > 1
+          printf("AHRS_QUAT_INTn");
+#endif
+          data_write(stream, (void *)&data_ptr->zmq_sensors.ahrs, sizeof(ahrs_t));
+          break;
+
 
 
         case UART_ERRORS:

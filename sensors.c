@@ -62,3 +62,11 @@ int get_lisa_data(sensors_t * const data, uint8_t input_buffer[]) {
     }
   return 0;
 }
+
+void convert_to_double(xyz_int* source, xyz_double* dest, double coef)
+{
+  dest->x = (double)source->x / coef;
+  dest->y = (double)source->y / coef;
+  dest->z = (double)source->z / coef;
+}
+

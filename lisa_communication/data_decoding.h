@@ -44,15 +44,16 @@ enum Message_id{
   IMU_GYRO = 200,
   IMU_ACCEL = 202,
   IMU_MAG = 201,
-  SERVO_COMMANDS = 72
-
+  SERVO_COMMANDS = 72,
+  AHRS_QUAT_INT = 157
 };
 
 //sender ids
 enum Sender_id{
   SERVER = 1,
   BONE_PLANE=2,
-  LISA=165,
+  BETTY=165,
+  BABY_BETTY=166,
   BONE_WIND=3,
   BONE_ARM=4
 };
