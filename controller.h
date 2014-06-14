@@ -11,4 +11,7 @@
 
 void run_controller(const sensors_t * const y, actuators_t * const u);
 
+void run_demo_controller(const sensors_t * const y, actuators_t * const u);
+
+
 #endif // __CONTROLLER_H__

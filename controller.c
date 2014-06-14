@@ -28,9 +28,9 @@ void run_controller(const sensors_t * const y, actuators_t * const u) {
   static int counter = 0;
   counter++;
   if (counter == 10) {
-    reference = -reference;
-    counter = 0;
-  }
+      reference = -reference;
+      counter = 0;
+    }
 
   integral_term += reference*0.1 + y->imu.imu_gyro_scaled.data.x;
   u->flaps = sin(1*integral_term);
@@ -42,4 +42,23 @@ void run_controller(const sensors_t * const y, actuators_t * const u) {
   double tf = floating_time(&(u->stop));
   printf("ran controller, start time: %.4f, end time: %.4f, diff time: %.3f us, time delay: %3.3fus\n",
          t0,tf,(tf-t0)*1e6, (t0 - floating_time(&(y->imu.imu_accel_scaled.timestamp)))*1e6);
+}
+
+void run_demo_controller(const sensors_t * const y, actuators_t * const u) {
+  static int initialized =0;
+  static actuators_t u_old;
+  if(!initialized)
+    {
+      u_old = *u;
+      initialized = 1;
+    }
+
+  u->rudd = u_old.rudd + y->imu.imu_gyro_scaled.data.z;
+  u->flaps = u_old.flaps + y->imu.imu_gyro_scaled.data.y;
+  u->elev = u_old.elev + y->imu.imu_gyro_scaled.data.y;
+  u->ail =  u_old.ail + y->imu.imu_gyro_scaled.data.y;
+
+  u_old = *u;
+
+
 }
