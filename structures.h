@@ -127,6 +127,26 @@ typedef struct {
   double elev;
 } actuators_t;
 
+typedef struct {
+  int16_t servo_1;
+  int16_t servo_2;
+  int16_t servo_3;
+  int16_t servo_4;
+  int16_t servo_5;
+  int16_t servo_6;
+  int16_t servo_7;
+} servo_message_t;
+
+typedef struct{
+  uint8_t startbyte;
+  uint8_t length;
+  uint8_t sender_id;
+  uint8_t message_id;
+  servo_message_t servos_msg;
+  uint8_t checksum1;
+  uint8_t checksum2;
+  }lisa_message_t;
+
 #define LOG_MESSAGE_SENSORS 0
 #define LOG_MESSAGE_ESTIMATOR 1
 #define LOG_MESSAGE_CONTROLLER 2

@@ -17,6 +17,7 @@
 #include "./structures.h"
 #include "./log.h"
 #include "./misc.h"
+#include "./actuators.h"
 
 #include "lisa_communication/data_decoding.h"
 #include "lisa_communication/uart_communication.h"
@@ -56,47 +57,14 @@ int main(int argc __attribute__((unused)),
          char **argv __attribute__((unused))) {
 
 
-  int  errRet = serial_port_setup();
+  //init the data decode pointers
+  init_decoding();
+  int errRet = serial_port_setup();
   if(errRet!=UART_ERR_NONE){
       err("couldn't initialize serial port");
     }
 
 
-  uint8_t encoded_data[36];
-
-  int i=0;
-
-  while(1)
-    {
-
-      Output output;
-
-      //create test data
-      output.message.servo_1=-i;
-      output.message.servo_2=i;
-      output.message.servo_3=i;
-      output.message.servo_4=i;
-      output.message.servo_5=i;
-      output.message.servo_6=i;
-      output.message.servo_7=0;
-      i=i+2;
-      if(i>12800){
-          i=0;
-        }
-      printf("Current Value: %i",i);
-
-      //2. encode the data
-      data_encode(output.raw,sizeof(output.raw),encoded_data,SERVER,SERVO_COMMANDS);
-
-      //3. send data over UART
-      int new_length = strip_timestamp(encoded_data); //lisa expects a package without a timestamp
-
-      serial_port_write(encoded_data,new_length);
-
-      //usleep(20000); //60 hz
-
-      sleep(1);
-    }
 
 
 
@@ -143,45 +111,50 @@ int main(int argc __attribute__((unused)),
 
   /* Actuator data storage. */
   actuators_t incoming;
+  lisa_message_t output;
 
-  zmq_pollitem_t polls[] = {
-    /* Inputs -- in this case, our incoming actuator commands. */
-    { .socket = zsock_in,
+  output.message_id = SERVO_COMMANDS;
+  output.sender_id = BONE_PLANE;
+  output.startbyte = 0x99;
+
+
+  zmq_pollitem_t poll_controller =
+      /* Inputs -- in this case, our incoming actuator commands. */
+  { .socket = zsock_in,
       .fd = -1,
       .events = ZMQ_POLLIN,
       .revents = 0
-    },
-    /* Let's read from stdin as well to make things more fun. */
-    { .socket = NULL,
-      .fd = fileno(stdin),
-      .events = ZMQ_POLLIN,
-      .revents = 0
-    },
+};
+
+zmq_pollitem_t poll_lisa =
     /* Outputs.  We have a choice: we could simply block on serial
-       * writes and not even poll on output. */
-    { .socket = NULL,
-      .fd = serialfd,
-      /* 'events' would be ZMQ_POLLOUT, but we'll wait till we have
+               * writes and not even poll on output. */
+{ .socket = NULL,
+.fd = -1,
+/* 'events' would be ZMQ_POLLOUT, but we'll wait till we have
            * something to send*/
-      .events = 0,
-      .revents = 0
-    },
-    { .socket = zsock_log,
-      .fd = -1,
-      .events = 0,
-      .revents = 0
-    }
-  };
+.events = 0,
+.revents = 0
+    };
 
-  const int ninputs = 2;
-  zmq_pollitem_t *inputs = &polls[0];
-  const int npolls = sizeof(polls) / sizeof(polls[0]);
-  /* const int noutputs = npolls - ninputs; */
-  zmq_pollitem_t *outputs = &polls[ninputs];
+zmq_pollitem_t poll_log =
+{ .socket = zsock_log,
+  .fd = -1,
+  .events = 0,
+  .revents = 0
+};
 
-  uint8_t encoded_actuators[36];
+zmq_pollitem_t polls[] = {
+  poll_controller,
+  poll_log,
+  poll_lisa
+};
 
-  /* Here's the main loop -- we only do stuff when input or output
+
+const int npolls = sizeof(polls) / sizeof(polls[0]);
+
+
+/* Here's the main loop -- we only do stuff when input or output
    * happens.  The timeout can be put to good use, or you can also use
    * timerfd_create() to create a file descriptor with a timer under
    * the hood and dispatch on that.
@@ -190,83 +163,73 @@ int main(int argc __attribute__((unused)),
    * you'd want to pull most of the actual handling out into functions
    * and simply loop over your polls; I've left it all inline here
    * mostly out of laziness. */
-  for (;;) {
-      if (bail) die(bail);
-      /* Poll for activity; time out after 10 milliseconds. */
-      const int polled = zmq_poll(polls, npolls, 10);
-      if (polled < 0) {
-          if (bail) die(bail);
-          zerr("while polling");
-          /* not sure what to do about it. */
-          continue;
-        } else if (polled == 0) {
-          if (bail) die(bail);
-          /* timeout! */
-          continue;
-        }
+for (;;) {
+if (bail) die(bail);
+/* Poll for activity; time out after 10 milliseconds. */
+const int polled = zmq_poll(polls, npolls, 10);
+if (polled < 0) {
+  if (bail) die(bail);
+  zerr("while polling");
+  /* not sure what to do about it. */
+  continue;
+} else if (polled == 0) {
+  if (bail) die(bail);
+  /* timeout! */
+  continue;
+}
 
-      if (bail) die(bail);
-      if (inputs[0].revents & ZMQ_POLLIN) {
-          /* Read in some sensor data from this sensor. */
-          const int zr = zmq_recvm(zsock_in, (uint8_t *) &incoming,
-                                   sizeof(incoming));
-          if (zr < (int) sizeof(incoming)) {
-              err("couldn't read actuator commands!");
-              rxfails++;
-              /* Better clear the output flag, in case we corrupted the
+if (bail) die(bail);
+if (poll_controller.revents & ZMQ_POLLIN) {
+  /* Read in some sensor data from this sensor. */
+  const int zr = zmq_recvm(zsock_in, (uint8_t *) &incoming,
+                           sizeof(incoming));
+  if (zr < (int) sizeof(incoming)) {
+      err("couldn't read actuator commands!");
+      rxfails++;
+      /* Better clear the output flag, in case we corrupted the
          * data. */
-              outputs[0].events = outputs[1].events = 0;
-            } else {
-              printf("read from controller OK!, time: %.3f\n",floating_time(&(incoming.stop)));
-              /* Data OK -- enable output sockets. */
-              outputs[0].events = outputs[1].events = ZMQ_POLLOUT;
-            }
-          /* Clear the poll state. */
-          polls[0].revents = 0;
-        }
-
-      if (inputs[1].revents & ZMQ_POLLIN) {
-          /* Read in some sensor data from this sensor.  It's stdin, so
-       * just do some random thing.*/
-          printf("Keyboard cat!\n");
-          /* Clear the poll state. */
-          polls[1].revents = 0;
-        }
-
-      if (bail) die(bail);
-      if (outputs[0].revents & ZMQ_POLLOUT) {
-          if (fwrite(&incoming, sizeof(incoming), 1, serial) < 1
-              && ferror(serial)) {
-              txfails++;
-            } else {
-              printf("Sent to actuators!\n");
-              /* Clear the events flag so we won't try to send until we
-         * have more data. */
-              actuators_t new_data;
-              int new_length = set_actuators(&new_data,encoded_actuators);
-              serial_port_write(encoded_actuators,new_length);
-              outputs[0].events = 0;
-            }
-          outputs[0].revents = 0;
-        }
-
-      if (bail) die(bail);
-      if (outputs[1].revents & ZMQ_POLLOUT) {
-          const uint8_t type = LOG_MESSAGE_SENSORS;
-          const void *bufs[] = {&type, &incoming};
-          const uint32_t lens[] = {sizeof(type), sizeof(incoming)};
-          const int zs = zmq_sendm(zsock_log, bufs, lens,
-                                   sizeof(lens) / sizeof(lens[0]));
-          if (zs < 0) {
-              txfails++;
-            } else {
-              printf("Sent to logger!\n");
-              outputs[1].events = 0;
-            }
-          outputs[1].revents = 0;
-        }
+      poll_lisa.events = 0;
+      poll_log.events = 0;
+    } else {
+      printf("read from controller OK!, time: %.3f\n",floating_time(&(incoming.stop)));
+      /* Data OK -- enable output sockets. */
+      poll_lisa.events = ZMQ_POLLOUT;
+      poll_log.events = ZMQ_POLLOUT;
     }
+  /* Clear the poll state. */
+  poll_controller.revents = 0;
+}
 
-  /* Shouldn't get here. */
-  return 0;
+
+
+if (bail) die(bail);
+if (poll_lisa.revents & ZMQ_POLLOUT) {
+  printf("Sent to actuators!\n");
+  /* Clear the events flag so we won't try to send until we
+         * have more data. */
+  convert_for_lisa(&incoming, &output);
+  serial_port_write((uint8_t*)&output,sizeof(output));
+  poll_lisa.events = 0;
+  poll_lisa.revents = 0;
+}
+
+if (bail) die(bail);
+if (poll_log.revents & ZMQ_POLLOUT) {
+  const uint8_t type = LOG_MESSAGE_SENSORS;
+  const void *bufs[] = {&type, &incoming};
+  const uint32_t lens[] = {sizeof(type), sizeof(incoming)};
+  const int zs = zmq_sendm(zsock_log, bufs, lens,
+                           sizeof(lens) / sizeof(lens[0]));
+  if (zs < 0) {
+      txfails++;
+    } else {
+      printf("Sent to logger!\n");
+      poll_log.events = 0;
+    }
+  poll_log.revents = 0;
+}
+}
+
+/* Shouldn't get here. */
+return 0;
 }
