@@ -12,7 +12,8 @@
 #define GPS_CHAN "ipc:///tmp/gps"
 #define RC_CHAN "ipc:///tmp/rc"
 #define ACTUATORS_CHAN "ipc:///tmp/actuators"
-#define AIRSPEED_CHAN "ipc:///tmp/actuators"
+#define AIRSPEED_CHAN "ipc:///tmp/airspeed"
+#define AHRS_CHAN "ipc:///tmp/ahrs"
 #define LOG_CHAN "ipc:///tmp/logs"
 
 #endif  /* __COMMS_H__ */
