@@ -23,7 +23,7 @@
 
 #include "./lisa_communication/data_decoding.h"
 
-const double coef = 500;
+const double coef = 1000.0;
 
 void convert_for_lisa(const actuators_t* const actuators, lisa_message_t* const msg)
 {
