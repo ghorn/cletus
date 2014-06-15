@@ -92,65 +92,65 @@ int main(int argc __attribute__((unused)),
   actuators_t u_outgoing;
 
 
-  zmq_pollitem_t poll_gps = {
-    .socket=zsock_gps,
-    .fd=-1,
-    .events= ZMQ_POLLIN,
-    .revents=0
-  };
-
-  zmq_pollitem_t poll_imu = {
-    .socket=zsock_imu,
-    .fd=-1,
-    .events= ZMQ_POLLIN,
-    .revents=0
-  };
-
-  zmq_pollitem_t poll_ahrs = {
-    .socket=zsock_ahrs,
-    .fd=-1,
-    .events= ZMQ_POLLIN,
-    .revents=0
-  };
-
-  zmq_pollitem_t poll_airspeed = {
-    .socket=zsock_airspeed,
-    .fd=-1,
-    .events= ZMQ_POLLIN,
-    .revents=0
-  };
 
 
 
-  zmq_pollitem_t poll_actuators = {
-    /* Outputs (our socket to send data to the actuators and the
-       * logger socket) */
-     .socket = zsock_actuators,
+  zmq_pollitem_t polls[] = {
+
+    {
+      .socket=zsock_imu,
+      .fd=-1,
+      .events= ZMQ_POLLIN,
+      .revents=0
+    },
+    {
+      .socket=zsock_gps,
+      .fd=-1,
+      .events= ZMQ_POLLIN,
+      .revents=0
+    },
+    {
+      .socket=zsock_ahrs,
+      .fd=-1,
+      .events= ZMQ_POLLIN,
+      .revents=0
+    },
+    {
+      .socket=zsock_airspeed,
+      .fd=-1,
+      .events= ZMQ_POLLIN,
+      .revents=0
+    },
+    {
+      /* Outputs (our socket to send data to the actuators and the
+                               * logger socket) */
+      .socket = zsock_actuators,
       .fd = -1,
       /* 'events' would be ZMQ_POLLOUT, but we'll wait till we have
-           * something to send*/
+                                   * something to send*/
       .events = 0,
       .revents = 0
-    };
-    zmq_pollitem_t poll_log =
-      { .socket = zsock_log,
-        .fd = -1,
-        .events = 0,
-        .revents = 0
-      };
+    },
+    {
+      .socket = zsock_log,
+      .fd = -1,
+      .events = 0,
+      .revents = 0
+    }
+  };
+
+  zmq_pollitem_t* poll_imu = &polls[0];
+//  zmq_pollitem_t* poll_gps = &polls[1];
+//  zmq_pollitem_t* poll_ahrs = &polls[2];
+//  zmq_pollitem_t* poll_airspeed = &polls[3];
+  zmq_pollitem_t* poll_actuators = &polls[4];
+  zmq_pollitem_t* poll_log = &polls[5];
 
 
-      zmq_pollitem_t polls[] = {
-        poll_log,
-        poll_gps,
-        poll_imu,
-        poll_ahrs,
-        poll_airspeed
-      };
 
-      const int npolls = sizeof(polls) / sizeof(polls[0]);
+  const int npolls = sizeof(polls) / sizeof(polls[0]);
 
-      /* Here's the main loop -- we only do stuff when input or output
+  /* Here's the main loop -- we only do stuff when input or output
        * happens.  The timeout can be put to good use, or you can also use
        * timerfd_create() to create a file descriptor with a timer under
        * the hood and dispatch on that.
@@ -159,11 +159,11 @@ int main(int argc __attribute__((unused)),
        * you'd want to pull most of the actual handling out into functions
        * and simply loop over your polls; I've left it all inline here
        * mostly out of laziness. */
-      for (;;) {
-        if (bail) die(bail);
-        /* Poll for activity; time out after 10 milliseconds. */
-        const int polled = zmq_poll(polls, npolls, 10);
-        if (polled < 0) {
+  for (;;) {
+      if (bail) die(bail);
+      /* Poll for activity; time out after 10 milliseconds. */
+      const int polled = zmq_poll(polls, npolls, 10);
+      if (polled < 0) {
           if (bail) die(bail);
           zerr("while polling");
           /* not sure what to do about it. */
@@ -174,51 +174,51 @@ int main(int argc __attribute__((unused)),
           continue;
         }
 
-        if (bail) die(bail);
-        if (poll_imu.revents & ZMQ_POLLIN) {
+      if (bail) die(bail);
+      if (poll_imu->revents & ZMQ_POLLIN) {
           const int zr = zmq_recvm(zsock_imu, (uint8_t *) &y_incoming.imu,
-          sizeof(y_incoming.imu));
+                                   sizeof(y_incoming.imu));
           if (zr < (int) sizeof(imu_t)) {
-            err("couldn't read sensors!");
-            rxfails++;
-            /* Better clear the output flag, in case we corrupted the
+              err("couldn't read sensors!");
+              rxfails++;
+              /* Better clear the output flag, in case we corrupted the
                    * data. */
-            poll_actuators.events = 0;
-            poll_log.events = 0;
-          } else {
-            printf("read from sensors OK!\n");
-            /* Here is where you might run your controller when you get a
+              poll_actuators->events = 0;
+              poll_log->events = 0;
+            } else {
+              printf("read from sensors OK!\n");
+              /* Here is where you might run your controller when you get a
                    * complete set of sensor inputs. */
-            run_demo_controller(&y_incoming, &u_outgoing);
-            /* Controller went OK (it had damn well better) -- enable
+              run_demo_controller(&y_incoming, &u_outgoing);
+              /* Controller went OK (it had damn well better) -- enable
                    * output sockets. */
-            poll_actuators.events = ZMQ_POLLOUT;
-            poll_log.events = ZMQ_POLLOUT;
-          }
+              poll_actuators->events = ZMQ_POLLOUT;
+              poll_log->events = ZMQ_POLLOUT;
+            }
           /* Clear the poll state. */
-          polls[0].revents = 0;
+          poll_imu->revents = 0;
         }
 
-        if (bail) die(bail);
-        if (poll_actuators.revents & ZMQ_POLLOUT) {
+      if (bail) die(bail);
+      if (poll_actuators->revents & ZMQ_POLLOUT) {
           const void *bufs[] = {&u_outgoing};
           const uint32_t lens[] = {sizeof(u_outgoing)};
           const int zs = zmq_sendm(zsock_actuators, bufs, lens,
-          sizeof(lens) / sizeof(lens[0]));
+                                   sizeof(lens) / sizeof(lens[0]));
           if (zs < 0) {
-            txfails++;
-          } else {
-            printf("Sent to actuators!\n");
-            /* Clear the events flag so we won't try to send until we
+              txfails++;
+            } else {
+              printf("Sent to actuators!\n");
+              /* Clear the events flag so we won't try to send until we
                    * have more data. */
-            poll_actuators.events = 0;
-          }
-          poll_actuators.revents = 0;
+              poll_actuators->events = 0;
+            }
+          poll_actuators->revents = 0;
         }
 
-        /* I skipped logging; I think you know what to do. */
-      }
-
-      /* Shouldn't get here. */
-      return 0;
+      /* I skipped logging; I think you know what to do. */
     }
+
+  /* Shouldn't get here. */
+  return 0;
+}

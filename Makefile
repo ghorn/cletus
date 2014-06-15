@@ -7,6 +7,7 @@ C_SRC = run_sensors.c \
         run_actuators.c \
         controller.c \
         sensors.c \
+	actuators.c \
         misc.c \
         zmq.c \
 	lisa_communication/uart_communication.c \

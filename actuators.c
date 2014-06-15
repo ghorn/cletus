@@ -19,6 +19,7 @@
  #include "./log.h"
  #include "./sensors.h"
  #include "./misc.h"
+#include "./actuators.h"
 
 #include "./lisa_communication/data_decoding.h"
 
@@ -34,5 +35,5 @@ void convert_for_lisa(const actuators_t* const actuators, lisa_message_t* const 
   msg->servos_msg.servo_6 = (int16_t)(actuators->rudd * coef);
   msg->servos_msg.servo_7 = 0;
 
-  calculate_checksum((uint8_t) &msg, msg->checksum1, msg->checksum2);
+  calculate_checksum((uint8_t*) msg, &(msg->checksum1), &(msg->checksum2));
 }
