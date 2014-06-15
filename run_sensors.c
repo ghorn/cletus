@@ -211,7 +211,7 @@ int main(int argc __attribute__((unused)),
         {
 #ifdef GPS
         case GPS_INT:
-#if DEBUG
+#ifdef DEBUG
 
           printf("Received GPS Position data (X:%i ; Y:%i ; Z:%i\n",
                  outgoing.gps.pos_data.x,outgoing.gps.pos_data.y,outgoing.gps.pos_data.z);
@@ -223,7 +223,7 @@ int main(int argc __attribute__((unused)),
 #ifdef IMU
         case IMU_ACC_SCALED:
           xyz_convert_to_double(&(outgoing.imu.imu_accel.data), &(outgoing.imu.imu_accel_scaled.data),acc_scale_unit_coef );
-#if DEBUG
+#ifdef DEBUG
 
           printf("Received Acceleration data (X:%f ; Y:%f; Z:%f\n",
                  outgoing.imu.imu_accel_scaled.data.x,outgoing.imu.imu_accel_scaled.data.y,outgoing.imu.imu_accel_scaled.data.z);
@@ -233,7 +233,7 @@ int main(int argc __attribute__((unused)),
           break;
         case IMU_GYRO_SCALED:
           xyz_convert_to_double(&(outgoing.imu.imu_gyro.data), &(outgoing.imu.imu_gyro_scaled.data),gyro_scale_unit_coef );
-#if DEBUG
+#ifdef DEBUG
           printf("Received Gyro data (X:%f ; Y:%f ; Z:%f\n",
                  outgoing.imu.imu_gyro_scaled.data.x,outgoing.imu.imu_gyro_scaled.data.y,outgoing.imu.imu_gyro_scaled.data.z);
 #endif
@@ -242,7 +242,7 @@ int main(int argc __attribute__((unused)),
           break;
         case IMU_MAG_SCALED:
           xyz_convert_to_double(&(outgoing.imu.imu_mag.data), &(outgoing.imu.imu_mag_scaled.data),mag_scale_unit_coef );
-#if DEBUG
+#ifdef DEBUG
           printf("Received Mag data (X:%f ; Y:%f ; Z:%f\n",
                  outgoing.imu.imu_mag_scaled.data.x,outgoing.imu.imu_mag_scaled.data.y,outgoing.imu.imu_mag_scaled.data.z);
 #endif
@@ -252,7 +252,7 @@ int main(int argc __attribute__((unused)),
 #endif
 #ifdef AIRSPEED
         case AIRSPEED_ETS:
-#if DEBUG
+#ifdef DEBUG
           printf("Received Airspeed data (X:%f ; Y:%f ; Z:%f\n",
                  outgoing.imu.imu_gyro_scaled.data.x,outgoing.imu.imu_gyro_scaled.data.y,outgoing.imu.imu_gyro_scaled.data.z);
 #endif
@@ -264,7 +264,7 @@ int main(int argc __attribute__((unused)),
         case AHRS_QUAT_INT:
           quat_convert_to_double(&(outgoing.ahrs.body), &(outgoing.ahrs.body_converted),ahrs_unit_coef );
           quat_convert_to_double(&(outgoing.ahrs.imu), &(outgoing.ahrs.imu_converted),ahrs_unit_coef );
-#if DEBUG
+#ifdef DEBUG
           printf("Received AHRS body data (I:%f X:%f ; Y:%f ; Z:%f\n",
                  outgoing.ahrs.body_converted.qi,outgoing.ahrs.body_converted.qx,outgoing.ahrs.body_converted.qy,outgoing.ahrs.body_converted.qz);
           printf("Received AHRS IMU data (I:%f X:%f ; Y:%f ; Z:%f\n",
@@ -276,7 +276,7 @@ int main(int argc __attribute__((unused)),
 #endif
 #ifdef RC
         case ROTORCRAFT_RADIO_CONTROL:
-#if DEBUG
+#ifdef DEBUG
           printf("RC Data: Mode: %i Status: %i \n", outgoing.rc.mode,outgoing.rc.status);
 #endif
 #endif

@@ -112,7 +112,7 @@ int main(int argc __attribute__((unused)),
   output.sender_id = BONE_PLANE;
   output.message_id = SERVO_COMMANDS;
 
-#if DEBUG
+#ifdef DEBUG
   printf("Servo Message Header: Startbyte -> %x \n\t length -> %i \n\t SenderID -> %i \n\t MessageID -> %i \n",
          output.startbyte,output.length,output.sender_id,output.message_id);
 
@@ -185,7 +185,7 @@ int main(int argc __attribute__((unused)),
               /* Data OK -- enable output sockets. */
               convert_for_lisa(&incoming, &output);
               serial_port_write((uint8_t*)&output,sizeof(output));
-#if DEBUG
+#ifdef DEBUG
               printf("Writing servo commannds 1 -> %i \n\t 2 -> %i\n\t 3 -> %i\n\t 4 -> %i\n\t 5 -> %i\n\t 6 -> %i\n\t 7 -> %i\n",
                      (int)output.servos_msg.servo_1, (int)output.servos_msg.servo_2, (int)output.servos_msg.servo_3,
                      (int)output.servos_msg.servo_4, (int)output.servos_msg.servo_5, (int)output.servos_msg.servo_6,
