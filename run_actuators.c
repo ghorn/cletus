@@ -65,11 +65,6 @@ int main(int argc __attribute__((unused)),
     }
 
 
-
-
-
-
-
   /* Confignals. */
   if (signal(SIGINT, &sigdie) == SIG_IGN)
     signal(SIGINT, SIG_IGN);
@@ -112,10 +107,16 @@ int main(int argc __attribute__((unused)),
   /* Actuator data storage. */
   actuators_t incoming;
   lisa_message_t output;
-
-  output.message_id = SERVO_COMMANDS;
-  output.sender_id = BONE_PLANE;
   output.startbyte = 0x99;
+  output.length = sizeof(lisa_message_t);
+  output.sender_id = BONE_PLANE;
+  output.message_id = SERVO_COMMANDS;
+
+#if DEBUG
+  printf("Servo Message Header: Startbyte -> %x \n\t length -> %i \n\t SenderID -> %i \n\t MessageID -> %i \n",
+         output.startbyte,output.length,output.sender_id,output.message_id);
+
+#endif
 
 
 
@@ -130,12 +131,6 @@ int main(int argc __attribute__((unused)),
       .revents = 0
     },
     {
-      .socket = NULL,
-      .fd = -1,
-      .events = 0,
-      .revents = 0
-    },
-    {
       .socket = zsock_log,
       .fd = -1,
       .events = 0,
@@ -145,8 +140,7 @@ int main(int argc __attribute__((unused)),
 
 
   zmq_pollitem_t* poll_controller = &polls[0];
-  zmq_pollitem_t* poll_lisa = &polls[1];
-  zmq_pollitem_t* poll_log = &polls[2];
+  zmq_pollitem_t* poll_log = &polls[1];
 
   const int npolls = sizeof(polls) / sizeof(polls[0]);
 
@@ -185,30 +179,24 @@ int main(int argc __attribute__((unused)),
               rxfails++;
               /* Better clear the output flag, in case we corrupted the
          * data. */
-              poll_lisa->events = 0;
               poll_log->events = 0;
             } else {
               printf("read from controller OK!, time: %.3f\n",floating_time(&(incoming.stop)));
               /* Data OK -- enable output sockets. */
-              poll_lisa->events = ZMQ_POLLOUT;
+              convert_for_lisa(&incoming, &output);
+              serial_port_write((uint8_t*)&output,sizeof(output));
+#if DEBUG
+              printf("Writing servo commannds 1 -> %i \n\t 2 -> %i\n\t 3 -> %i\n\t 4 -> %i\n\t 5 -> %i\n\t 6 -> %i\n\t 7 -> %i\n",
+                     (int)output.servos_msg.servo_1, (int)output.servos_msg.servo_2, (int)output.servos_msg.servo_3,
+                     (int)output.servos_msg.servo_4, (int)output.servos_msg.servo_5, (int)output.servos_msg.servo_6,
+                     (int)output.servos_msg.servo_7);
+#endif
               poll_log->events = ZMQ_POLLOUT;
             }
           /* Clear the poll state. */
           poll_controller->revents = 0;
         }
 
-
-
-      if (bail) die(bail);
-      if (poll_lisa->revents & ZMQ_POLLOUT) {
-          printf("Sent to actuators!\n");
-          /* Clear the events flag so we won't try to send until we
-         * have more data. */
-          convert_for_lisa(&incoming, &output);
-          serial_port_write((uint8_t*)&output,sizeof(output));
-          poll_lisa->events = 0;
-          poll_lisa->revents = 0;
-        }
 
       if (bail) die(bail);
       if (poll_log->revents & ZMQ_POLLOUT) {
