@@ -19,6 +19,15 @@
 
 #include "./controller.h"
 
+
+#ifdef ALL
+#define IMU
+#define RC
+#define AHRS
+#define AIRSPEED
+#define GPS
+#endif
+
 /* ZMQ resources */
 static void *zctx = NULL;
 static void *zsock_imu = NULL;
@@ -92,9 +101,6 @@ int main(int argc __attribute__((unused)),
   actuators_t u_outgoing;
 
 
-
-
-
   zmq_pollitem_t polls[] = {
 
     {
@@ -123,11 +129,11 @@ int main(int argc __attribute__((unused)),
     },
     {
       /* Outputs (our socket to send data to the actuators and the
-                               * logger socket) */
+                                   * logger socket) */
       .socket = zsock_actuators,
       .fd = -1,
       /* 'events' would be ZMQ_POLLOUT, but we'll wait till we have
-                                   * something to send*/
+                                       * something to send*/
       .events = 0,
       .revents = 0
     },
@@ -139,10 +145,18 @@ int main(int argc __attribute__((unused)),
     }
   };
 
+#ifdef IMU
   zmq_pollitem_t* poll_imu = &polls[0];
-//  zmq_pollitem_t* poll_gps = &polls[1];
-//  zmq_pollitem_t* poll_ahrs = &polls[2];
-//  zmq_pollitem_t* poll_airspeed = &polls[3];
+#endif
+#ifdef GPS
+  zmq_pollitem_t* poll_gps = &polls[1];
+#endif
+#ifdef AHRS
+  zmq_pollitem_t* poll_ahrs = &polls[2];
+#endif
+#ifdef AIRSPEED
+  zmq_pollitem_t* poll_airspeed = &polls[3];
+#endif
   zmq_pollitem_t* poll_actuators = &polls[4];
   zmq_pollitem_t* poll_log = &polls[5];
 
@@ -186,12 +200,18 @@ int main(int argc __attribute__((unused)),
               poll_actuators->events = 0;
               poll_log->events = 0;
             } else {
+#ifdef DEBUG
               printf("read from sensors OK!\n");
+#endif
               /* Here is where you might run your controller when you get a
                    * complete set of sensor inputs. */
               run_demo_controller(&y_incoming, &u_outgoing);
               /* Controller went OK (it had damn well better) -- enable
                    * output sockets. */
+#ifdef DEBUG
+              printf("New Control values: Rudder -> %f \n\t Flaps -> %f\n\t Ailerons -> %f\n\t Elevator -> %f\n",
+                     u_outgoing.rudd, u_outgoing.flaps, u_outgoing.ail, u_outgoing.elev);
+#endif
               poll_actuators->events = ZMQ_POLLOUT;
               poll_log->events = ZMQ_POLLOUT;
             }
@@ -208,7 +228,9 @@ int main(int argc __attribute__((unused)),
           if (zs < 0) {
               txfails++;
             } else {
+#ifdef DEBUG
               printf("Sent to actuators!\n");
+#endif
               /* Clear the events flag so we won't try to send until we
                    * have more data. */
               poll_actuators->events = 0;
