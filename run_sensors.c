@@ -78,6 +78,7 @@ int main(int argc __attribute__((unused)),
   errRet = serial_port_setup();
   if(errRet!=UART_ERR_NONE){
       err("couldn't initialize serial port");
+      die(0);
     }
 
 
