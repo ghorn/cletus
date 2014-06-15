@@ -45,10 +45,13 @@ void run_controller(const sensors_t * const y, actuators_t * const u) {
 }
 
 void run_demo_controller(const sensors_t * const y, actuators_t * const u) {
-
-  u->rudd = y->imu.imu_accel_scaled.data.y;
-  u->flaps = y->imu.imu_accel_scaled.data.x;
-  u->elev = y->imu.imu_accel_scaled.data.x;
-  u->ail =  -1*y->imu.imu_accel_scaled.data.x;
+  if (y->imu.imu_accel_scaled.data.y != 0.0)
+    u->rudd = y->imu.imu_accel_scaled.data.y;
+  if (y->imu.imu_accel_scaled.data.y != 0.0)
+    {
+      u->flaps = y->imu.imu_accel_scaled.data.x;
+      u->elev = y->imu.imu_accel_scaled.data.x;
+      u->ail =  -1*y->imu.imu_accel_scaled.data.x;
+    }
 
 }
