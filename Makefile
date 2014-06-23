@@ -50,7 +50,7 @@ CXX_WARNINGFLAGS += -Werror
 DEBUGFLAGS ?= -g -DDEBUG # -pg to generate profiling information
 
 ## Sensorflags for activating special sensor
-#SENSORFLAGS ?= -DIMU
+SENSORFLAGS ?= -DIMU
 #SENSORFLAGS ?= -DGPS
 #SENSORFLAGS ?= -DAIRSPEED
 #SENSORFLAGS ?= -DAHRS
