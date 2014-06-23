@@ -258,7 +258,7 @@ inline void *setup_zmq_sender(const char *path, void **context,
     goto eit;
   /* Wait around for up to 2.222 seconds on a blocked socket before
    * giving up and closing it anyway. */
-  if (zsetopt(sockit, ZMQ_LINGER, 2222) < 0)
+  if (zsetopt(sockit, ZMQ_LINGER, 100) < 0)
     goto eit;
 
   /* Attach to the given path. */
