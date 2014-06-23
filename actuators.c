@@ -31,7 +31,7 @@ void convert_for_lisa(const actuators_t* const actuators, lisa_message_t* const 
   msg->servos_msg.servo_2 = (int16_t)(actuators->ail * coef);
   msg->servos_msg.servo_3 = (int16_t)(actuators->flaps * coef);
   msg->servos_msg.servo_4= (int16_t)(actuators->flaps * coef);
-  msg->servos_msg.servo_4 = (int16_t)(actuators->elev * coef);
+  msg->servos_msg.servo_5 = (int16_t)(actuators->elev * coef);
   msg->servos_msg.servo_6 = (int16_t)(actuators->rudd * coef);
   msg->servos_msg.servo_7 = 0;
 
