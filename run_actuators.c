@@ -161,11 +161,11 @@ int main(int argc __attribute__((unused)),
       if (polled < 0) {
           if (bail) die(bail);
           zerr("while polling");
-          /* not sure what to do about it. */
+          usleep(5000); // 200 Hz
           continue;
         } else if (polled == 0) {
           if (bail) die(bail);
-          /* timeout! */
+          usleep(5000); // 200 Hz
           continue;
         }
 

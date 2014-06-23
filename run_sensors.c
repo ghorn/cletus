@@ -104,19 +104,19 @@ int main(int argc __attribute__((unused)),
    * also set a small-ish buffer size so that the PUSH/PULL socket
    * pair will block or a PUB/SUB socket pair won't accumulate too
    * many outdated messages. */
-  zsock_imu = setup_zmq_sender(IMU_CHAN, &zctx, ZMQ_PUSH, 2, 500);
+  zsock_imu = setup_zmq_sender(IMU_CHAN, &zctx, ZMQ_PUSH, 1, 500);
   if (NULL == zsock_imu)
     return 1;;
-  zsock_gps = setup_zmq_sender(GPS_CHAN, &zctx, ZMQ_PUSH, 2, 500);
+  zsock_gps = setup_zmq_sender(GPS_CHAN, &zctx, ZMQ_PUSH, 1, 500);
   if (NULL == zsock_gps)
     return 1;;
-  zsock_rc = setup_zmq_sender(RC_CHAN, &zctx, ZMQ_PUSH, 2, 500);
+  zsock_rc = setup_zmq_sender(RC_CHAN, &zctx, ZMQ_PUSH, 1, 500);
   if (NULL == zsock_rc)
     return 1;;
-  zsock_ahrs = setup_zmq_sender(SENSORS_CHAN, &zctx, ZMQ_PUSH, 2, 500);
+  zsock_ahrs = setup_zmq_sender(SENSORS_CHAN, &zctx, ZMQ_PUSH, 1, 500);
   if (NULL == zsock_ahrs)
     return 1;;
-  zsock_airspeed = setup_zmq_sender(AIRSPEED_CHAN, &zctx, ZMQ_PUSH, 2, 500);
+  zsock_airspeed = setup_zmq_sender(AIRSPEED_CHAN, &zctx, ZMQ_PUSH, 1, 500);
   if (NULL == zsock_ahrs)
     return 1;;
   /* Use big buffers here.  We're just publishing the data for
@@ -291,16 +291,15 @@ int main(int argc __attribute__((unused)),
       if (polled < 0) {
           if (bail) die(bail);
           zerr("while polling");
-          /* not sure what to do about it. */
+          usleep(5000); // 200 Hz
           continue;
         } else if (polled == 0) {
           if (bail) die(bail);
-          /* timeout! */
+          usleep(5000); // 200 Hz
           continue;
         }
 
       if (bail) die(bail);
-      usleep(5000); // 200 Hz
 
 #ifdef GPS
       if (bail) die(bail);
