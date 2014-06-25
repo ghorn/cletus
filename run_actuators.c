@@ -84,7 +84,7 @@ int main(int argc __attribute__((unused)),
    * also set a small-ish buffer size so that the PUSH/PULL socket
    * pair will block or a PUB/SUB socket pair won't accumulate too
    * many outdated messages. */
-  zsock_in = setup_zmq_receiver(ACTUATORS_CHAN, &zctx, ZMQ_PULL, NULL, 2, 500);
+  zsock_in = setup_zmq_receiver(ACTUATORS_CHAN, &zctx, ZMQ_SUB, NULL, 1, 500);
   if (NULL == zsock_in)
     return 1;
   /* Use big buffers here.  We're just publishing the data for

@@ -77,19 +77,19 @@ int main(int argc __attribute__((unused)),
 
   /* ZMQ setup first. */
 
-  zsock_imu = setup_zmq_receiver(IMU_CHAN, &zctx, ZMQ_PULL, NULL, 2, 500);
+  zsock_imu = setup_zmq_receiver(IMU_CHAN, &zctx, ZMQ_SUB, NULL, 1, 500);
   if (NULL == zsock_imu)
     return 1;
-  zsock_gps = setup_zmq_receiver(GPS_CHAN, &zctx, ZMQ_PULL, NULL, 2, 500);
+  zsock_gps = setup_zmq_receiver(GPS_CHAN, &zctx, ZMQ_SUB, NULL, 1, 500);
   if (NULL == zsock_gps)
     return 1;
-  zsock_airspeed = setup_zmq_receiver(AIRSPEED_CHAN, &zctx, ZMQ_PULL, NULL, 2, 500);
+  zsock_airspeed = setup_zmq_receiver(AIRSPEED_CHAN, &zctx, ZMQ_SUB, NULL, 1, 500);
   if (NULL == zsock_airspeed)
     return 1;
-  zsock_ahrs = setup_zmq_receiver(AHRS_CHAN, &zctx, ZMQ_PULL, NULL, 2, 500);
+  zsock_ahrs = setup_zmq_receiver(AHRS_CHAN, &zctx, ZMQ_SUB, NULL, 1, 500);
   if (NULL == zsock_ahrs)
     return 1;
-  zsock_actuators = setup_zmq_sender(ACTUATORS_CHAN, &zctx, ZMQ_PUSH, 2, 500);
+  zsock_actuators = setup_zmq_sender(ACTUATORS_CHAN, &zctx, ZMQ_PUB, 1, 500);
   if (NULL == zsock_actuators)
     die(1);
   zsock_log = setup_zmq_sender(LOG_CHAN, &zctx, ZMQ_PUB, 1000, 100000);
