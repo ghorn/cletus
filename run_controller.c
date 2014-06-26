@@ -16,6 +16,7 @@
 #include "./comms.h"
 #include "./structures.h"
 #include "./log.h"
+#include "./misc.h"
 
 #include "./controller.h"
 
@@ -64,6 +65,16 @@ static void sigdie(int signum) {
 
 int main(int argc __attribute__((unused)),
          char **argv __attribute__((unused))) {
+
+
+  struct sched_param param;
+  set_priority(&param, RT_PRIORITY);
+  stack_prefault();
+  struct timespec t;
+  const int rt_interval = RT_INTERVAL;
+
+
+
   setbuf(stdin, NULL);
   /* Confignals. */
   if (signal(SIGINT, &sigdie) == SIG_IGN)
@@ -129,11 +140,11 @@ int main(int argc __attribute__((unused)),
     },
     {
       /* Outputs (our socket to send data to the actuators and the
-                                   * logger socket) */
+                                               * logger socket) */
       .socket = zsock_actuators,
       .fd = -1,
       /* 'events' would be ZMQ_POLLOUT, but we'll wait till we have
-                                       * something to send*/
+                                                   * something to send*/
       .events = 0,
       .revents = 0
     },
@@ -164,6 +175,10 @@ int main(int argc __attribute__((unused)),
 
   const int npolls = sizeof(polls) / sizeof(polls[0]);
 
+  clock_gettime(CLOCK_MONOTONIC ,&t);
+  /* start after one second */
+  t.tv_sec++;
+
   /* Here's the main loop -- we only do stuff when input or output
        * happens.  The timeout can be put to good use, or you can also use
        * timerfd_create() to create a file descriptor with a timer under
@@ -175,16 +190,19 @@ int main(int argc __attribute__((unused)),
        * mostly out of laziness. */
   for (;;) {
       if (bail) die(bail);
+
+      /* wait until next shot */
+      clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, &t, NULL);
       /* Poll for activity; time out after 10 milliseconds. */
       const int polled = zmq_poll(polls, npolls, 10);
       if (polled < 0) {
           if (bail) die(bail);
           zerr("while polling");
-          usleep(5000); // 200 Hz
+          calc_next_shot(&t,rt_interval);
           continue;
         } else if (polled == 0) {
           if (bail) die(bail);
-          usleep(5000); // 200 Hz
+          calc_next_shot(&t,rt_interval);
           continue;
         }
 
@@ -236,9 +254,13 @@ int main(int argc __attribute__((unused)),
               /* Clear the events flag so we won't try to send until we
                    * have more data. */
               poll_actuators->events = 0;
+              /* calculate next shot */
+
             }
           poll_actuators->revents = 0;
         }
+      calc_next_shot(&t,rt_interval);
+
 
       /* I skipped logging; I think you know what to do. */
     }

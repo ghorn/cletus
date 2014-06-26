@@ -70,6 +70,12 @@ static void sigdie(int signum) {
 
 int main(int argc __attribute__((unused)),
          char **argv __attribute__((unused))) {
+
+   struct sched_param param;
+   set_priority(&param, RT_PRIORITY);
+   stack_prefault();
+
+
   int errRet;
   //Communication setup
   uint8_t input_buffer[INPUT_BUFFER_SIZE];

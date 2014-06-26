@@ -56,6 +56,12 @@ static void sigdie(int signum) {
 int main(int argc __attribute__((unused)),
          char **argv __attribute__((unused))) {
 
+  struct sched_param param;
+  set_priority(&param, RT_PRIORITY);
+  stack_prefault();
+  struct timespec t;
+  const int rt_interval = RT_INTERVAL;
+
 
   //init the data decode pointers
   init_decoding();
@@ -145,6 +151,10 @@ int main(int argc __attribute__((unused)),
   const int npolls = sizeof(polls) / sizeof(polls[0]);
 
 
+  clock_gettime(CLOCK_MONOTONIC ,&t);
+  /* start after one second */
+  t.tv_sec++;
+
   /* Here's the main loop -- we only do stuff when input or output
    * happens.  The timeout can be put to good use, or you can also use
    * timerfd_create() to create a file descriptor with a timer under
@@ -161,11 +171,11 @@ int main(int argc __attribute__((unused)),
       if (polled < 0) {
           if (bail) die(bail);
           zerr("while polling");
-          usleep(5000); // 200 Hz
+          calc_next_shot(&t,rt_interval);
           continue;
         } else if (polled == 0) {
           if (bail) die(bail);
-          usleep(5000); // 200 Hz
+          calc_next_shot(&t,rt_interval);
           continue;
         }
 
@@ -213,6 +223,9 @@ int main(int argc __attribute__((unused)),
             }
           poll_log->revents = 0;
         }
+
+      calc_next_shot(&t,rt_interval);
+
     }
 
   /* Shouldn't get here. */

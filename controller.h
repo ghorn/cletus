@@ -9,6 +9,9 @@
 #define __CONTROLLER_H__
 #include "./structures.h"
 
+#define RT_PRIORITY 49
+#define RT_INTERVAL 100000; /* 100us*/
+
 void run_controller(const sensors_t * const y, actuators_t * const u);
 
 void run_demo_controller(const sensors_t * const y, actuators_t * const u);
