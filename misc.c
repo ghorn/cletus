@@ -4,10 +4,12 @@
  * system does not recognize such a concept, you may consider it
  * licensed under BSD 3.0.  Use it for good.
  */
-#include <time.h>
 
 #include "./misc.h"
-#include "./structures.h"
+#include <stdio.h>
+#include <sys/mman.h>
+
+
 
 double floating_time(const timestamp_t * const t) {
   return (double)t->tsec + ((double)t->tnsec)/1e9;
@@ -19,3 +21,41 @@ void gettime(timestamp_t * const t) {
   t->tsec = ts.tv_sec;
   t->tnsec = ts.tv_nsec;
 }
+
+
+
+//REALTIME METHODS
+void stack_prefault(void) {
+
+  unsigned char dummy[MAX_SAFE_STACK];
+
+  memset(dummy, 0, MAX_SAFE_STACK);
+  return;
+}
+
+
+/* Declare ourself as a real time task */
+int set_priority(sched_param* const param, const int priority){
+  param->sched_priority = priority;
+  if(sched_setscheduler(0, SCHED_FIFO, param) == -1) {
+      printf("sched_setscheduler failed");
+      return(-1);
+    }
+
+  if(mlockall(MCL_CURRENT|MCL_FUTURE) == -1) {
+      printf("mlockall failed");
+      return(-2);
+    }
+  return 0;
+}
+
+void calc_next_shot(timespec* const t,const int interval)
+{
+  t->tv_nsec += interval;
+
+  while (t->tv_nsec >= NSEC_PER_SEC) {
+      t->tv_nsec -= NSEC_PER_SEC;
+      t->tv_sec++;
+    }
+}
+
