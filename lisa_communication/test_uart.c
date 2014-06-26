@@ -51,9 +51,24 @@ int main(int argc __attribute__((unused)),
     }
 
 
-  uint8_t buffer[INPUT_BUFFER_SIZE];
-  double time_spent;
+  //Sometimes CLOCKS_PER_SEC is not on Systems there fore lets compare the values ba measuring
+  //Measured value might also be not super accurate but at least we can see if we are in the right region
   clock_t begin, end;
+  long actual_clocks_per_sec = 0;
+  for (int i =0 ; i < 10; i++)
+    {
+      begin = clock();
+      usleep(1000000);
+      end = clock();
+      actual_clocks_per_sec += end -begin;
+    }
+  actual_clocks_per_sec /= 10;
+  printf("Measured CLOCKS_PER_SEC %lu  vs defined CLOCKS_PER_SECOND %lu", actual_clocks_per_sec, CLOCKS_PER_SEC);
+
+  uint8_t buffer[INPUT_BUFFER_SIZE];
+  uint8_t old_value = 0;
+  double time_spent;
+
   begin = clock();
   for (;;){
 
@@ -61,17 +76,21 @@ int main(int argc __attribute__((unused)),
 
       int message_length = serial_input_get_lisa_data(buffer);
 
-      if (message_length == sizeof(xyz_int) + 2)
+      if (message_length == sizeof(xyz_int) + 2 + 4)
         {
-          end = clock();
-          time_spent = (double)(end - begin) / CLOCKS_PER_SEC;
-          printf("\rReading \t%f \t bytes/sec \n Receiving \t %f \t packages/sec \n", message_length/time_spent, 1.0/time_spent);
-          begin = clock();
+          if (old_value != buffer[5])
+            {
+              end = clock();
+              time_spent = (double)(end - begin) / actual_clocks_per_sec;
+              printf("\rReading \t%f \t bytes/sec \n Receiving \t %f \t packages/sec", message_length/time_spent, 1.0/time_spent);
+              begin = clock();
+            }
+          old_value = buffer[5];
         }
       else{
 #ifdef DEBUG
-          printf("Wrong message length %i instead of %i", message_length,(int)(sizeof(xyz_int) + 2));
-    #endif
+          printf("Wrong message length %i instead of %i", message_length,(int)(sizeof(xyz_int) + 2 + 4));
+#endif
         }
     }
 
