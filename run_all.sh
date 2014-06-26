@@ -7,24 +7,40 @@ my_exit()
 {
 echo "you hit Ctrl-C/Ctrl-\, now exiting.."
 echo "...sensors"
-pkill run_sensors
+killall -9 run_sensors &
 echo "...contoller"
-pkill run_controller
+killall -9 run_controller &
 echo "...actuators"
-pkill run_actuators
+killall -9 run_actuators &
+exit 1
 }
 
-echo "Starting run_sensors... \n"
+
+echo "Starting Function Test..."
+./run_function_test
+echo "... started"
+
+echo "Ready for take off?"
+read -p "Press any key to continue... " -n1 -s
+
+echo "Starting run_actuators... "
+./run_actuators &
+echo "... started"
+
+sleep 3
+
+echo "Starting run_controller..."
+./run_controller &
+echo "... started"
+
+sleep 3
+
+echo "Starting run_sensors..."
 ./run_sensors &
-echo "... started \n \n"
+echo "... started"
 
-echo "Starting run_controller... \n"
-./run_controller &
-echo "... started \n \n"
 
-echo "Starting run_actuators... \n"
-./run_controller &
-echo "... started \n \n"
+
 
 while :
  do
