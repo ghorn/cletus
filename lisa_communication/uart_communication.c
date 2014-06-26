@@ -14,7 +14,7 @@
 #define DEBUG 1
 #endif
 
-int serial_port_read(uint8_t buffer[],int length); 
+int serial_port_read(uint8_t *const buffer,int length);
 UART_errCode serial_port_new(void);
 UART_errCode serial_port_create(void);
 UART_errCode  serial_port_open_raw(const char* device_ptr, speed_t speed_param);
@@ -51,7 +51,7 @@ int wait_for_data(void){
 	return 0;
 }
 
-int serial_port_read(uint8_t buffer[],int length) 
+int serial_port_read(uint8_t* const buffer,int length)
 {
 	#if DEBUG  > 1
 		printf("Entering serial_port_read\n");
@@ -75,7 +75,7 @@ int serial_port_read(uint8_t buffer[],int length)
 	return n;  //return number of read bytes
 }
 
-int serial_input_get_lisa_data(uint8_t buffer[]){
+int serial_input_get_lisa_data(uint8_t* const buffer){
 	
 	#if DEBUG  > 1
 		printf("Entering serial_input_get_lisa_data\n");
