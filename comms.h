@@ -15,5 +15,6 @@
 #define AIRSPEED_CHAN "ipc:///tmp/airspeed"
 #define AHRS_CHAN "ipc:///tmp/ahrs"
 #define LOG_CHAN "ipc:///tmp/logs"
+#define LISA_CHAN "ipc:///tmp/lisa"
 
 #endif  /* __COMMS_H__ */
