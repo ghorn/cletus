@@ -56,11 +56,12 @@ static void sigdie(int signum) {
 int main(int argc __attribute__((unused)),
          char **argv __attribute__((unused))) {
 
+ const int rt_interval = ACT_RT_INTERVAL;
   struct sched_param param;
-  set_priority(&param, RT_PRIORITY);
+  set_priority(&param, rt_interval);
   stack_prefault();
   struct timespec t;
-  const int rt_interval = RT_INTERVAL;
+
 
 
   //init the data decode pointers
