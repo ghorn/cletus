@@ -43,6 +43,13 @@ static void *zsock_rc = NULL;
 static void *zsock_ahrs = NULL;
 static void *zsock_airspeed = NULL;
 static void *zsock_log = NULL;
+static void *zsock_lisa_gyro = NULL;
+static void *zsock_lisa_mag = NULL;
+static void *zsock_lisa_accel = NULL;
+static void *zsock_lisa_gps = NULL;
+static void *zsock_lisa_rc = NULL;
+static void *zsock_lisa_ahrs = NULL;
+static void *zsock_lisa_airspeed = NULL;
 
 /* Error tracking. */
 int txfails = 0, rxfails = 0;
@@ -54,6 +61,11 @@ static void __attribute__((noreturn)) die(int code) {
   zdestroy(zsock_rc, zctx);
   zdestroy(zsock_ahrs, zctx);
   zdestroy(zsock_airspeed, zctx);
+  zdestroy(zsock_lisa_gyro, zctx);
+  zdestroy(zsock_lisa_mag, zctx);
+  zdestroy(zsock_lisa_accel, zctx);
+  zdestroy(zsock_lisa_gps, zctx);
+  zdestroy(zsock_lisa_ahrs, zctx);
 
 
   printf("%d TX fails; %d RX fails.\n", txfails, rxfails);
@@ -71,9 +83,9 @@ static void sigdie(int signum) {
 int main(int argc __attribute__((unused)),
          char **argv __attribute__((unused))) {
 
-   struct sched_param param;
-   set_priority(&param, RT_PRIORITY);
-   stack_prefault();
+  struct sched_param param;
+  set_priority(&param, RT_PRIORITY);
+  stack_prefault();
 
 
   int errRet;
@@ -125,6 +137,10 @@ int main(int argc __attribute__((unused)),
   zsock_airspeed = setup_zmq_sender(AIRSPEED_CHAN, &zctx, ZMQ_PUB, 1, 500);
   if (NULL == zsock_ahrs)
     return 1;;
+  //TODO: Setting multiple Filters for one socket. Testing requiered
+  zsock_lisa_gyro = setup_zmq_receiver(LISA_CHAN,&zrctx,ZMQ_SUB,&IMU_GYRO_SCALED,5,INPUT_BUFFER_SIZE);
+  if (NULL == zsock_lisa_gyro)
+    die(1);
   /* Use big buffers here.  We're just publishing the data for
    * logging, so we don't mind saving some data until the logger can
    * receive it. */

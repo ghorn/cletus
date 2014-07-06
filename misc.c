@@ -38,12 +38,12 @@ void stack_prefault(void) {
 int set_priority(sched_param* const param, const int priority){
   param->sched_priority = priority;
   if(sched_setscheduler(0, SCHED_FIFO, param) == -1) {
-      printf("sched_setscheduler failed");
+      printf("sched_setscheduler failed\n");
       return(-1);
     }
 
   if(mlockall(MCL_CURRENT|MCL_FUTURE) == -1) {
-      printf("mlockall failed");
+      printf("mlockall failed \n");
       return(-2);
     }
   return 0;
