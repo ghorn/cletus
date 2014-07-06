@@ -1,19 +1,18 @@
 # What's the executable called?
-PROJ = run_sensors run_controller run_actuators run_function_test lisa_communication/test_uart
+PROJ =  run_controller run_actuators run_function_test run_uart tests/test_uart
 
 # What C or C++ files must we compile to make the executable?
-C_SRC = run_sensors.c \
-        run_controller.c \
+C_SRC = run_controller.c \
         run_actuators.c \
+        run_uart.c \
+        uart.c \
         controller.c \
-        sensors.c \
 	actuators.c \
         misc.c \
         zmq.c \
-	lisa_communication/uart_communication.c \
         lisa_communication/data_decoding.c \
-        lisa_communication/test_uart.c \
-        run_function_test.c
+        run_function_test.c \
+        tests/test_uart.c
 
 CXX_SRC = \
 #	main.cpp \
