@@ -49,10 +49,13 @@ int main(int argc __attribute__((unused)),
          char **argv __attribute__((unused))) {
 
 
-//  struct sched_param param;
-//  set_priority(&param, 49);
-//  stack_prefault();
-  struct timespec t, start, finish;
+
+  //Setting up priority
+  struct sched_param param;
+  set_priority(&param, 48);
+  stack_prefault();
+  //Timer variables
+  struct timespec start, finish;
 
 
   /* Confignals. */
@@ -66,14 +69,13 @@ int main(int argc __attribute__((unused)),
     signal(SIGABRT, SIG_IGN);
 
   /* ZMQ setup first. */
-
+  //We need just one socket for getting lisa messages
   zsock_data = setup_zmq_receiver(LISA_CHAN, &zctx, ZMQ_SUB, NULL, 1, 500);
   if (NULL == zsock_data)
     die(1);
 
-
+  //also only one pollitem polling from LISA_CHANNEL
   zmq_pollitem_t polls[] = {
-
     {
       .socket=zsock_data,
       .fd=-1,
@@ -81,20 +83,12 @@ int main(int argc __attribute__((unused)),
       .revents=0
     }
   };
-
   zmq_pollitem_t* poll_data = &polls[0];
-
-
   const int npolls = sizeof(polls) / sizeof(polls[0]);
 
-  clock_gettime(CLOCK_MONOTONIC ,&t);
-  /* start after one second */
-  t.tv_sec++;
-
-
-
-  //Measured value might also be not super accurate but at least we can see if we are in the right region
   double elapsed;
+
+  //Check how exact timing will be for sleep times of 1 second
   for (int i =0 ; i < 10; i++)
     {
       clock_gettime(CLOCK_MONOTONIC, &start);
@@ -106,20 +100,16 @@ int main(int argc __attribute__((unused)),
     }
 
   double sum_elapsed =0;
+  elapsed =0;
   long unsigned int counter = 0;
+  unsigned char msg_ID;
 
 
-  /* Here's the main loop -- we only do stuff when input or output
-       * happens.  The timeout can be put to good use, or you can also use
-       * timerfd_create() to create a file descriptor with a timer under
-       * the hood and dispatch on that.
-       *
-       * I apologize for the length of this loop.  For production code,
-       * you'd want to pull most of the actual handling out into functions
-       * and simply loop over your polls; I've left it all inline here
-       * mostly out of laziness. */
-printf("Starting Test: \n\n");
-clock_gettime(CLOCK_MONOTONIC, &start);
+  //***********************************************************
+  // MAIN LOOP
+  //*********************************************************
+  printf("Starting Test: \n\n");
+  clock_gettime(CLOCK_MONOTONIC, &start);
   for (;;) {
       if (bail) die(bail);
       /* Poll for activity; time out after 10 milliseconds. */
@@ -141,13 +131,14 @@ clock_gettime(CLOCK_MONOTONIC, &start);
           clock_gettime(CLOCK_MONOTONIC, &finish);
           elapsed = (finish.tv_nsec - start.tv_nsec) / 1000000000.0;
           sum_elapsed += elapsed;
+          zmq_recv(zsock_data,&msg_ID,1,0);
           clock_gettime(CLOCK_MONOTONIC, &start);
           poll_data->revents = 0;
           counter++;
         }
 
-      printf("\r\n\bReceived Messages: %lu \tPeriod: %f s \t[AVG: %f]\tFrequency %f\t[AVG: %f]",
-             counter, elapsed, sum_elapsed/counter, 1.0/elapsed, 1.0/(sum_elapsed/counter));
+      printf("\r\n\bReceived Messages: %lu [ID:%u] \tPeriod: %f s \t[AVG: %f]\tFrequency %f\t[AVG: %f]",
+             counter, msg_ID, elapsed, sum_elapsed/counter, 1.0/elapsed, 1.0/(sum_elapsed/counter));
 
 
 
