@@ -105,8 +105,8 @@ int main(int argc __attribute__((unused)),
       printf("Measured Time for sleeping 1 second =  %f \n",elapsed);
     }
 
-  double sum_elapsed =1;
-  long unsigned int counter = 1;
+  double sum_elapsed =0;
+  long unsigned int counter = 0;
 
 
   /* Here's the main loop -- we only do stuff when input or output
@@ -132,6 +132,7 @@ clock_gettime(CLOCK_MONOTONIC, &start);
           continue;
         } else if (polled == 0) {
           if (bail) die(bail);
+          continue;
         }
 
       if (bail) die(bail);
