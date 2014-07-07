@@ -236,10 +236,11 @@ int main(int argc __attribute__((unused)),
 #endif
                   zmq_send(zsock_lisa,&msg_data[1],msg_length-3,0);
                   poll_lisa->events = ZMQ_POLLOUT;
-                  poll_message->events =0;
                 }
               serial_port_flush_input();
               msg_length_counter = 0;
+              poll_message->events =0;
+              poll_startbyte->events= ZMQ_POLLIN;
             }
           poll_message->revents = 0;
         }
