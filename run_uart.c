@@ -228,7 +228,7 @@ int main(int argc __attribute__((unused)),
 #ifdef DEBUG
               printf("Message was read completely \n");
 #endif
-              if (check_checksum(msg_length,msg_data) > 0)
+              if (check_checksum(msg_length,msg_data) == UART_ERR_NONE)
                 {
 #ifdef DEBUG
                   printf("Passed Checksum test. Sending Message [%i bytes] with ID %i\n",
