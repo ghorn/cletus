@@ -64,9 +64,9 @@ int main(int argc __attribute__((unused)),
   set_priority(&param, 49);
   stack_prefault();
 
-int err = serial_port_setup();
-if (err != UART_ERR_NONE)
-  printf("Error setting up UART \n");
+  int err = serial_port_setup();
+  if (err != UART_ERR_NONE)
+    printf("Error setting up UART \n");
 
   setbuf(stdin, NULL);
   /* Confignals. */
@@ -194,8 +194,17 @@ if (err != UART_ERR_NONE)
 #ifdef DEBUG
               printf("Read Message Length [%i bytes] \n", msg_length);
 #endif
-              poll_length->events = 0;
-              poll_message->events = ZMQ_POLLIN;
+              if (msg_length < 100){
+                  poll_length->events = 0;
+                  poll_message->events = ZMQ_POLLIN;
+                }
+              else
+                {
+                  //Drop message
+                  poll_length->events = 0;
+                  poll_startbyte->events = ZMQ_POLLIN;
+                  msg_length_counter =0;
+                }
             }
           poll_length->revents = 0;
         }
