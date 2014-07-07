@@ -150,7 +150,7 @@ int main(int argc __attribute__((unused)),
       //******************************************************
       /* Poll for activity on UART; time out after 10 milliseconds. */
       //******************************************************
-      const int polled = zmq_poll(polls, npolls, 10);
+      const int polled = zmq_poll(polls, npolls, 0);
       if (polled < 0) {
           if (bail) die(bail);
           zerr("while polling");
@@ -204,6 +204,7 @@ int main(int argc __attribute__((unused)),
                   poll_length->events = 0;
                   poll_startbyte->events = ZMQ_POLLIN;
                   msg_length_counter =0;
+                  serial_port_flush_input();
                 }
             }
           poll_length->revents = 0;
@@ -227,7 +228,7 @@ int main(int argc __attribute__((unused)),
 #ifdef DEBUG
               printf("Message was read completely \n");
 #endif
-              if (check_checksum(msg_length,msg_data))
+              if (check_checksum(msg_length,msg_data) > 0)
                 {
 #ifdef DEBUG
                   printf("Passed Checksum test. Sending Message [%i bytes] with ID %i\n",
@@ -237,16 +238,10 @@ int main(int argc __attribute__((unused)),
                   poll_lisa->events = ZMQ_POLLOUT;
                   poll_message->events =0;
                 }
-              else{
-
-                }
+              serial_port_flush_input();
               msg_length_counter = 0;
             }
           poll_message->revents = 0;
-        }
-
-      else{
-
         }
     }
 

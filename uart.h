@@ -81,6 +81,8 @@ int serial_port_read(uint8_t* const buffer,int length);
 extern UART_errCode serial_port_close(void);
 int serial_port_read_temp(uint8_t buffer[],int length) ;
 int check_checksum(uint8_t length, uint8_t* message);
+UART_errCode serial_port_flush_input(void);
+
 
 
 

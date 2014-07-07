@@ -14,7 +14,6 @@ UART_errCode serial_port_create(void);
 UART_errCode  serial_port_open_raw(const char* device_ptr, speed_t speed_param);
 void serial_port_free(void);
 void serial_port_flush(void);
-UART_errCode serial_port_flush_input(void);
 UART_errCode serial_port_flush_output(void);
 int wait_for_data(void);
 
@@ -63,8 +62,8 @@ UART_errCode serial_port_write(uint8_t output[],long unsigned int message_length
 
 int check_checksum(uint8_t length, uint8_t *message)
 {
-  int checksum_1 = length;
-  int checksum_2 = checksum_1;
+  uint8_t checksum_1 = length;
+  uint8_t checksum_2 = checksum_1;
 
   int INDEX_CH1 = length-2-2;
   int INDEX_CH2 = length-1-2;
