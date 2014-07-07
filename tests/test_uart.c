@@ -49,10 +49,10 @@ int main(int argc __attribute__((unused)),
          char **argv __attribute__((unused))) {
 
 
-  struct sched_param param;
-  set_priority(&param, 49);
-  stack_prefault();
-  struct timespec t;
+//  struct sched_param param;
+//  set_priority(&param, 49);
+//  stack_prefault();
+  struct timespec t, start, finish;
 
 
   /* Confignals. */
@@ -94,20 +94,19 @@ int main(int argc __attribute__((unused)),
 
 
   //Measured value might also be not super accurate but at least we can see if we are in the right region
-  clock_t begin, end;
-  long actual_clocks_per_sec = 0;
+  double elapsed;
   for (int i =0 ; i < 10; i++)
     {
-      begin = clock();
+      clock_gettime(CLOCK_MONOTONIC, &start);
       usleep(1000000);
-      end = clock();
-      actual_clocks_per_sec += end -begin;
+      clock_gettime(CLOCK_MONOTONIC, &finish);
+      elapsed = (finish.tv_sec - start.tv_sec);
+      elapsed += (finish.tv_nsec - start.tv_nsec) / 1000000000.0;
+      printf("Measured Time for sleeping 1 second =  %f \n",elapsed);
     }
-  actual_clocks_per_sec /= 10;
-  printf("Measured CLOCKS_PER_SEC %lu  vs defined CLOCKS_PER_SECOND %lu \n", actual_clocks_per_sec, CLOCKS_PER_SEC);
 
-  double time_spent =0;
-  long unsigned int counter = 0;
+  double sum_elapsed =1;
+  long unsigned int counter = 1;
 
 
   /* Here's the main loop -- we only do stuff when input or output
@@ -119,11 +118,13 @@ int main(int argc __attribute__((unused)),
        * you'd want to pull most of the actual handling out into functions
        * and simply loop over your polls; I've left it all inline here
        * mostly out of laziness. */
-  begin = clock();
-  printf("Starting Test: \n\n");
+printf("Starting Test: \n\n");
+clock_gettime(CLOCK_MONOTONIC, &start);
   for (;;) {
       if (bail) die(bail);
       /* Poll for activity; time out after 10 milliseconds. */
+
+
       const int polled = zmq_poll(polls, npolls, 0);
       if (polled < 0) {
           if (bail) die(bail);
@@ -131,21 +132,23 @@ int main(int argc __attribute__((unused)),
           continue;
         } else if (polled == 0) {
           if (bail) die(bail);
-          continue;
         }
 
       if (bail) die(bail);
       if (poll_data->revents & ZMQ_POLLIN)
         {
-          end = clock();
-          time_spent = (double)(end - begin) / actual_clocks_per_sec;
-          begin = clock();
+          clock_gettime(CLOCK_MONOTONIC, &finish);
+          elapsed = (finish.tv_nsec - start.tv_nsec) / 1000000000.0;
+          sum_elapsed += elapsed;
+          clock_gettime(CLOCK_MONOTONIC, &start);
           poll_data->revents = 0;
           counter++;
         }
 
-      printf("\rReceived Messages: %lu \t Period: %f s \t Frequency %f",
-             counter, time_spent, 1.0/time_spent);
+      printf("\r\n\bReceived Messages: %lu \tPeriod: %f s \t[AVG: %f]\tFrequency %f\t[AVG: %f]",
+             counter, elapsed, sum_elapsed/counter, 1.0/elapsed, 1.0/(sum_elapsed/counter));
+
+
 
 
       /* I skipped logging; I think you know what to do. */

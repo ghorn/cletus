@@ -32,6 +32,11 @@ int main(int argc __attribute__((unused)),
          char **argv __attribute__((unused))) {
 
 
+  struct sched_param param;
+  set_priority(&param, 48);
+  stack_prefault();
+
+
   /* Confignals. */
   if (signal(SIGINT, &sigdie) == SIG_IGN)
     signal(SIGINT, SIG_IGN);

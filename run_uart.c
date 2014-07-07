@@ -64,7 +64,9 @@ int main(int argc __attribute__((unused)),
   set_priority(&param, 49);
   stack_prefault();
 
-
+int err = serial_port_setup();
+if (err != UART_ERR_NONE)
+  printf("Error setting up UART \n");
 
   setbuf(stdin, NULL);
   /* Confignals. */
@@ -130,7 +132,7 @@ int main(int argc __attribute__((unused)),
   int msg_length_counter = 0;
   uint8_t msg_startbyte;
   uint8_t msg_length;
-  uint8_t msg_data[INPUT_BUFFER_SIZE];
+  unsigned char msg_data[INPUT_BUFFER_SIZE];
 
 
   /* Here's the main loop -- we only do stuff when input or output
@@ -200,7 +202,7 @@ int main(int argc __attribute__((unused)),
       //******************************************************
       //Get Message itself
       //******************************************************
-      else if (poll_length->revents & ZMQ_POLLIN) {
+      else if (poll_message->revents & ZMQ_POLLIN) {
           ioctl(serial_stream->fd, FIONREAD, &msg_length_counter); //set to number of bytes in buffer
           //Get poll events until message was sent completely
           if (msg_length_counter < msg_length)

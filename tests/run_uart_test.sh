@@ -14,15 +14,15 @@ killall -9 test_uart &
 
 
 
-echo "Starting run_uart... "
-../run_uart &
-echo "... started"
-
-sleep 3
-
-echo "Starting test..."
+echo "Starting test... "
 ./test_uart &
 echo "... started"
+
+sleep 5
+
+echo "UART port..."
+../run_uart &
+echo "... activated"
 
 
 
