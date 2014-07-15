@@ -28,10 +28,10 @@ typedef struct {
 } xyz_int;
 
 typedef struct{
-  int qi;
-  int qx;
-  int qy;
-  int qz;
+  int32_t qi;
+  int32_t qx;
+  int32_t qy;
+  int32_t qz;
 }quaternion_t;
 
 typedef struct{
@@ -39,8 +39,19 @@ typedef struct{
   double qx;
   double qy;
   double qz;
-}quaternion__double_t;
+}quaternion_double_t;
 
+
+typedef struct {
+  uint8_t message_length;
+  uint8_t sender_id;
+  uint8_t message_id;
+} message_header_t;
+
+typedef struct {
+  uint8_t checksum1;
+  uint8_t checksum2;
+} message_footer_t;
 
 //SENSORS STRUCTS
 typedef struct
@@ -85,36 +96,49 @@ typedef struct{
   timestamp_t timestamp;
 }gps_t;
 
+
+typedef struct{
+  accel_scaled_t imu_accel_scaled;
+  gyro_scaled_t imu_gyro_scaled;
+  mag_scaled_t imu_mag_scaled;
+}imu_scaled_t;
+
 typedef struct{
   accel_raw_t imu_accel;
-  accel_scaled_t imu_accel_scaled;
   gyro_raw_t imu_gyro;
-  gyro_scaled_t imu_gyro_scaled;
   mag_raw_t imu_mag;
-  mag_scaled_t imu_mag_scaled;
-}imu_t;
+}imu_raw_t;
 
 typedef struct{
   quaternion_t imu;
   quaternion_t body;
   timestamp_t timestamp;
-  quaternion__double_t imu_converted;
-  quaternion__double_t body_converted;
-}ahrs_t;
+}ahrs_int_t;
 
 typedef struct{
-  short roll;
-  short pitch;
-  short yaw;
-  short mode;
-  short kill;
-  char status;
+  quaternion_double_t imu_converted;
+  quaternion_double_t body_converted;
+  timestamp_t timestamp;
+}ahrs_double_t;
+
+
+
+
+typedef struct{
+  int8_t roll;
+  int8_t pitch;
+  int8_t yaw;
+  int8_t mode;
+  int8_t kill;
+  uint8_t status;
 } rc_t;
 
 typedef struct {
-  imu_t imu;
+  imu_scaled_t imu_scaled;
+  imu_raw_t imu_raw;
   gps_t gps;
-  ahrs_t ahrs;
+  ahrs_int_t ahrs_int;
+  ahrs_double_t ahrs_double;
   rc_t rc;
 } sensors_t;
 
