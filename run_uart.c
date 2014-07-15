@@ -44,6 +44,7 @@ static void __attribute__((noreturn)) die(int code) {
   zdestroy(zsock_log, NULL);
   zdestroy(zsock_lisa, NULL);
 
+  serial_port_close();
   printf("%d TX fails; %d RX fails.\n", txfails, rxfails);
   printf("Moriturus te saluto!\n");
   exit(code);
@@ -150,7 +151,7 @@ int main(int argc __attribute__((unused)),
       //******************************************************
       /* Poll for activity on UART; time out after 10 milliseconds. */
       //******************************************************
-      const int polled = zmq_poll(polls, npolls, 0);
+      const int polled = zmq_poll(polls, npolls, 5);
       if (polled < 0) {
           if (bail) die(bail);
           zerr("while polling");
@@ -168,7 +169,7 @@ int main(int argc __attribute__((unused)),
       if (poll_startbyte->revents & ZMQ_POLLIN) {
           //get data from serial port
           ioctl(serial_stream->fd, FIONREAD, &msg_length_counter); //set to number of bytes in buffer
-          if(serial_port_read(&msg_startbyte,1) ==1)
+          if(read_uart(&msg_startbyte,1) ==1)
             {
               //Check if we found the right startbyte
               if (msg_startbyte == LISA_STARTBYTE)
@@ -189,7 +190,7 @@ int main(int argc __attribute__((unused)),
       //******************************************************
       else if (poll_length->revents & ZMQ_POLLIN) {
           ioctl(serial_stream->fd, FIONREAD, &msg_length_counter); //set to number of bytes in buffer
-          if(serial_port_read(&msg_length,1) ==1)
+          if(read_uart(&msg_length,1) ==1)
             {
 #ifdef DEBUG
               printf("Read Message Length [%i bytes] \n", msg_length);
@@ -223,7 +224,7 @@ int main(int argc __attribute__((unused)),
           //******************************************************
           //Send message without sender ID, so message ID can be used as Filter
           //******************************************************
-          else if(serial_port_read(msg_data,msg_length-2) == msg_length - 2)
+          else if(read_uart(msg_data,msg_length-2) == msg_length - 2)
             {
 #ifdef DEBUG
               printf("Message was read completely \n");

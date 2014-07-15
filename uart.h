@@ -76,8 +76,8 @@ typedef struct{
 extern UART_errCode serial_port_setup(void);
 extern int serial_input_get_lisa_data(uint8_t *const buffer); //returns the number of read bytes or a negative error message and puts the result in serial_input
 extern int serial_input_get_windsensor_data(uint8_t buffer[]);
-extern UART_errCode serial_port_write(uint8_t output[],long unsigned int message_length);
-int serial_port_read(uint8_t* const buffer,int length);
+extern UART_errCode write_uart(uint8_t output[],long unsigned int message_length);
+int read_uart(uint8_t* const buffer,int length);
 extern UART_errCode serial_port_close(void);
 int serial_port_read_temp(uint8_t buffer[],int length) ;
 int check_checksum(uint8_t length, uint8_t* message);

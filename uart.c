@@ -5,7 +5,7 @@
 
 
 
-#include "uart.h"
+#include "./uart.h"
 
 
 
@@ -15,7 +15,6 @@ UART_errCode  serial_port_open_raw(const char* device_ptr, speed_t speed_param);
 void serial_port_free(void);
 void serial_port_flush(void);
 UART_errCode serial_port_flush_output(void);
-int wait_for_data(void);
 
 
 
@@ -30,7 +29,7 @@ const char device_enabled_check[] = "ttyO4_armhf.com"; //For Angstrom: enable-ua
 const char device_path[] = "/sys/devices/bone_capemgr.9/slots"; //For Angstrom: /sys/devices/bone_capemgr.8/slots
 
 
-int serial_port_read(uint8_t* const buffer,int length)
+int read_uart(uint8_t* const buffer,int length)
 {
 #ifdef DEBUG
   printf("Entering serial_port_read\n");
@@ -45,7 +44,7 @@ int serial_port_read(uint8_t* const buffer,int length)
 }
 
 
-UART_errCode serial_port_write(uint8_t output[],long unsigned int message_length)
+UART_errCode write_uart(uint8_t output[],long unsigned int message_length)
 {
 #ifdef DEBUG
   printf("Entering serial_port_write\n");
