@@ -1,16 +1,17 @@
 # What's the executable called?
-PROJ =  run_controller run_actuators run_function_test run_uart tests/test_uart
+PROJ =  run_controller run_actuators run_sensors run_function_test run_uart tests/test_uart
 
 # What C or C++ files must we compile to make the executable?
 C_SRC = run_controller.c \
         run_actuators.c \
         run_uart.c \
+        run_sensors.c \
+        sensors.c \
         uart.c \
         controller.c \
 	actuators.c \
         misc.c \
         zmq.c \
-        lisa_communication/data_decoding.c \
         run_function_test.c \
         tests/test_uart.c
 
