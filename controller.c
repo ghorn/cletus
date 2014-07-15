@@ -21,37 +21,37 @@
 #include "./misc.h"
 
 
-void run_controller(const sensors_t * const y, actuators_t * const u) {
-  gettime(&(u->start));
-  static double integral_term = 0;
-  static double reference = 4;
-  static int counter = 0;
-  counter++;
-  if (counter == 10) {
-      reference = -reference;
-      counter = 0;
-    }
+//void run_controller(const sensors_t * const y, actuators_t * const u) {
+////  gettime(&(u->start));
+////  static double integral_term = 0;
+////  static double reference = 4;
+////  static int counter = 0;
+////  counter++;
+////  if (counter == 10) {
+////      reference = -reference;
+////      counter = 0;
+////    }
 
-  integral_term += reference*0.1 + y->imu.imu_gyro_scaled.data.x;
-  u->flaps = sin(1*integral_term);
-  u->ail   = sin(2*integral_term);
-  u->rudd  = sin(3*integral_term);
-  u->elev  = sin(4*integral_term);
-  gettime(&(u->stop));
-  double t0 = floating_time(&(u->start));
-  double tf = floating_time(&(u->stop));
-  printf("ran controller, start time: %.4f, end time: %.4f, diff time: %.3f us, time delay: %3.3fus\n",
-         t0,tf,(tf-t0)*1e6, (t0 - floating_time(&(y->imu.imu_accel_scaled.timestamp)))*1e6);
-}
+////  integral_term += reference*0.1 + y->imu.imu_gyro_scaled.data.x;
+////  u->flaps = sin(1*integral_term);
+////  u->ail   = sin(2*integral_term);
+////  u->rudd  = sin(3*integral_term);
+////  u->elev  = sin(4*integral_term);
+////  gettime(&(u->stop));
+////  double t0 = floating_time(&(u->start));
+////  double tf = floating_time(&(u->stop));
+////  printf("ran controller, start time: %.4f, end time: %.4f, diff time: %.3f us, time delay: %3.3fus\n",
+////         t0,tf,(tf-t0)*1e6, (t0 - floating_time(&(y->imu.imu_accel_scaled.timestamp)))*1e6);
+////}
 
-void run_demo_controller(const sensors_t * const y, actuators_t * const u) {
-  if (y->imu.imu_accel_scaled.data.y != 0.0)
-    u->rudd = y->imu.imu_accel_scaled.data.y;
-  if (y->imu.imu_accel_scaled.data.y != 0.0)
-    {
-      u->flaps = y->imu.imu_accel_scaled.data.x;
-      u->elev = y->imu.imu_accel_scaled.data.x;
-      u->ail =  -1*y->imu.imu_accel_scaled.data.x;
-    }
+////void run_demo_controller(const sensors_t * const y, actuators_t * const u) {
+////  if (y->imu.imu_accel_scaled.data.y != 0.0)
+////    u->rudd = y->imu.imu_accel_scaled.data.y;
+////  if (y->imu.imu_accel_scaled.data.y != 0.0)
+////    {
+////      u->flaps = y->imu.imu_accel_scaled.data.x;
+////      u->elev = y->imu.imu_accel_scaled.data.x;
+////      u->ail =  -1*y->imu.imu_accel_scaled.data.x;
+////    }
 
-}
+//}

@@ -108,8 +108,8 @@ int main(int argc __attribute__((unused)),
     die(1);
 
   /* Data storage. */
-  sensors_t y_incoming;
-  actuators_t u_outgoing;
+//  sensors_t y_incoming;
+//  actuators_t u_outgoing;
 
 
   zmq_pollitem_t polls[] = {
@@ -157,7 +157,7 @@ int main(int argc __attribute__((unused)),
   };
 
 #ifdef IMU
-  zmq_pollitem_t* poll_imu = &polls[0];
+//  zmq_pollitem_t* poll_imu = &polls[0];
 #endif
 #ifdef GPS
   zmq_pollitem_t* poll_gps = &polls[1];
@@ -168,8 +168,8 @@ int main(int argc __attribute__((unused)),
 #ifdef AIRSPEED
   zmq_pollitem_t* poll_airspeed = &polls[3];
 #endif
-  zmq_pollitem_t* poll_actuators = &polls[4];
-  zmq_pollitem_t* poll_log = &polls[5];
+//  zmq_pollitem_t* poll_actuators = &polls[4];
+//  zmq_pollitem_t* poll_log = &polls[5];
 
 
 
@@ -208,57 +208,57 @@ int main(int argc __attribute__((unused)),
 
 
 
-      if (bail) die(bail);
-      if (poll_imu->revents & ZMQ_POLLIN) {
-          const int zr = zmq_recvm(zsock_imu, (uint8_t *) &y_incoming.imu,
-                                   sizeof(y_incoming.imu));
-          if (zr < (int) sizeof(imu_t)) {
-              err("couldn't read sensors!");
-              rxfails++;
-              /* Better clear the output flag, in case we corrupted the
-                   * data. */
-              poll_actuators->events = 0;
-              poll_log->events = 0;
-            } else {
-#ifdef DEBUG
-              printf("read from sensors OK!\n");
-#endif
-              /* Here is where you might run your controller when you get a
-                   * complete set of sensor inputs. */
-              run_demo_controller(&y_incoming, &u_outgoing);
-              /* Controller went OK (it had damn well better) -- enable
-                   * output sockets. */
-#ifdef DEBUG
-              printf("New Control values: Rudder -> %f \n\t Flaps -> %f\n\t Ailerons -> %f\n\t Elevator -> %f\n",
-                     u_outgoing.rudd, u_outgoing.flaps, u_outgoing.ail, u_outgoing.elev);
-#endif
-              poll_actuators->events = ZMQ_POLLOUT;
-              poll_log->events = ZMQ_POLLOUT;
-            }
-          /* Clear the poll state. */
-          poll_imu->revents = 0;
-        }
+//      if (bail) die(bail);
+//      if (poll_imu->revents & ZMQ_POLLIN) {
+//          const int zr = zmq_recvm(zsock_imu, (uint8_t *) &y_incoming.imu,
+//                                   sizeof(y_incoming.imu));
+//          if (zr < (int) sizeof(imu_t)) {
+//              err("couldn't read sensors!");
+//              rxfails++;
+//              /* Better clear the output flag, in case we corrupted the
+//                   * data. */
+//              poll_actuators->events = 0;
+//              poll_log->events = 0;
+//            } else {
+//#ifdef DEBUG
+//              printf("read from sensors OK!\n");
+//#endif
+//              /* Here is where you might run your controller when you get a
+//                   * complete set of sensor inputs. */
+//              run_demo_controller(&y_incoming, &u_outgoing);
+//              /* Controller went OK (it had damn well better) -- enable
+//                   * output sockets. */
+//#ifdef DEBUG
+//              printf("New Control values: Rudder -> %f \n\t Flaps -> %f\n\t Ailerons -> %f\n\t Elevator -> %f\n",
+//                     u_outgoing.rudd, u_outgoing.flaps, u_outgoing.ail, u_outgoing.elev);
+//#endif
+//              poll_actuators->events = ZMQ_POLLOUT;
+//              poll_log->events = ZMQ_POLLOUT;
+//            }
+//          /* Clear the poll state. */
+//          poll_imu->revents = 0;
+//        }
 
-      if (bail) die(bail);
-      if (poll_actuators->revents & ZMQ_POLLOUT) {
-          const void *bufs[] = {&u_outgoing};
-          const uint32_t lens[] = {sizeof(u_outgoing)};
-          const int zs = zmq_sendm(zsock_actuators, bufs, lens,
-                                   sizeof(lens) / sizeof(lens[0]));
-          if (zs < 0) {
-              txfails++;
-            } else {
-#ifdef DEBUG
-              printf("Sent to actuators!\n");
-#endif
-              /* Clear the events flag so we won't try to send until we
-                   * have more data. */
-              poll_actuators->events = 0;
-              /* calculate next shot */
+//      if (bail) die(bail);
+//      if (poll_actuators->revents & ZMQ_POLLOUT) {
+//          const void *bufs[] = {&u_outgoing};
+//          const uint32_t lens[] = {sizeof(u_outgoing)};
+//          const int zs = zmq_sendm(zsock_actuators, bufs, lens,
+//                                   sizeof(lens) / sizeof(lens[0]));
+//          if (zs < 0) {
+//              txfails++;
+//            } else {
+//#ifdef DEBUG
+//              printf("Sent to actuators!\n");
+//#endif
+//              /* Clear the events flag so we won't try to send until we
+//                   * have more data. */
+//              poll_actuators->events = 0;
+//              /* calculate next shot */
 
-            }
-          poll_actuators->revents = 0;
-        }
+//            }
+//          poll_actuators->revents = 0;
+//        }
       calc_next_shot(&t,rt_interval);
 
 

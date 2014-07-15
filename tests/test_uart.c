@@ -99,9 +99,9 @@ int main(int argc __attribute__((unused)),
       printf("Measured Time for sleeping 1 second =  %f \n",elapsed);
     }
 
-  double sum_elapsed =0;
+  double sum_elapsed = 0.0;
   elapsed =0;
-  long unsigned int counter = 0;
+  unsigned long counter = 0;
   unsigned char msg_ID;
 
 
@@ -139,9 +139,6 @@ int main(int argc __attribute__((unused)),
 
       printf("\r\n\bReceived Messages: %lu [ID:%u] \tPeriod: %f s \t[AVG: %f]\tFrequency %f\t[AVG: %f]",
              counter, msg_ID, elapsed, sum_elapsed/counter, 1.0/elapsed, 1.0/(sum_elapsed/counter));
-
-
-
 
       /* I skipped logging; I think you know what to do. */
     }

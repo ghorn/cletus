@@ -17,7 +17,7 @@
 #include "./structures.h"
 #include "./log.h"
 
-#include "./lisa_communication/uart_communication.h"
+#include "./uart.h"
 #include "./lisa_communication/data_decoding.h"
 
 
@@ -78,7 +78,7 @@ int main(int argc __attribute__((unused)),
       output.servos_msg.servo_6 = value;
       output.servos_msg.servo_7 = value;
 
-      serial_port_write((uint8_t*)&output,sizeof(output));
+      write_uart((uint8_t*)&output,sizeof(output));
 
       usleep(5000);
     }
@@ -94,7 +94,7 @@ int main(int argc __attribute__((unused)),
       output.servos_msg.servo_6 = -value;
       output.servos_msg.servo_7 = -value;
 
-      serial_port_write((uint8_t*)&output,sizeof(output));
+      write_uart((uint8_t*)&output,sizeof(output));
 
       usleep(5000);
     }

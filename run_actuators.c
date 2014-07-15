@@ -20,7 +20,7 @@
 #include "./actuators.h"
 
 #include "lisa_communication/data_decoding.h"
-#include "lisa_communication/uart_communication.h"
+#include "./uart.h"
 
 
 static FILE *open_actuator_file(const char *path) {
@@ -65,7 +65,7 @@ int main(int argc __attribute__((unused)),
 
 
   //init the data decode pointers
-  init_decoding();
+  //init_decoding();
   int errRet = serial_port_setup();
   if(errRet!=UART_ERR_NONE){
       err("couldn't initialize serial port");
@@ -195,7 +195,7 @@ int main(int argc __attribute__((unused)),
               printf("read from controller OK!, time: %.3f\n",floating_time(&(incoming.stop)));
               /* Data OK -- enable output sockets. */
               convert_for_lisa(&incoming, &output);
-              serial_port_write((uint8_t*)&output,sizeof(output));
+              write_uart((uint8_t*)&output,sizeof(output));
 #ifdef DEBUG
               printf("Writing servo commannds 1 -> %i \n\t 2 -> %i\n\t 3 -> %i\n\t 4 -> %i\n\t 5 -> %i\n\t 6 -> %i\n\t 7 -> %i\n",
                      (int)output.servos_msg.servo_1, (int)output.servos_msg.servo_2, (int)output.servos_msg.servo_3,
