@@ -62,7 +62,7 @@ CXXFLAGS ?= $(CXX_WARNINGFLAGS) $(DEBUGFLAGS) $(FEATUREFLAGS) $(INCLUDES) $(OPTF
 CC ?= gcc
 CXX ?= g++
 
-HS_STRUCTS = sim/src/Structs/Structures.hs sim/src/Structs/Structures.hsc
+HS_STRUCTS = hs/src/Structs/Structures.hs hs/src/Structs/Structures.hsc
 
 .PHONY: all
 all: $(PROJ) $(PROTOS)
