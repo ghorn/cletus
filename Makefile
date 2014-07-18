@@ -11,12 +11,21 @@ C_SRC = run_sensors.c \
         zmq.c
 
 CXX_SRC = \
+        protos_cpp/messages.pb.cc
 #	main.cpp \
 #	parsing.cpp
 
-LIBS = $(shell pkg-config --libs libzmq) -lm -lrt
+LIBS = $(shell pkg-config --libs libzmq) -lm -lrt -lprotobuf
 
 Q ?= @
+
+PROTOS = protos_cpp/messages.pb.cc \
+         protos_cpp/messages.pb.h
+
+HS_PROTOS = hs/src/Messages/Js.hs \
+            hs/src/Messages/Mode3.hs \
+            hs/src/Messages/UpDown.hs \
+            hs/src/Messages.hs
 
 # build in the autopilot
 # this has a makefile format to make it easy to include
@@ -35,7 +44,7 @@ ifeq ($(UNAME),Darwin)
 endif
 
 
-OBJ = $(C_SRC:%.c=%.o) $(CXX_SRC:%.cpp=%.o)
+OBJ = $(C_SRC:%.c=%.o) $(CXX_SRC:%.cpp=%.o) $(CXX_SRC:%.cc=%.o)
 
 ## Compile pedantically and save pain later
 CXX_WARNINGFLAGS = -Wall -Wextra -Wshadow
@@ -56,8 +65,8 @@ CXX ?= g++
 HS_STRUCTS = sim/src/Structs/Structures.hs sim/src/Structs/Structures.hsc
 
 .PHONY: all
-all: $(PROJ)
-hs: $(HS_STRUCTS)
+all: $(PROJ) $(PROTOS)
+hs: $(HS_STRUCTS) $(HS_PROTOS)
 
 .SECONDEXPANSION:
 $(PROJ): % : $$(findstring $$(*:%=%.o),$(OBJ)) $(filter-out $(PROJ:%=%.o),$(OBJ))
@@ -67,6 +76,14 @@ ifneq (,$(CXX_SRC))
 else
 	$(Q)$(CC) $(filter %.o %.a %.so, $^) $(LDFLAGS) -o $@
 endif
+
+$(HS_PROTOS) : messages.proto
+	@echo hprotoc $<
+	$(Q)hprotoc --haskell_out=hs/src $<
+
+$(PROTOS) : messages.proto
+	@echo protoc $<
+	$(Q)protoc --cpp_out=protos_cpp $<
 
 sim/src/Structs/Structures.hsc : structures.h
 	@echo c2hsc $@
@@ -86,5 +103,8 @@ sim/src/Structs/Structures.hs : sim/src/Structs/Structures.hsc
 
 clean:
 	rm -f $(PROJ)
+	rm -f $(PROTOS)
+	rm -f $(HS_PROTOS)
+	rm -f protos_cpp/messages.pb.o
 	rm -f $(OBJ)
 	rm -f $(HS_STRUCTS)

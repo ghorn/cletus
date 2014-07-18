@@ -1,0 +1,22 @@
+
+enum Mode3 {
+  Mode0 = 0;
+  Mode1 = 1;
+  Mode2 = 2;
+}
+
+enum UpDown {
+  Up = 0;
+  Down = 1;
+}
+
+message Js {
+  required double jsThrottle = 1;
+  required double jsYaw = 2;
+  required double jsPitch = 3;
+  required double jsRoll = 4;
+  required UpDown jsGear = 5;
+  required Mode3 jsAux2 = 6;
+  required double jsRightTrim = 7;
+  required Mode3 jsFmode = 8;
+}
