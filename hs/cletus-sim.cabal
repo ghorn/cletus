@@ -25,7 +25,7 @@ executable rc
   default-language:    Haskell2010
 
 executable cletus-sim
-  main-is:             Main.hs
+  main-is:             Sim.hs
   other-modules:       Aircraft, AeroCoeffs, Betty, SpatialMathT
   -- other-extensions:    
   build-depends:         base >=4.7 && <4.8
@@ -45,7 +45,7 @@ executable cletus-sim
 
 executable wtfviz
   hs-source-dirs:    src
-  main-is:           KiteSim.hs
+  main-is:           WtfViz.hs
   other-modules:     DrawAC
   build-depends:       base >= 4.5.0 && < 4.8
                      , spatial-math
