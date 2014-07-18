@@ -136,7 +136,7 @@ listToRc k7' [k0,k1,k2,k3,k4,k5,k6,k7]
       (rt,fm) = case (even k7', even k7) of
         (False, True) -> (k7', k7)
         (True, False) -> (k7, k7')
-        other -> error $ "listToRc got " ++ show other ++ ", is the controller plugged in?"
+        other -> error $ "listToRc got " ++ show other ++ "\nIs the controller plugged in?"
 listToRc _ ks = error $ "length should be 8, but got " ++ show (length ks)
 
 isMyThingy :: USB.DeviceDesc -> Bool
