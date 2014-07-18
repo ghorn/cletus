@@ -42,6 +42,7 @@ import qualified Messages.AcState as Msg
 import qualified Messages.Dcm as Msg
 
 import DrawAC
+import Channels ( chanSimTelem )
 
 data State = State { sTrails :: [[V3 Double]]
                    , sTelem :: Maybe Msg.SimTelem
@@ -200,7 +201,7 @@ updateState telem x0 =
 sub :: MVar State -> IO ()
 sub m = ZMQ.withContext $ \context ->
   ZMQ.withSocket context ZMQ.Sub $ \subscriber -> do
-    ZMQ.connect subscriber "ipc:///tmp/simtelem"
+    ZMQ.connect subscriber chanSimTelem
     let channel = "sim_telemetry"
     ZMQ.subscribe subscriber channel
     forever $ do

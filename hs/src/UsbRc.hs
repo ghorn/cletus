@@ -24,8 +24,7 @@ import Messages.Rc
 import Messages.Mode3
 import Messages.UpDown
 
-channel :: String
-channel = "ipc:///tmp/rc"
+import Channels ( chanRc )
 
 runme :: ZMQ.Sender a => USB.Device -> USB.DeviceHandle -> ZMQ.Socket a -> IO ()
 runme dev devHndl rcPublisher = do
@@ -66,7 +65,7 @@ main =
   -- zeromq setup
   ZMQ.withContext $ \context ->
     ZMQ.withSocket context ZMQ.Pub $ \rcPublisher -> do
-      ZMQ.bind rcPublisher channel
+      ZMQ.bind rcPublisher chanRc
 
       -- usb setup
       ctx <- USB.newCtx

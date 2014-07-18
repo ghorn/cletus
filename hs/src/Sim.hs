@@ -2,24 +2,22 @@
 {-# Language FlexibleContexts #-}
 {-# Language ScopedTypeVariables #-}
 
-module Main where
+module Main ( main ) where
 
 import Text.Printf
 import qualified Data.ByteString as BS
-import qualified Data.ByteString.Lazy as BL
+import qualified Data.ByteString.Lazy as BSL
 import Data.ByteString.Char8 ( pack )
-import Data.ByteString.Unsafe
 import qualified Data.List.NonEmpty as NE
 import qualified Data.Sequence as DS
 import qualified System.ZMQ4 as ZMQ
 import qualified Control.Concurrent as CC
+import Control.Monad ( unless )
 import Linear hiding ( cross )
 import System.Clock
-import Foreign.Marshal.Utils
-import Foreign.Storable
-import Foreign.Ptr
 import qualified Text.ProtocolBuffers as PB
 
+import qualified Messages.Rc as Msg
 import qualified Messages.Sensors as Msg
 import qualified Messages.Timestamp as Msg
 import qualified Messages.Xyz as Msg
@@ -31,6 +29,8 @@ import qualified Messages.Dcm as Msg
 import Aircraft
 import AeroCoeffs
 import Betty
+
+import Channels ( chanSensors, chanSimTelem, chanRc )
 
 import SpatialMathT
 
@@ -193,12 +193,29 @@ main =
   ZMQ.withContext $ \context ->
   ZMQ.withSocket context ZMQ.Push $ \sensorPublisher ->
   ZMQ.withSocket context ZMQ.Pub $ \simTelemPublisher -> do
-    ZMQ.connect sensorPublisher "ipc:///tmp/sensors"
-    ZMQ.bind simTelemPublisher "ipc:///tmp/simtelem"
-    let u = AcU (ControlSurfaces 0 0 0 0)
+  ZMQ.withSocket context ZMQ.Sub $ \rcSub -> do
+    ZMQ.connect sensorPublisher chanSensors
+    ZMQ.bind simTelemPublisher chanSimTelem
+    ZMQ.connect rcSub chanRc
+    ZMQ.subscribe rcSub (pack "rc")
+
+    let --u = AcU (ControlSurfaces 0 0 0 0)
         ts = 0.002
         go :: Double -> AcX Double -> IO ()
         go t0 x0 = do
+          putStrLn "listening for msg"
+          channel':msg <- ZMQ.receiveMulti rcSub :: IO [BS.ByteString]
+          unless (channel' == pack "rc") $ error $ "bad channel"
+          let rc :: Msg.Rc
+              rc = case PB.messageGet (BSL.concat (map BSL.fromStrict msg)) of
+                Left err -> error err
+                Right (rc',_) -> rc'
+              u = AcU (ControlSurfaces
+                       { csElev = (10*pi/180) * (Msg.rcPitch rc)
+                       , csRudder = (10*pi/180) * (Msg.rcYaw rc)
+                       , csAil = (10*pi/180) * (Msg.rcRoll rc)
+                       , csFlaps = 0
+                       })
           clock <- getTime Monotonic
           let y = getSensors x0 u
               yc = toCSensors y clock
@@ -210,17 +227,13 @@ main =
                                           ]
                          , Msg.w0 = 0
                          }
-          ZMQ.sendMulti sensorPublisher (NE.fromList [BL.toStrict (PB.messagePut yc)])
+          ZMQ.sendMulti sensorPublisher (NE.fromList [BSL.toStrict (PB.messagePut yc)])
           ZMQ.sendMulti simTelemPublisher (NE.fromList [pack "sim_telemetry",
-                                                        BL.toStrict (PB.messagePut simTelem)])
+                                                        BSL.toStrict (PB.messagePut simTelem)])
+
           let x1 = integrate ts x0 u
           print clock
           CC.threadDelay (round (ts*1e6))
           go (t0 + ts) x1
 
     go 0 simX0
-
-unsafeToByteString :: Storable a => a -> IO BS.ByteString
-unsafeToByteString x = do
-  px <- new x
-  unsafePackMallocCStringLen (castPtr px, sizeOf x)
