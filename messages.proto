@@ -10,13 +10,13 @@ enum UpDown {
   Down = 1;
 }
 
-message Js {
-  required double jsThrottle = 1;
-  required double jsYaw = 2;
-  required double jsPitch = 3;
-  required double jsRoll = 4;
-  required UpDown jsGear = 5;
-  required Mode3 jsAux2 = 6;
-  required double jsRightTrim = 7;
-  required Mode3 jsFmode = 8;
+message Rc {
+  required double rcThrottle = 1;
+  required double rcYaw = 2;
+  required double rcPitch = 3;
+  required double rcRoll = 4;
+  required UpDown rcGear = 5;
+  required Mode3  rcAux2 = 6;
+  required double rcRightTrim = 7;
+  required Mode3  rcFmode = 8;
 }

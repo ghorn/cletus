@@ -22,7 +22,7 @@ Q ?= @
 PROTOS = protos_cpp/messages.pb.cc \
          protos_cpp/messages.pb.h
 
-HS_PROTOS = hs/src/Messages/Js.hs \
+HS_PROTOS = hs/src/Messages/Rc.hs \
             hs/src/Messages/Mode3.hs \
             hs/src/Messages/UpDown.hs \
             hs/src/Messages.hs
