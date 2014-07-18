@@ -28,18 +28,23 @@ import qualified System.ZMQ4 as ZMQ
 import Control.Concurrent ( MVar, forkIO, modifyMVar_, newMVar, readMVar)
 import Control.Monad ( unless, forever )
 import qualified Data.ByteString as BS
-import Data.Serialize
+import qualified Data.ByteString.Lazy as BSL
+import qualified Data.Foldable as F
 --import System.Remote.Monitoring ( forkServer )
+import qualified Text.ProtocolBuffers as PB
 
 import SpatialMath
 import Vis
 
+import qualified Messages.Xyz as Msg
+import qualified Messages.SimTelem as Msg
+import qualified Messages.AcState as Msg
+import qualified Messages.Dcm as Msg
+
 import DrawAC
-import Aircraft
-import SpatialMathT
 
 data State = State { sTrails :: [[V3 Double]]
-                   , sTelem :: Maybe SimTelem
+                   , sTelem :: Maybe Msg.SimTelem
                    , sParticles :: [V3 Double]
                    }
 
@@ -84,15 +89,22 @@ data State = State { sTrails :: [[V3 Double]]
 --    r'n0'a0 = rotVecByQuatB2A q'n'a rArm
 --    r'n0't0 = xyz + (rotVecByQuatB2A q'n'b $ V3 0 0 (-zt))
 
+fromXyz :: Msg.Xyz -> V3 Double
+fromXyz (Msg.Xyz x y z) = V3 x y z
+
+fromDcm :: Msg.Dcm -> V3 (V3 Double)
+fromDcm (Msg.Dcm r0 r1 r2) = V3 (fromXyz r0) (fromXyz r1) (fromXyz r2)
+
 drawFun :: State -> VisObject Double
 ----drawFun state = VisObjects $ [axes] ++ (map text [-5..5]) ++ [boxText, ac, plane,trailLines]
 drawFun (State {sTelem=Nothing}) = VisObjects []
 drawFun state@(State {sTelem=Just telem}) =
   VisObjects [axes, txt, ac, plane, trailLines, zLine, points]
   where
-    cs = stX telem
-    V3T pos@(V3 x y z) = ac_r_n2b_n cs
-    quat = quatOfDcm $ unR (ac_R_n2b cs)
+    cs = Msg.state telem
+    pos@(V3 x y z) = fromXyz (Msg.r_n2b_n cs)
+    quat = quatOfDcm (fromDcm (Msg.dcm_n2b cs))
+
     visSpan = 1
 
     points = Points (sParticles state) (Just 2) $ makeColor 1 1 1 0.5
@@ -111,7 +123,7 @@ drawFun state@(State {sTelem=Just telem}) =
 
     txt = VisObjects $
           zipWith (\s k -> Text2d s (30,fromIntegral $ 30*k) TimesRoman24 (makeColor 1 1 1 1)) messages (reverse [1..length messages])
-    messages = stMessages telem
+    messages = map PB.toString (F.toList (Msg.messages telem))
 
     ac = Trans pos $ Scale (visSpan,visSpan,visSpan) ac'
     (ac',_) = drawAc kiteAlpha (V3 0 0 0) quat
@@ -138,7 +150,7 @@ instance Random a => Random (V3 a) where
       (x, g1) = randomR (lbx, ubx) g0
       (y, g2) = randomR (lby, uby) g1
       (z, g3) = randomR (lbz, ubz) g2
-  
+
 state0 :: State
 state0 = State { sTelem = Nothing
                , sTrails = [[],[],[]]
@@ -171,17 +183,17 @@ windShear w0 z
     z0 = 100
     zt = 0.1
 
-updateState :: SimTelem -> State -> IO State
+updateState :: Msg.SimTelem -> State -> IO State
 updateState telem x0 =
   return $ State { sTelem = Just telem
                  , sTrails = zipWith updateTrail trails0 trails
                  , sParticles = map (\xyz@(V3 _ _ z) -> boundParticle $ (V3 (ts*(windShear w0 (-z))) 0 0) + xyz) (sParticles x0)
                  }
   where
-    w0 = stW0 telem
+    w0 = Msg.w0 telem
     trails0 = sTrails x0
-    pos = unV $ ac_r_n2b_n $ stX telem
-    q = quatOfDcm $ unR $ ac_R_n2b $ stX telem
+    pos = fromXyz $ Msg.r_n2b_n $ Msg.state telem
+    q = quatOfDcm $ fromDcm $ Msg.dcm_n2b $ Msg.state telem
     (_,trails) = drawAc 1 pos q
 
 
@@ -194,9 +206,9 @@ sub m = ZMQ.withContext $ \context ->
     forever $ do
       channel':msg <- ZMQ.receiveMulti subscriber :: IO [BS.ByteString]
       unless (channel' == channel) $ error $ "bad channel: " ++ unpack channel'
-      let cs = case decode (BS.concat msg) :: Either String SimTelem of
+      let cs = case PB.messageGet (BSL.concat (map BSL.fromStrict msg)) of
             Left err -> error err
-            Right cs' -> cs'
+            Right (cs',_) -> cs'
       modifyMVar_ m (updateState cs)
       return ()
 
@@ -213,4 +225,3 @@ main = do
   let simFun _ _ = return ()
       df _ = fmap drawFun (readMVar m)
   simulateIO (Just ((1260,940),(1930,40))) "baby betty sim" ts () df simFun
-

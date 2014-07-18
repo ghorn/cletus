@@ -1,4 +1,3 @@
-
 enum Mode3 {
   Mode0 = 0;
   Mode1 = 1;
@@ -19,4 +18,52 @@ message Rc {
   required Mode3  rcAux2 = 6;
   required double rcRightTrim = 7;
   required Mode3  rcFmode = 8;
+}
+
+message Xyz {
+  required double x = 1;
+  required double y = 2;
+  required double z = 3;
+}
+
+message Timestamp {
+  required uint64 tsec = 1;
+  required uint64 tnsec = 2;
+}
+
+message Sensors {
+  required Timestamp timestamp = 1;
+  required Xyz gyro = 2;
+  required Xyz accel = 3;
+  required Xyz gps_pos = 4;
+  required Xyz gps_vel = 5;
+}
+
+message Actuators {
+  required Timestamp start = 1;
+  required Timestamp stop = 2;
+  required double flaps = 3;
+  required double ail = 4;
+  required double rudd = 5;
+  required double elev = 6;
+}
+
+message Dcm {
+  required Xyz r0 = 1;
+  required Xyz r1 = 2;
+  required Xyz r2 = 3;
+}
+
+message AcState {
+  required Xyz r_n2b_n = 1;
+  required Xyz v_bn_b = 2;
+  required Dcm dcm_n2b = 3;
+  required Xyz w_bn_b = 4;
+}
+
+message SimTelem {
+  required AcState state = 1;
+  required Actuators actuators = 2;
+  repeated string messages = 3;
+  required double w0 = 4;
 }

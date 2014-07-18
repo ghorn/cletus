@@ -11,7 +11,6 @@ C_SRC = run_sensors.c \
         zmq.c
 
 CXX_SRC = \
-        protos_cpp/messages.pb.cc
 #	main.cpp \
 #	parsing.cpp
 
@@ -22,10 +21,7 @@ Q ?= @
 PROTOS = protos_cpp/messages.pb.cc \
          protos_cpp/messages.pb.h
 
-HS_PROTOS = hs/src/Messages/Rc.hs \
-            hs/src/Messages/Mode3.hs \
-            hs/src/Messages/UpDown.hs \
-            hs/src/Messages.hs
+HS_PROTOS = hs/src/Messages.hs
 
 # build in the autopilot
 # this has a makefile format to make it easy to include
@@ -65,8 +61,8 @@ CXX ?= g++
 HS_STRUCTS = hs/src/Structs/Structures.hs hs/src/Structs/Structures.hsc
 
 .PHONY: all
-all: $(PROJ) $(PROTOS)
-hs: $(HS_STRUCTS) $(HS_PROTOS)
+all: $(PROJ) $(PROTOS) protos_cpp/messages.pb.o
+hs: $(HS_PROTOS)
 
 .SECONDEXPANSION:
 $(PROJ): % : $$(findstring $$(*:%=%.o),$(OBJ)) $(filter-out $(PROJ:%=%.o),$(OBJ))
@@ -84,6 +80,11 @@ $(HS_PROTOS) : messages.proto
 $(PROTOS) : messages.proto
 	@echo protoc $<
 	$(Q)protoc --cpp_out=protos_cpp $<
+
+protos_cpp/messages.pb.o : protos_cpp/messages.pb.cc protos_cpp/messages.pb.h
+	@echo CXX protos_cpp/messages.pb.cc
+	$(Q)$(CXX) -O3 -Wall -Werror -c protos_cpp/messages.pb.cc -o protos_cpp/messages.pb.o
+
 
 sim/src/Structs/Structures.hsc : structures.h
 	@echo c2hsc $@
@@ -104,7 +105,8 @@ sim/src/Structs/Structures.hs : sim/src/Structs/Structures.hsc
 clean:
 	rm -f $(PROJ)
 	rm -f $(PROTOS)
-	rm -f $(HS_PROTOS)
-	rm -f protos_cpp/messages.pb.o
+	rm -f hs/src/Messages.hs
+	rm -f hs/src/Messages/*
+	rm -f protos_cpp/messages.pb.*
 	rm -f $(OBJ)
 	rm -f $(HS_STRUCTS)

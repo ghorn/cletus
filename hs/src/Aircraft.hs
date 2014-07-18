@@ -3,7 +3,7 @@
 {-# Language DeriveFunctor #-}
 {-# Language DeriveGeneric #-}
 
-module Aircraft ( N, B, SimTelem(..), AcX(..), AcU(..), aircraftOde --, aircraftDae
+module Aircraft ( N, B, AcX(..), AcU(..), aircraftOde --, aircraftDae
                 ) where
 
 import GHC.Generics
@@ -27,14 +27,6 @@ data AcX a = AcX { ac_r_n2b_n :: V3T N a
                  } deriving (Eq, Functor, Generic, Generic1, Show)
 data AcU a = AcU { acSurfaces :: ControlSurfaces a
                  } deriving (Eq, Functor, Generic, Generic1, Show)
-data SimTelem =
-  SimTelem
-  { stX :: AcX Double
-  , stU :: AcU Double
-  , stMessages :: [String]
-  , stW0 :: Double
-  } deriving (Generic, Show)
-instance Serialize SimTelem
 instance Applicative AcX where
   pure = fill
   AcX x0 y0 (Rot (V3 z00 z01 z02)) w0 <*> AcX x1 y1 (Rot (V3 z10 z11 z12)) w1 =

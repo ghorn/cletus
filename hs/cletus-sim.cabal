@@ -29,14 +29,16 @@ executable cletus-sim
   other-modules:       Aircraft, AeroCoeffs, Betty, SpatialMathT
   -- other-extensions:    
   build-depends:         base >=4.7 && <4.8
-                       , spatial-math
-                       , clock
-                       , linear >=1.10 && <1.11
-                       , cereal
-                       , dynobud
                        , bytestring
                        , semigroups
+                       , containers
                        , zeromq4-haskell
+                       , clock
+                       , protocol-buffers
+                       , cereal
+                       , linear >=1.10 && <1.11
+                       , spatial-math
+                       , dynobud
   hs-source-dirs:      src
   default-language:    Haskell2010
 
@@ -46,14 +48,12 @@ executable wtfviz
   main-is:           KiteSim.hs
   other-modules:     DrawAC
   build-depends:       base >= 4.5.0 && < 4.8
-                     , linear
-                     , cereal
-                     , dynobud
                      , spatial-math
                      , not-gloss >= 0.5.0
                      , random
-                     , zeromq4-haskell
                      , bytestring
+                     , zeromq4-haskell
+                     , protocol-buffers
 --                     , ekg
 
   ghc-options:       -O2 -threaded -with-rtsopts=-T

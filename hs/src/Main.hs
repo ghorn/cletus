@@ -6,10 +6,11 @@ module Main where
 
 import Text.Printf
 import qualified Data.ByteString as BS
+import qualified Data.ByteString.Lazy as BL
 import Data.ByteString.Char8 ( pack )
 import Data.ByteString.Unsafe
-import Data.Serialize
 import qualified Data.List.NonEmpty as NE
+import qualified Data.Sequence as DS
 import qualified System.ZMQ4 as ZMQ
 import qualified Control.Concurrent as CC
 import Linear hiding ( cross )
@@ -17,32 +18,73 @@ import System.Clock
 import Foreign.Marshal.Utils
 import Foreign.Storable
 import Foreign.Ptr
+import qualified Text.ProtocolBuffers as PB
+
+import qualified Messages.Sensors as Msg
+import qualified Messages.Timestamp as Msg
+import qualified Messages.Xyz as Msg
+import qualified Messages.SimTelem as Msg
+import qualified Messages.AcState as Msg
+import qualified Messages.Actuators as Msg
+import qualified Messages.Dcm as Msg
 
 import Aircraft
 import AeroCoeffs
 import Betty
-import Structs.Structures
+
 import SpatialMathT
 
 data M
 
-toTimestamp :: TimeSpec -> C'timestamp_t
-toTimestamp t = C'timestamp_t { c'timestamp_t'tsec = fromIntegral $ sec t
-                              , c'timestamp_t'tnsec = fromIntegral $ nsec t
-                              }
-toXyz :: Real a => V3T f a -> C'xyz_t
-toXyz xyz = C'xyz_t x y z
+toTimestamp :: TimeSpec -> Msg.Timestamp
+toTimestamp t =
+  Msg.Timestamp
+  { Msg.tsec = fromIntegral $ sec t
+  , Msg.tnsec = fromIntegral $ nsec t
+  }
+
+toState :: AcX Double -> Msg.AcState
+toState x =
+  Msg.AcState
+  { Msg.r_n2b_n = toXyz (ac_r_n2b_n x)
+  , Msg.v_bn_b = toXyz (ac_v_bn_b x)
+  , Msg.dcm_n2b = toDcmMsg (ac_R_n2b x)
+  , Msg.w_bn_b = toXyz (ac_w_bn_b x)
+  }
+
+toActuators :: AcU Double -> Msg.Actuators
+toActuators u =
+  Msg.Actuators
+  { Msg.flaps = csFlaps cs
+  , Msg.ail = csAil cs
+  , Msg.rudd = csRudder cs
+  , Msg.elev = csElev cs
+  , Msg.start = Msg.Timestamp 0 0
+  , Msg.stop = Msg.Timestamp 0 0
+  }
+  where
+    cs = acSurfaces u
+
+toXyz :: Real a => V3T f a -> Msg.Xyz
+toXyz xyz = Msg.Xyz x y z
   where
     V3T (V3 x y z) = fmap realToFrac xyz
 
-toCSensors :: forall a . Real a => Sensors a -> TimeSpec -> C'sensors_t
+toDcmMsg :: Real a => Rot N B (M33 a) -> Msg.Dcm
+toDcmMsg (Rot xyz) = Msg.Dcm (toXyz x) (toXyz y) (toXyz z)
+  where
+    V3 x y z = fmap V3T xyz
+
+toCSensors :: forall a . Real a => Sensors a -> TimeSpec -> Msg.Sensors
 toCSensors y ts =
-  C'sensors_t { c'sensors_t'timestamp = toTimestamp ts
-              , c'sensors_t'gyro = toXyz $ y_gyro y
-              , c'sensors_t'accel = toXyz $ y_accel y
-              , c'sensors_t'gps_pos = toXyz $ y_gps_pos y
-              , c'sensors_t'gps_vel = toXyz $ y_gps_vel y
-              }
+  Msg.Sensors
+  { Msg.timestamp = toTimestamp ts
+  , Msg.gyro = toXyz $ y_gyro y
+  , Msg.accel = toXyz $ y_accel y
+  , Msg.gps_pos = toXyz $ y_gps_pos y
+  , Msg.gps_vel = toXyz $ y_gps_vel y
+  }
+
 
 data Sensors a =
   Sensors
@@ -160,14 +202,17 @@ main =
           clock <- getTime Monotonic
           let y = getSensors x0 u
               yc = toCSensors y clock
-              simTelem = SimTelem { stX = x0
-                                  , stU = u
-                                  , stMessages = [printf "sim time: %.3f" t0]
-                                  , stW0 = 0
-                                  }
-          ycb <- unsafeToByteString yc
-          ZMQ.sendMulti sensorPublisher (NE.fromList [ycb])
-          ZMQ.sendMulti simTelemPublisher (NE.fromList [pack "sim_telemetry", encode simTelem])
+              simTelem = Msg.SimTelem
+                         { Msg.state = toState x0
+                         , Msg.actuators = toActuators u
+                         , Msg.messages = DS.fromList
+                                          [ PB.fromString (printf "sim time: %.3f" t0)
+                                          ]
+                         , Msg.w0 = 0
+                         }
+          ZMQ.sendMulti sensorPublisher (NE.fromList [BL.toStrict (PB.messagePut yc)])
+          ZMQ.sendMulti simTelemPublisher (NE.fromList [pack "sim_telemetry",
+                                                        BL.toStrict (PB.messagePut simTelem)])
           let x1 = integrate ts x0 u
           print clock
           CC.threadDelay (round (ts*1e6))
