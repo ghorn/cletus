@@ -342,7 +342,7 @@ int main(int argc __attribute__((unused)),
 #ifdef DEBUG
 
               printf("Received GYRO RAW with timestamp %lu%lu \n X: %u\tY: %u\t Z: %u\t \n",
-                     data_ptr->imu_raw.imu_gyro.timestamp.tsec, data_ptr->imu_raw.imu_gyro.timestamp.tsec,
+                     (long unsigned)data_ptr->imu_raw.imu_gyro.timestamp.tsec, (long unsigned)data_ptr->imu_raw.imu_gyro.timestamp.tsec,
                      data_ptr->imu_raw.imu_gyro.data.x,
                      data_ptr->imu_raw.imu_gyro.data.y,
                      data_ptr->imu_raw.imu_gyro.data.z );
@@ -353,7 +353,7 @@ int main(int argc __attribute__((unused)),
 #ifdef DEBUG
 
               printf("Received GYRO SCALED with timestamp %lu%lu \n X: %f\tY: %f\t Z: %f\t \n",
-                     data_ptr->imu_scaled.imu_gyro_scaled.timestamp.tsec, data_ptr->imu_scaled.imu_gyro_scaled.timestamp.tsec,
+                     (long unsigned)data_ptr->imu_scaled.imu_gyro_scaled.timestamp.tsec, (long unsigned)data_ptr->imu_scaled.imu_gyro_scaled.timestamp.tsec,
                      data_ptr->imu_scaled.imu_gyro_scaled.data.x,
                      data_ptr->imu_scaled.imu_gyro_scaled.data.y,
                      data_ptr->imu_scaled.imu_gyro_scaled.data.z );
@@ -378,7 +378,7 @@ int main(int argc __attribute__((unused)),
 #ifdef DEBUG
 
               printf("Received ACCELERATION RAW with timestamp %lu%lu \n X: %u\tY: %u\t Z: %u\t \n",
-                     data_ptr->imu_raw.imu_accel.timestamp.tsec, data_ptr->imu_raw.imu_accel.timestamp.tsec,
+                     (long unsigned)data_ptr->imu_raw.imu_accel.timestamp.tsec, (long unsigned)data_ptr->imu_raw.imu_accel.timestamp.tsec,
                      data_ptr->imu_raw.imu_accel.data.x,
                      data_ptr->imu_raw.imu_accel.data.y,
                      data_ptr->imu_raw.imu_accel.data.z );
@@ -389,7 +389,7 @@ int main(int argc __attribute__((unused)),
 #ifdef DEBUG
 
               printf("Received ACCELERATION SCALED with timestamp %lu%lu \n X: %f\tY: %f\t Z: %f\t \n",
-                     data_ptr->imu_scaled.imu_accel_scaled.timestamp.tsec, data_ptr->imu_scaled.imu_accel_scaled.timestamp.tsec,
+                     (long unsigned)data_ptr->imu_scaled.imu_accel_scaled.timestamp.tsec, (long unsigned)data_ptr->imu_scaled.imu_accel_scaled.timestamp.tsec,
                      data_ptr->imu_scaled.imu_accel_scaled.data.x,
                      data_ptr->imu_scaled.imu_accel_scaled.data.y,
                      data_ptr->imu_scaled.imu_accel_scaled.data.z );
@@ -415,7 +415,7 @@ int main(int argc __attribute__((unused)),
 #ifdef DEBUG
 
               printf("Received MAGNETOMETER RAW with timestamp %lu%lu \n X: %u\tY: %u\t Z: %u\t \n",
-                     data_ptr->imu_raw.imu_mag.timestamp.tsec, data_ptr->imu_raw.imu_mag.timestamp.tsec,
+                     (long unsigned)data_ptr->imu_raw.imu_mag.timestamp.tsec, (long unsigned)data_ptr->imu_raw.imu_mag.timestamp.tsec,
                      data_ptr->imu_raw.imu_mag.data.x,
                      data_ptr->imu_raw.imu_mag.data.y,
                      data_ptr->imu_raw.imu_mag.data.z );
@@ -426,7 +426,7 @@ int main(int argc __attribute__((unused)),
 #ifdef DEBUG
 
               printf("Received ACCELERATION SCALED with timestamp %lu%lu \n X: %f\tY: %f\t Z: %f\t \n",
-                     data_ptr->imu_scaled.imu_mag_scaled.timestamp.tsec, data_ptr->imu_scaled.imu_mag_scaled.timestamp.tsec,
+                     (long unsigned)data_ptr->imu_scaled.imu_mag_scaled.timestamp.tsec, (long unsigned)data_ptr->imu_scaled.imu_mag_scaled.timestamp.tsec,
                      data_ptr->imu_scaled.imu_mag_scaled.data.x,
                      data_ptr->imu_scaled.imu_mag_scaled.data.y,
                      data_ptr->imu_scaled.imu_mag_scaled.data.z );
