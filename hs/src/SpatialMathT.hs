@@ -13,6 +13,7 @@ module SpatialMathT ( Rotation(..)
                     , V3T(..)
                     , M33T
                     , cross
+                    , orthonormalize
                     ) where
 
 import Control.Applicative ( Applicative )
@@ -99,3 +100,49 @@ instance Num a => Rotation (M33 a) a where
          (V3 e11 e21 e31)
          (V3 e12 e22 e32)
          (V3 e13 e23 e33))
+
+orthonormalize :: Floating a => Rot f1 f2 (M33 a) -> Rot f1 f2 (M33 a)
+orthonormalize (Rot (V3
+                     (V3 m00 m01 m02)
+                     (V3 m10 m11 m12)
+                     (V3 m20 m21 m22))) = Rot ret
+  where
+    -- compute q0
+    fInvLength0 = 1.0/sqrt(m00*m00 + m10*m10 + m20*m20)
+
+    m00' = m00*fInvLength0
+    m10' = m10*fInvLength0
+    m20' = m20*fInvLength0
+
+    -- compute q1
+    fDot0' = m00'*m01 + m10'*m11 + m20'*m21
+
+    m01' = m01 - fDot0'*m00'
+    m11' = m11 - fDot0'*m10'
+    m21' = m21 - fDot0'*m20'
+
+    fInvLength1 = 1.0/sqrt(m01'*m01' + m11'*m11' + m21'*m21')
+
+    m01'' = m01' * fInvLength1
+    m11'' = m11' * fInvLength1
+    m21'' = m21' * fInvLength1
+
+    -- compute q2
+    fDot1 = m01''*m02 + m11''*m12 + m21''*m22
+    fDot0 = m00'*m02 + m10'*m12 + m20'*m22
+
+    m02' = m02 - (fDot0*m00' + fDot1*m01'')
+    m12' = m12 - (fDot0*m10' + fDot1*m11'')
+    m22' = m22 - (fDot0*m20' + fDot1*m21'')
+
+    fInvLength2 = 1.0/sqrt(m02'*m02' + m12'*m12' + m22'*m22')
+
+    m02'' = m02' * fInvLength2
+    m12'' = m12' * fInvLength2
+    m22'' = m22' * fInvLength2
+
+    ret = (V3
+           (V3 m00' m01'' m02'')
+           (V3 m10' m11'' m12'')
+           (V3 m20' m21'' m22''))
+
