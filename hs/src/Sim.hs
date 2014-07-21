@@ -135,7 +135,7 @@ integrate h x0 u = AcX z0 z1 (orthonormalize z2) z3
   where
     AcX z0 z1 z2 z3 = rk4 (fst . flip bettyOde u) h x0
 
-simX0 :: AcX Double
+simX0 :: Num a => AcX a
 simX0 =
   AcX { ac_r_n2b_n = V3T $ V3 0 0 0
       , ac_v_bn_b = V3T $ V3 20 0 0

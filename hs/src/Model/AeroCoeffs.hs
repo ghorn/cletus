@@ -107,7 +107,8 @@ instance Vectorize AeroRefs
 -- w_bn_b: body angular velocity w.r.t. NED
 aeroForcesMoments :: Floating a => AeroForceCoeffs a -> AeroMomentCoeffs a -> AeroRefs a ->
                      V3 a -> V3 a -> ControlSurfaces a -> (V3 a, V3 a)
-aeroForcesMoments forceCoeffs momentCoeffs refs v_bw_b w_bn_b controlSurfaces = (forces, moments)
+aeroForcesMoments forceCoeffs momentCoeffs refs v_bw_b w_bn_b controlSurfaces =
+  (forces, moments)
   where
     V3 cL cD cY = aeroForceCoeffs alpha beta controlSurfaces forceCoeffs
     c_lmn = aeroMomentCoeffs alpha beta airspeed w_bn_b controlSurfaces momentCoeffs refs
@@ -258,21 +259,4 @@ aeroMomentCoeffs alpha beta airspeed w_bn_b controlSurfaces coeffs refs =
     
     bref = ar_bref refs
     cref = ar_cref refs
-    
-trans :: V3 (V3 a) -> V3 (V3 a)
-trans (V3
-       (V3 e11 e12 e13)
-       (V3 e21 e22 e23)
-       (V3 e31 e32 e33))
-  =
-  V3
-  (V3 e11 e21 e31)
-  (V3 e12 e22 e32)
-  (V3 e13 e23 e33)
 
-skew :: Num a => V3 a -> V3 (V3 a)
-skew (V3 x y z) =
-  V3
-  (V3    0  (-z)   y )
-  (V3    z    0  (-x))
-  (V3  (-y)   x    0 )

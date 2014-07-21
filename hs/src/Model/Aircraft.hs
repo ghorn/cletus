@@ -94,7 +94,7 @@ aircraftOde
   momentCoeffs
   refs
   (AcX       _  v_bn_b  dcm_n2b  w_bn_b )
-  (AcU controlSurfaces) = (daeResidual, v_bn_b')
+  (AcU controlSurfaces) = (ddtState, v_bn_b')
   where
     v_bw_b :: V3T B a
     v_bw_b = v_bn_b -- no wind for now
@@ -109,7 +109,7 @@ aircraftOde
     g = V3T (V3 0 0 (9.81*mass))
 
     v_bn_b' = forces_body ^/ mass
-    daeResidual =
+    ddtState =
       AcX { ac_r_n2b_n = rot' dcm_n2b v_bn_b
           , ac_v_bn_b = v_bn_b' - cross w_bn_b v_bn_b
           , ac_R_n2b = ddtDcm dcm_n2b w_bn_b :: Rot N B (M33 a)
