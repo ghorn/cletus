@@ -1,3 +1,0 @@
-a very partial list of dependencies:
-
-apt-get install libprotobuf-dev
