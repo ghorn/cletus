@@ -211,7 +211,7 @@ aeroMomentCoeffs alpha beta airspeed w_bn_b controlSurfaces coeffs refs =
 
     w_bn_b_hat = (V3 bref cref bref) * w_bn_b ^* (0.5/airspeed)
 
-    momentCoeffs0 = V3 cm0 0 0
+    momentCoeffs0 = V3 0 cm0 0
 
     momentCoeffs_pqr =
       (V3
