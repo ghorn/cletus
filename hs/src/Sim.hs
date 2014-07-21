@@ -12,7 +12,7 @@ import qualified Data.List.NonEmpty as NE
 import qualified Data.Sequence as DS
 import qualified System.ZMQ4 as ZMQ
 import qualified Control.Concurrent as CC
-import Control.Monad ( unless )
+import Control.Monad ( unless, forever )
 import Linear hiding ( cross )
 import System.Clock
 import qualified Text.ProtocolBuffers as PB
@@ -143,6 +143,20 @@ simX0 =
       , ac_w_bn_b = V3T $ V3 0 0 0
       }
 
+rcThread :: ZMQ.Receiver a => ZMQ.Socket a -> CC.MVar Msg.Rc -> IO ()
+rcThread rcSub latestRc = do
+  let receive = do
+        channel':msg <- ZMQ.receiveMulti rcSub :: IO [BS.ByteString]
+        unless (channel' == pack "rc") $ error $ "bad channel"
+        let rc :: Msg.Rc
+            rc = case PB.messageGet (BSL.concat (map BSL.fromStrict msg)) of
+              Left err -> error err
+              Right (rc',_) -> rc'
+        return rc
+
+  receive >>= CC.putMVar latestRc
+  forever (receive >>= CC.swapMVar latestRc)
+
 
 main :: IO ()
 main =
@@ -155,18 +169,16 @@ main =
     ZMQ.connect rcSub chanRc
     ZMQ.subscribe rcSub (pack "rc")
 
-    let --u = AcU (ControlSurfaces 0 0 0 0)
-        ts = 0.002
+    -- spawn a thread updating the latest RC message
+    latestRc <- CC.newEmptyMVar
+    _ <- CC.forkIO (rcThread rcSub latestRc)
+    let getLatestRc = CC.readMVar latestRc
+
+    let ts = 0.002
         go :: Double -> AcX Double -> IO ()
         go t0 x0 = do
-          putStrLn "listening for msg"
-          channel':msg <- ZMQ.receiveMulti rcSub :: IO [BS.ByteString]
-          unless (channel' == pack "rc") $ error $ "bad channel"
-          let rc :: Msg.Rc
-              rc = case PB.messageGet (BSL.concat (map BSL.fromStrict msg)) of
-                Left err -> error err
-                Right (rc',_) -> rc'
-              u = AcU (ControlSurfaces
+          rc <- getLatestRc
+          let u = AcU (ControlSurfaces
                        { csElev = (10*pi/180) * (Msg.rcPitch rc)
                        , csRudder = (10*pi/180) * (Msg.rcYaw rc)
                        , csAil = (10*pi/180) * (Msg.rcRoll rc)
