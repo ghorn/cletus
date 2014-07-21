@@ -240,8 +240,8 @@ int main(int argc __attribute__((unused)),
                 }
               else{
                   printf("ERROR with Checksum test with ID %i\n",msg_data[1]);
+                  serial_port_flush_input();
                 }
-              serial_port_flush_input();
               msg_length_counter = 0;
               poll_message->events =0;
               poll_startbyte->events= ZMQ_POLLIN;
