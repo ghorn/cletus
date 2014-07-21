@@ -133,14 +133,14 @@ aeroForcesMoments forceCoeffs momentCoeffs refs v_bw_b w_bn_b controlSurfaces =
 
     -- lift axis normalized to airspeed
     e_b2L_b_v = cross e_b2y_b v_bw_b
-    
+
     -- sideforces axis normalized to airspeed^2
     e_b2Y_b_v2 = cross e_b2L_b_v (-v_bw_b)
-    
+
     rho_sref = 0.5*rho*sref
     rho_sref_v2 = rho_sref*airspeedSquared
     rho_sref_v = rho_sref*airspeed
-    
+
     sref = ar_sref refs
     bref = ar_bref refs
     cref = ar_cref refs
@@ -251,12 +251,11 @@ aeroMomentCoeffs alpha beta airspeed w_bn_b controlSurfaces coeffs refs =
     cm_A  = am_cm_A coeffs
     cn_B  = am_cn_B coeffs
     cn_AB = am_cn_AB coeffs
-    
+
     cl_ail    = am_cl_ail coeffs
     cm_elev   = am_cm_elev coeffs
     cm_flaps  = am_cm_flaps coeffs
     cn_rudder = am_cn_rudder coeffs
-    
+
     bref = ar_bref refs
     cref = ar_cref refs
-

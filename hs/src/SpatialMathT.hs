@@ -145,4 +145,3 @@ orthonormalize (Rot (V3
            (V3 m00' m01'' m02'')
            (V3 m10' m11'' m12'')
            (V3 m20' m21'' m22''))
-

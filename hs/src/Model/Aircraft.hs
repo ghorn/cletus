@@ -39,7 +39,7 @@ instance Applicative AcX where
     (y0 <*> y1)
     (Rot (V3 (z00 <*> z10) (z01 <*> z11) (z02 <*> z12)))
     (w0 <*> w1)
-  
+
 newtype AcZ a = AcZ (None a) deriving (Eq, Functor, Generic, Generic1, Show)
 newtype AcR a = AcR (AcX a) deriving (Eq, Functor, Generic, Generic1, Show)
 newtype AcP a = AcP (None a) deriving (Eq, Functor, Generic, Generic1, Show)
