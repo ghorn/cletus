@@ -238,6 +238,9 @@ int main(int argc __attribute__((unused)),
                   zmq_send(zsock_lisa,&msg_data[1],msg_length-3,0);
                   poll_lisa->events = ZMQ_POLLOUT;
                 }
+              else{
+                  printf("ERROR with Checksum test with ID %i\n",msg_data[1]);
+                }
               serial_port_flush_input();
               msg_length_counter = 0;
               poll_message->events =0;
