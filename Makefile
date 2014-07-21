@@ -18,8 +18,11 @@ LIBS = $(shell pkg-config --libs libzmq) -lm -lrt -lprotobuf
 
 Q ?= @
 
-PROTOS = protos_cpp/messages.pb.cc \
-         protos_cpp/messages.pb.h
+PROTOS_CXX = protos_cpp/messages.pb.cc \
+             protos_cpp/messages.pb.h
+
+PROTOS_C = protos_c/messages.pb-c.c \
+           protos_c/messages.pb-c.h
 
 HS_PROTOS = hs/src/Messages.hs
 
@@ -61,7 +64,7 @@ CXX ?= g++
 HS_STRUCTS = hs/src/Structs/Structures.hs hs/src/Structs/Structures.hsc
 
 .PHONY: all
-all: $(PROJ) $(PROTOS) protos_cpp/messages.pb.o
+all: $(PROJ) $(PROTOS_C) $(PROTOS_CXX) protos_cpp/messages.pb.o protos_c/messages.pb-c.o
 hs: $(HS_PROTOS)
 
 .SECONDEXPANSION:
@@ -77,13 +80,21 @@ $(HS_PROTOS) : messages.proto
 	@echo hprotoc $<
 	$(Q)hprotoc --haskell_out=hs/src $<
 
-$(PROTOS) : messages.proto
+$(PROTOS_C) : messages.proto
+	@echo protoc-c $<
+	$(Q)protoc-c --c_out=protos_c $<
+
+$(PROTOS_CXX) : messages.proto
 	@echo protoc $<
 	$(Q)protoc --cpp_out=protos_cpp $<
 
 protos_cpp/messages.pb.o : protos_cpp/messages.pb.cc protos_cpp/messages.pb.h
 	@echo CXX protos_cpp/messages.pb.cc
 	$(Q)$(CXX) -O3 -Wall -Werror -c protos_cpp/messages.pb.cc -o protos_cpp/messages.pb.o
+
+protos_c/messages.pb-c.o : protos_c/messages.pb-c.c protos_c/messages.pb-c.h
+	@echo CC protos_c/messages.pb-c.c
+	$(Q)$(CC) -O3 -Wall -Werror -c protos_c/messages.pb-c.c -o protos_cpp/messages.pb-c.o
 
 
 sim/src/Structs/Structures.hsc : structures.h
@@ -108,5 +119,6 @@ clean:
 	rm -f hs/src/Messages.hs
 	rm -f hs/src/Messages/*
 	rm -f protos_cpp/messages.pb.*
+	rm -f protos_c/messages.pb-c.*
 	rm -f $(OBJ)
 	rm -f $(HS_STRUCTS)
