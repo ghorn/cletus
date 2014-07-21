@@ -24,7 +24,7 @@ executable rc
                        , protocol-buffers
   default-language:    Haskell2010
 
-executable cletus-sim
+executable sim
   main-is:             Sim.hs
   other-modules:       Aircraft, AeroCoeffs, Betty, SpatialMathT
   -- other-extensions:    
