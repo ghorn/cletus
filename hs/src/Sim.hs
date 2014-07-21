@@ -26,9 +26,9 @@ import qualified Messages.AcState as Msg
 import qualified Messages.Actuators as Msg
 import qualified Messages.Dcm as Msg
 
-import Aircraft
-import AeroCoeffs
-import Betty
+import Model.Aircraft
+import Model.AeroCoeffs
+import Model.Betty
 
 import Channels ( chanSensors, chanSimTelem, chanRc )
 

@@ -26,7 +26,7 @@ executable rc
 
 executable sim
   main-is:             Sim.hs
-  other-modules:       Aircraft, AeroCoeffs, Betty, SpatialMathT
+  other-modules:       Model.Aircraft, Model.AeroCoeffs, Model.Betty, SpatialMathT
   -- other-extensions:    
   build-depends:         base >=4.7 && <4.8
                        , bytestring

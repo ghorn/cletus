@@ -3,8 +3,12 @@
 {-# Language DeriveFunctor #-}
 {-# Language DeriveGeneric #-}
 
-module Aircraft ( N, B, AcX(..), AcU(..), aircraftOde --, aircraftDae
-                ) where
+module Model.Aircraft
+       ( N, B, AcX(..), AcU(..)
+       , aircraftOde --, aircraftDae
+       , ddtDcm
+       , myInv33
+       ) where
 
 import GHC.Generics
 import Control.Applicative
@@ -14,7 +18,7 @@ import Data.Serialize
 import Dyno.Vectorize
 import Dyno.Server.Accessors ( Lookup(..) )
 
-import AeroCoeffs
+import Model.AeroCoeffs
 import SpatialMathT
 
 data N

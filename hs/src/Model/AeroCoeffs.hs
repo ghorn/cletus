@@ -3,7 +3,13 @@
 {-# Language DeriveFoldable #-}
 {-# Language DeriveGeneric #-}
 
-module AeroCoeffs where
+module Model.AeroCoeffs
+       ( AeroForceCoeffs(..)
+       , AeroMomentCoeffs(..)
+       , AeroRefs(..)
+       , ControlSurfaces(..)
+       , aeroForcesMoments
+       ) where
 
 import Data.Foldable ( Foldable )
 import GHC.Generics
