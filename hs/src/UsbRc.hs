@@ -1,5 +1,6 @@
 {-# OPTIONS_GHC -Wall #-}
 {-# Language ScopedTypeVariables #-}
+{-# Language DeriveDataTypeable #-}
 
 module Main ( main ) where
 
@@ -19,6 +20,7 @@ import qualified System.ZMQ4 as ZMQ
 import qualified System.USB as USB
 import Text.Printf ( printf )
 import qualified Text.ProtocolBuffers as PB
+import System.Console.CmdArgs
 
 import Messages.Rc
 import Messages.Mode3
@@ -26,8 +28,17 @@ import Messages.UpDown
 
 import Channels ( chanRc )
 
-runme :: ZMQ.Sender a => USB.Device -> USB.DeviceHandle -> ZMQ.Socket a -> IO ()
-runme dev devHndl rcPublisher = do
+data Args = Args { channel :: String
+                 } deriving (Show, Data, Typeable)
+
+myargs :: Args
+myargs = Args { channel = chanRc
+                          &= help "which zeromq channel to send messages on"
+              }
+         &= verbosity
+
+runme :: ZMQ.Sender a => Verbosity -> USB.Device -> USB.DeviceHandle -> ZMQ.Socket a -> IO ()
+runme verb dev devHndl rcPublisher = do
   -- Inspecting descriptors:
   config0 <- USB.getConfigDesc dev 0
   let interface0 = USB.configInterfaces config0 ! 0
@@ -40,7 +51,6 @@ runme dev devHndl rcPublisher = do
       timeout = 5000
 
       readCycle :: Maybe Word8 -> Int -> IO ()
-      readCycle _ 0 = return ()
       readCycle lastK7 k = do
         -- Performing I/O:
         (bs, status) <- USB.readInterrupt
@@ -54,14 +64,23 @@ runme dev devHndl rcPublisher = do
         case lastK7 of Nothing -> return ()
                        Just k7' -> do
                          let rc = listToRc k7' ks
-                         putStrLn (prettyRc rc)
+                         case verb of
+                           Quiet -> return ()
+                           Normal -> do
+                             putStr $ "\r" ++ replicate 20 ' ' ++ "\r" ++ show k ++ " messages"
+                             hFlush stdout
+                           Loud -> putStrLn (prettyRc rc)
                          ZMQ.sendMulti rcPublisher
                            (NE.fromList [pack "rc", BL.toStrict (PB.messagePut rc)])
-        readCycle (Just (ks !! 7)) (k-1)
-  readCycle Nothing 100000
+        readCycle (Just (ks !! 7)) (k+1)
+  readCycle Nothing 0
 
 main :: IO ()
-main =
+main = do
+  theargs <- cmdArgs myargs
+  verb <- getVerbosity
+  putStrLn $ "sending on zmq channel: \"" ++ channel theargs ++ "\""
+
   -- zeromq setup
   ZMQ.withContext $ \context ->
     ZMQ.withSocket context ZMQ.Pub $ \rcPublisher -> do
@@ -81,7 +100,7 @@ main =
           USB.withDeviceHandle dev $ \devHndl ->
             USB.withDetachedKernelDriver devHndl 0 $
               USB.withClaimedInterface devHndl 0 $ do
-                runme dev devHndl rcPublisher
+                runme verb dev devHndl rcPublisher
 
 range :: forall a b . (Bounded a, Real a, Fractional b) => a -> (b,b) -> b
 range x (miny, maxy) = miny + (maxy - miny)*(realToFrac x - minx)/(maxx - minx)
