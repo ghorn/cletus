@@ -115,7 +115,7 @@ int main(int argc __attribute__((unused)),
       /* Poll for activity; time out after 10 milliseconds. */
 
 
-      const int polled = zmq_poll(polls, npolls, 0);
+      const int polled = zmq_poll(polls, npolls, 5);
       if (polled < 0) {
           if (bail) die(bail);
           zerr("while polling");
