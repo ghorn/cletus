@@ -128,13 +128,17 @@ int main(int argc __attribute__((unused)),
       if (bail) die(bail);
       if (poll_data->revents & ZMQ_POLLIN)
         {
-          clock_gettime(CLOCK_MONOTONIC, &finish);
-          elapsed = (finish.tv_nsec - start.tv_nsec) / 1000000000.0;
-          sum_elapsed += elapsed;
           zmq_recv(zsock_data,&msg_ID,1,0);
-          clock_gettime(CLOCK_MONOTONIC, &start);
-          poll_data->revents = 0;
-          counter++;
+          if (msg_ID ==  131)
+            {
+              clock_gettime(CLOCK_MONOTONIC, &finish);
+              elapsed = (finish.tv_nsec - start.tv_nsec) / 1000000000.0;
+              sum_elapsed += elapsed;
+
+              clock_gettime(CLOCK_MONOTONIC, &start);
+              poll_data->revents = 0;
+              counter++;
+            }
         }
 
       printf("\r\n\bReceived Messages: %lu [ID:%u] \tPeriod: %f s \t[AVG: %f]\tFrequency %f\t[AVG: %f]",
