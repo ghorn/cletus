@@ -1,6 +1,6 @@
 a very partial list of dependencies, missing almost everything:
 
-    $ apt-get install libprotobuf-dev
+    $ apt-get install protobuf-compiler protobuf-c-compiler libprotobuf-dev libprotobuf-c0-dev
 
 Compiling
 
