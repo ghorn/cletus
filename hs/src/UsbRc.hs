@@ -33,6 +33,7 @@ data Args = Args { channel :: String
 
 myargs :: Args
 myargs = Args { channel = chanRc
+                          &= typ "NAME"
                           &= help "which zeromq channel to send messages on"
               }
          &= verbosity
