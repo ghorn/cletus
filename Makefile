@@ -79,6 +79,7 @@ endif
 $(HS_PROTOS) : messages.proto
 	@echo hprotoc $<
 	$(Q)hprotoc --haskell_out=hs/src $<
+	$(Q)touch hs/cletus.cabal
 
 $(PROTOS_C) : messages.proto
 	@echo protoc-c $<
@@ -94,7 +95,7 @@ protos_cpp/messages.pb.o : protos_cpp/messages.pb.cc protos_cpp/messages.pb.h
 
 protos_c/messages.pb-c.o : protos_c/messages.pb-c.c protos_c/messages.pb-c.h
 	@echo CC protos_c/messages.pb-c.c
-	$(Q)$(CC) -O3 -Wall -Werror -c protos_c/messages.pb-c.c -o protos_cpp/messages.pb-c.o
+	$(Q)$(CC) -O3 -Wall -Werror -c protos_c/messages.pb-c.c -o protos_c/messages.pb-c.o
 
 
 sim/src/Structs/Structures.hsc : structures.h

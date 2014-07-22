@@ -64,7 +64,6 @@ void gps_update(full_state_t & x, const full_state_t & x0, const imu_t & imu, co
 }
 
 
-
 int main() {
     full_state_t x0 = {.r_n2m_n = Eigen::Vector3d(0,0,0),
                        .v_mn_n = Eigen::Vector3d(0,0,0),
