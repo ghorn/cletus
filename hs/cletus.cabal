@@ -45,6 +45,27 @@ executable rc
                        , cmdargs
   default-language:    Haskell2010
 
+executable opt-o-mex
+  hs-source-dirs:      progs
+  main-is:             Optimize.hs
+  build-depends:       base >=4.7 && <4.8
+                       , cletus
+                       , dynobud
+                       , linear >=1.10
+                       , cereal
+                       , vector
+  default-language:    Haskell2010
+
+executable dynoplot
+  hs-source-dirs:      progs
+  main-is:             DynoPlot.hs
+  default-language:    Haskell2010
+  build-depends:       base >=4.6 && <5
+                       , dynobud
+                       , cletus
+                       , vector
+  ghc-options:         -O2
+
 executable sim
   hs-source-dirs:      progs
   main-is:             Sim.hs
