@@ -5,17 +5,14 @@
 
 module Main ( main ) where
 
-import Control.Monad ( forever, unless )
-import qualified Data.ByteString as BS
-import qualified Data.ByteString.Lazy as BSL
-import qualified Data.ByteString.Char8 as BS8
+import Control.Monad ( forever )
 import GHC.Generics ( Generic )
 import qualified Text.ProtocolBuffers as PB
-import qualified System.ZMQ4 as ZMQ
 --import qualified System.Remote.Monitoring as EKG
 
 import PlotHo -- ( Lookup(..), SignalTree(..), runPlotter, addChannel, makeSignalTree )
 import Channels
+import qualified ZmqHelpers as ZMQ
 
 import qualified Messages.Xyz as Msg
 import qualified Messages.SimTelem as Msg
@@ -40,7 +37,6 @@ instance Lookup Msg.Timestamp
 instance Lookup (PB.Seq PB.Utf8) where
   toAccessorTree _ _ = Data ("Utf8","Utf8") []
 
-
 st :: SignalTree Msg.SimTelem
 st = makeSignalTree PB.defaultValue
 
@@ -50,17 +46,12 @@ lol :: (PB.ReflectDescriptor a, PB.Wire a)
        -> (SignalTree a -> IO ())
        -> IO ()
 lol context channel messageName newMessage _ =
-  ZMQ.withSocket context ZMQ.Sub $ \subscriber -> do
-    ZMQ.connect subscriber channel
-    ZMQ.subscribe subscriber (BS8.pack messageName)
+  ZMQ.withSubscriber context channel messageName $ \receive ->
     forever $ do
-      messageName'':msg <- ZMQ.receiveMulti subscriber :: IO [BS.ByteString]
-      let messageName' = BS8.unpack messageName''
-      unless (messageName' == messageName) $ error $ "bad messageName: " ++ messageName'
-      let cs = case PB.messageGet (BSL.concat (map BSL.fromStrict msg)) of
-            Left err -> error err
-            Right (cs',_) -> cs'
-      newMessage cs
+      msg <- receive
+      newMessage $ case ZMQ.decodeProto msg of
+        Left err -> error err
+        Right woo -> woo
 
 main :: IO ()
 main = ZMQ.withContext $ \ctx -> do

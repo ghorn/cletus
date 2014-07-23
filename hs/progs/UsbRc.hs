@@ -6,22 +6,18 @@ module Main ( main ) where
 
 import Control.Monad
 import qualified Data.ByteString as B
-import qualified Data.ByteString.Lazy as BL
-import Data.ByteString.Char8 ( pack )
 import Data.Functor
 import Data.List
-import qualified Data.List.NonEmpty as NE
 import           Data.Vector      ( (!) )
 import qualified Data.Vector as V ( toList )
 import GHC.Word ( Word8 )
 import System.IO
 import System.Exit
-import qualified System.ZMQ4 as ZMQ
 import qualified System.USB as USB
 import Text.Printf ( printf )
-import qualified Text.ProtocolBuffers as PB
 import System.Console.CmdArgs
 
+import qualified ZmqHelpers as ZMQ
 import Messages.Rc
 import Messages.Mode3
 import Messages.UpDown
@@ -38,8 +34,8 @@ myargs = Args { channel = chanRc
               }
          &= verbosity
 
-runme :: ZMQ.Sender a => Verbosity -> USB.Device -> USB.DeviceHandle -> ZMQ.Socket a -> IO ()
-runme verb dev devHndl rcPublisher = do
+runme :: Verbosity -> USB.Device -> USB.DeviceHandle -> (String -> ZMQ.Packed -> IO ()) -> IO ()
+runme verb dev devHndl send = do
   -- Inspecting descriptors:
   config0 <- USB.getConfigDesc dev 0
   let interface0 = USB.configInterfaces config0 ! 0
@@ -71,8 +67,7 @@ runme verb dev devHndl rcPublisher = do
                              putStr $ "\r" ++ replicate 20 ' ' ++ "\r" ++ show k ++ " messages"
                              hFlush stdout
                            Loud -> putStrLn (prettyRc rc)
-                         ZMQ.sendMulti rcPublisher
-                           (NE.fromList [pack "rc", BL.toStrict (PB.messagePut rc)])
+                         send "rc" (ZMQ.encodeProto rc)
         readCycle (Just (ks !! 7)) (k+1)
   readCycle Nothing 0
 
@@ -84,9 +79,7 @@ main = do
 
   -- zeromq setup
   ZMQ.withContext $ \context ->
-    ZMQ.withSocket context ZMQ.Pub $ \rcPublisher -> do
-      ZMQ.bind rcPublisher chanRc
-
+    ZMQ.withPublisher context chanRc $ \send -> do
       -- usb setup
       ctx <- USB.newCtx
       USB.setDebug ctx USB.PrintInfo
@@ -101,7 +94,7 @@ main = do
           USB.withDeviceHandle dev $ \devHndl ->
             USB.withDetachedKernelDriver devHndl 0 $
               USB.withClaimedInterface devHndl 0 $ do
-                runme verb dev devHndl rcPublisher
+                runme verb dev devHndl send
 
 range :: forall a b . (Bounded a, Real a, Fractional b) => a -> (b,b) -> b
 range x (miny, maxy) = miny + (maxy - miny)*(realToFrac x - minx)/(maxx - minx)
