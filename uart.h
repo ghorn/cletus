@@ -1,37 +1,18 @@
-/*
- * AUTHOR: Maarten Arits and Jonas Van Pelt
- */
- 
-/**************************************************************************************
-* LAYOUT OF INCOMING LISA PACKAGE 
-* startbyte (0x99) - length - sender_id, message_id, message ... , checksumA, checksumB
-****************************************************************************************/
-
-/****************************************************************************************************************************************************************************************************************************
-* LAYOUT OF INCOMING WINDSENSOR PACAKGE
-* startbyte ($) - talker_id_1 - talker_id_2, message_type_1, message_type_2, message_type_3, ... comma-delimited data .... , asterisk (if checksum follows) , checksum(if provided), <CR> , < LF > 
-*
-* Note:
-* The checksum is the bitwise exclusive OR of ASCII codes of all characters between the $ and 
-* <CR> , < LF >  ends the message
-*
-******************************************************************************************************************************************************************************************************************************/
-
-
-#ifndef UART_COMMUNCATION_H_ 
-#define UART_COMMUNCATION_H_
+#ifndef UART_H
+#define UART_H
 
 #include <sys/time.h>
 #include <termios.h>
 #include <unistd.h>
 #include <stdint.h>
+#include <inttypes.h>
 
-#define INPUT_BUFFER_SIZE 255 
+#define INPUT_BUFFER_SIZE 255
 
 /********************************
  * GLOBALS
  * ******************************/
- 
+
 enum uart_errCode {
   UART_ERR_READ= -6 ,
   UART_ERR_READ_START_BYTE = -5,
@@ -48,13 +29,20 @@ enum uart_errCode {
   UART_ERR_UNDEFINED
 };
 typedef enum uart_errCode UART_errCode;
- 
+
+enum msg_startbytes {
+  LISA_STARTBYTE = 0x99,
+  WINDSENSOR_STARTBYTE =0x24
+};
+typedef enum msg_startbytes MSG_startbytes;
+
+
 typedef struct{
 	int fd;                        /* serial device fd          */
 	struct termios orig_termios;   /* saved tty state structure */
 	struct termios cur_termios;    /* tty state structure       */
-}serial_port; 
- 
+}serial_port;
+
 serial_port *serial_stream;
 
 /*typedef struct{
@@ -82,19 +70,25 @@ typedef struct{
 /********************************
  * PROTOTYPES PUBLIC
  * ******************************/
- 
 
- 
-extern UART_errCode serial_port_setup(void); 
+
+
+extern UART_errCode serial_port_setup(void);
 extern int serial_input_get_lisa_data(uint8_t *const buffer); //returns the number of read bytes or a negative error message and puts the result in serial_input
 extern int serial_input_get_windsensor_data(uint8_t buffer[]);
-extern UART_errCode serial_port_write(uint8_t output[],long unsigned int message_length);
+extern UART_errCode write_uart(uint8_t output[],long unsigned int message_length);
+int read_uart(uint8_t* const buffer,int length);
 extern UART_errCode serial_port_close(void);
 int serial_port_read_temp(uint8_t buffer[],int length) ;
+int check_checksum(uint8_t length, uint8_t* message);
+UART_errCode serial_port_flush_input(void);
+
+
 
 
 extern void UART_err_handler( UART_errCode err_p,void (*write_error_ptr)(char *,char *,int));
 
 
 
-#endif /*UART_COMMUNCATION_H_*/
+
+#endif // UART_H

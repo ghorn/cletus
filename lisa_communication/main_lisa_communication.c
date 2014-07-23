@@ -250,10 +250,11 @@ static void *write_servo_commands_lisa(void *arg){
         output.message.servo_5=i;
         output.message.servo_6=i;
         output.message.servo_7=0;
-        i=i+900;
+        i=i+2;
         if(i>12800){
             i=0;
         }
+        printf("Current Value: %i",i);
 
         //2. encode the data
         DEC_err_handler(data_encode(output.raw,sizeof(output.raw),encoded_data,SERVER,SERVO_COMMANDS),write_error_ptr);
@@ -276,18 +277,18 @@ static void *write_servo_commands_lisa(void *arg){
 
 static void sendError(DEC_errCode err,library lib){
 
-        //int message_length;
-        uint8_t encoded_data[MAX_STREAM_SIZE];
-        //Data data;
-        Beagle_error error_message;
+//        //int message_length;
+//        uint8_t encoded_data[MAX_STREAM_SIZE];
+//        //Data data;
+//        Beagle_error error_message;
 
-        //encode an error package
-        error_message.library=lib;
-        error_message.error_code=err;
-        data_encode((uint8_t *)&error_message,sizeof(error_message),encoded_data,2,2);
-        //message_length=sizeof(encoded_data);
+//        //encode an error package
+//        error_message.library=lib;
+//        error_message.error_code=err;
+//        data_encode((uint8_t *)&error_message,sizeof(error_message),encoded_data,2,2);
+//        //message_length=sizeof(encoded_data);
 
-        printf("Error handlers invoked sending of error message! \n Code: %i" ,error_message.error_code );
+//        printf("Error handlers invoked sending of error message! \n Code: %i" ,error_message.error_code );
 }
 
 

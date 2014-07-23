@@ -258,7 +258,7 @@ inline void *setup_zmq_sender(const char *path, void **context,
     goto eit;
   /* Wait around for up to 2.222 seconds on a blocked socket before
    * giving up and closing it anyway. */
-  if (zsetopt(sockit, ZMQ_LINGER, 2222) < 0)
+  if (zsetopt(sockit, ZMQ_LINGER, 100) < 0)
     goto eit;
 
   /* Attach to the given path. */
@@ -274,7 +274,7 @@ inline void *setup_zmq_sender(const char *path, void **context,
 }
 
 inline void *setup_zmq_receiver(const char *path, void **context,
-                                int type, const char *filter,
+                                int type, const char* filter,
                                 int hwm, int bufsize) {
   if (context_check(context) == NULL)
     return NULL;
@@ -290,6 +290,38 @@ inline void *setup_zmq_receiver(const char *path, void **context,
   if (ZMQ_SUB == type) {
     _filter = filter;
     if (zfilter(sockit, filter) < 0)
+      goto eit;
+    _filter = NULL;
+  }
+  if (zaddpath(sockit, path) < 0)
+    goto eit;
+
+  return sockit;
+
+ eit:
+  err("couldn't create %s socket on path '%s'!\n", zprinttype(type), path);
+  zdestroy(*context, sockit);
+  return NULL;
+}
+
+
+inline void *setup_zmq_receiver_filtered(const char *path, void **context,
+                                int type, const char filter,
+                                int hwm, int bufsize) {
+  if (context_check(context) == NULL)
+    return NULL;
+  void *sockit = zsock(*context, type);
+  if (NULL == sockit)
+    return NULL;
+  if (zsetopt(sockit, ZMQ_RCVHWM, hwm) < 0)
+    goto eit;
+  if (zsetopt(sockit, ZMQ_RCVBUF, bufsize) < 0)
+    goto eit;
+  if (zsetopt(sockit, ZMQ_LINGER, 2222) < 0)
+    goto eit;
+  if (ZMQ_SUB == type) {
+    _filter = &filter;
+    if (zfilter(sockit, &filter) < 0)
       goto eit;
     _filter = NULL;
   }

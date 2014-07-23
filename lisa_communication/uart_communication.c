@@ -14,21 +14,21 @@
 #define DEBUG 1
 #endif
 
-int serial_port_read(uint8_t buffer[],int length); 
+int serial_port_read(uint8_t *const buffer,int length);
 UART_errCode serial_port_new(void);
-UART_errCode serial_port_create();
-UART_errCode  serial_port_open_raw(const char* device, speed_t speed);
+UART_errCode serial_port_create(void);
+UART_errCode  serial_port_open_raw(const char* device_ptr, speed_t speed_param);
 void serial_port_free(void);
 void serial_port_flush(void);
 UART_errCode serial_port_flush_input(void);
 UART_errCode serial_port_flush_output(void);
-int wait_for_data();
+int wait_for_data(void);
 
 
 
 static char FILENAME[] = "uart_communication.c";
 
-extern serial_port *serial_stream;
+//extern serial_port *serial_stream;
 
 speed_t speed = B921600;
 //Variables for serial port
@@ -37,7 +37,7 @@ const char device_enabled_check[] = "ttyO4_armhf.com"; //For Angstrom: enable-ua
 const char device_path[] = "/sys/devices/bone_capemgr.9/slots"; //For Angstrom: /sys/devices/bone_capemgr.8/slots
 
 
-int wait_for_data(){
+int wait_for_data(void){
 	struct pollfd fds[1];
 	int timeout = -1; //infinite timeout
 	int result;
@@ -51,7 +51,7 @@ int wait_for_data(){
 	return 0;
 }
 
-int serial_port_read(uint8_t buffer[],int length) 
+int serial_port_read(uint8_t* const buffer,int length)
 {
 	#if DEBUG  > 1
 		printf("Entering serial_port_read\n");
@@ -75,7 +75,7 @@ int serial_port_read(uint8_t buffer[],int length)
 	return n;  //return number of read bytes
 }
 
-int serial_input_get_lisa_data(uint8_t buffer[]){
+int serial_input_get_lisa_data(uint8_t* const buffer){
 	
 	#if DEBUG  > 1
 		printf("Entering serial_input_get_lisa_data\n");
@@ -144,21 +144,21 @@ int serial_input_get_lisa_data(uint8_t buffer[]){
 	return message_length;
 }
 
-int serial_port_read_temp(uint8_t buffer[],int length) 
-{
-	const char test_wind[] = "$IIMWV,226.0,R,000.00,N,A*0B\n$WIXDR,C,036.5,C,,*52\n";
-	static int index=0;
-	//printf("reading index %d ...\n",index);
+//int serial_port_read_temp(uint8_t buffer[],int length)
+//{
+//	const char test_wind[] = "$IIMWV,226.0,R,000.00,N,A*0B\n$WIXDR,C,036.5,C,,*52\n";
+//	static int index=0;
+//	//printf("reading index %d ...\n",index);
 
-	buffer[0]=(uint8_t)test_wind[index];
-	index++;
+//	buffer[0]=(uint8_t)test_wind[index];
+//	index++;
 	
-	if(index==sizeof(test_wind)){
-			exit(1);
-	}
+//	if(index==sizeof(test_wind)){
+//			exit(1);
+//	}
 	
-	return 1;  //return number of read bytes
-}
+//	return 1;  //return number of read bytes
+//}
 
 int serial_input_get_windsensor_data(uint8_t buffer[]){	
 	
@@ -176,10 +176,10 @@ int serial_input_get_windsensor_data(uint8_t buffer[]){
 		
 		//1. SEARCH FOR START BYTE $ = 0x24
 		do{
-			if(serial_port_read_temp(&buffer[0],1)==UART_ERR_READ){	//read first byte
-				serial_port_flush_input();
-				return UART_ERR_READ_START_BYTE;
-			} 
+//			if(serial_port_read_temp(&buffer[0],1)==UART_ERR_READ){	//read first byte
+//				serial_port_flush_input();
+//				return UART_ERR_READ_START_BYTE;
+//			}
 
 		}while(buffer[0]!='$');
 		//buffer[0] = 0x24 at this moment	
@@ -188,10 +188,10 @@ int serial_input_get_windsensor_data(uint8_t buffer[]){
 		length = 0;
 		do{
 			length++;
-			if(serial_port_read_temp(&buffer[length],1)==UART_ERR_READ){	
-				serial_port_flush_input();			
-				return UART_ERR_READ_MESSAGE;
-			}
+//            if(serial_port_read_temp(&buffer[length],1)==UART_ERR_READ){
+//                serial_port_flush_input();
+//                return UART_ERR_READ_MESSAGE;
+//			}
 
 			if(buffer[length]=='*'){ //0x0a = '*' --> if present then there is a checksum
 					//printf("checksum present at index %d\n",length);
@@ -286,13 +286,13 @@ UART_errCode serial_port_flush_output(void) {
 	return UART_ERR_NONE;
 }
 
-UART_errCode  serial_port_open_raw(const char* device, speed_t speed) {
+UART_errCode  serial_port_open_raw(const char* device_ptr, speed_t speed_param) {
 	
 	#if DEBUG  > 1
 		printf("Entering serial_port_open_raw\n");
 	#endif
 	
-	if ((serial_stream->fd = open(device, O_RDWR | O_NONBLOCK | O_NOCTTY)) < 0) {
+    if ((serial_stream->fd = open(device_ptr, O_RDWR | O_NONBLOCK | O_NOCTTY)) < 0) {
 		return UART_ERR_SERIAL_PORT_OPEN;
 	}
 	if (tcgetattr(serial_stream->fd, &serial_stream->orig_termios) < 0) {
@@ -310,7 +310,7 @@ UART_errCode  serial_port_open_raw(const char* device, speed_t speed) {
 	/* local modes  */
 	serial_stream->cur_termios.c_lflag &= ~(ISIG|ICANON|IEXTEN|ECHO|FLUSHO|PENDIN);
 	serial_stream->cur_termios.c_lflag |= NOFLSH;
-	if (cfsetispeed(&serial_stream->cur_termios, speed)) {
+    if (cfsetispeed(&serial_stream->cur_termios, speed_param)) {
 		close(serial_stream->fd);
 		return UART_ERR_SERIAL_PORT_OPEN;
 	}
@@ -377,7 +377,7 @@ UART_errCode serial_port_setup(void)
 	return UART_ERR_NONE;
 }
 
-UART_errCode serial_port_create()
+UART_errCode serial_port_create(void)
 {
 	#if DEBUG  > 1
 		printf("Entering serial_port_create\n");

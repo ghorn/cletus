@@ -28,7 +28,9 @@ void *setup_zmq_sender(const char *path, void **context, int type,
 void *setup_zmq_receiver(const char *path, void **context,
                          int type, const char *filter,
                          int hwm, int bufsize);
-
+void *setup_zmq_receiver_filtered(const char *path, void **context,
+                         int type, const char filter,
+                         int hwm, int bufsize);
 /* Receive a potentially multi-part ZMQ message on the given socket
  * into the 'buffer' of the specified length 'buflen'.  If the message
  * is too big, an error is returned. */

@@ -1,14 +1,19 @@
 # What's the executable called?
-PROJ = run_sensors run_controller run_actuators
+PROJ =  run_controller run_actuators run_sensors run_function_test run_uart tests/test_uart
 
 # What C or C++ files must we compile to make the executable?
-C_SRC = run_sensors.c \
-        run_controller.c \
+C_SRC = run_controller.c \
         run_actuators.c \
-        controller.c \
+        run_uart.c \
+        run_sensors.c \
         sensors.c \
+        uart.c \
+        controller.c \
+	actuators.c \
         misc.c \
-        zmq.c
+        zmq.c \
+        run_function_test.c \
+        tests/test_uart.c
 
 CXX_SRC = \
 #	main.cpp \
@@ -54,10 +59,19 @@ C_WARNINGFLAGS += -Werror
 CXX_WARNINGFLAGS += -Werror
 DEBUGFLAGS ?= -g -DDEBUG # -pg to generate profiling information
 
+## Sensorflags for activating special sensor
+SENSORFLAGS ?= -DIMU
+#SENSORFLAGS ?= -DGPS
+#SENSORFLAGS ?= -DAIRSPEED
+#SENSORFLAGS ?= -DAHRS
+#SENSORFLAGS ?= -DRC
+SENSORFLAGS ?= -DALL
+
+
 OPTFLAGS = -O3
 
-CFLAGS ?= $(C_WARNINGFLAGS) $(DEBUGFLAGS) $(FEATUREFLAGS) $(INCLUDES) $(OPTFLAGS) -std=gnu99
-CXXFLAGS ?= $(CXX_WARNINGFLAGS) $(DEBUGFLAGS) $(FEATUREFLAGS) $(INCLUDES) $(OPTFLAGS) -std=gnu++0x
+CFLAGS ?= $(C_WARNINGFLAGS) $(DEBUGFLAGS) $(FEATUREFLAGS) $(INCLUDES) $(OPTFLAGS) $(SENSORFLAGS) -std=gnu99
+CXXFLAGS ?= $(CXX_WARNINGFLAGS) $(DEBUGFLAGS) $(FEATUREFLAGS) $(INCLUDES) $(OPTFLAGS) $(SENSORFLAGS) -std=gnu++0x
 CC ?= gcc
 CXX ?= g++
 
