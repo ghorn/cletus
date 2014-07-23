@@ -5,14 +5,10 @@
 module Main ( main ) where
 
 import Text.Printf
-import qualified Data.ByteString as BS
-import qualified Data.ByteString.Lazy as BSL
-import Data.ByteString.Char8 ( pack )
-import qualified Data.List.NonEmpty as NE
 import qualified Data.Sequence as DS
 import qualified System.ZMQ4 as ZMQ
 import qualified Control.Concurrent as CC
-import Control.Monad ( unless, forever )
+import Control.Monad ( forever )
 import Linear hiding ( cross )
 import System.Clock
 import qualified Text.ProtocolBuffers as PB
@@ -29,6 +25,7 @@ import qualified Messages.Dcm as Msg
 import Model.Aircraft
 import Model.AeroCoeffs
 import Model.Betty
+import qualified ZmqHelpers as Zmq
 
 import Channels ( chanSensors, chanSimTelem, chanRc )
 
@@ -143,15 +140,14 @@ simX0 =
       , ac_w_bn_b = V3T $ V3 0 0 0
       }
 
-rcThread :: ZMQ.Receiver a => ZMQ.Socket a -> CC.MVar Msg.Rc -> IO ()
-rcThread rcSub latestRc = do
+rcThread :: IO (Either String Msg.Rc) -> CC.MVar Msg.Rc -> IO ()
+rcThread receiveRc latestRc = do
   let receive = do
-        channel':msg <- ZMQ.receiveMulti rcSub :: IO [BS.ByteString]
-        unless (channel' == pack "rc") $ error $ "bad channel"
+        msg <- receiveRc
         let rc :: Msg.Rc
-            rc = case PB.messageGet (BSL.concat (map BSL.fromStrict msg)) of
+            rc = case msg of
               Left err -> error err
-              Right (rc',_) -> rc'
+              Right rc' -> rc'
         return rc
 
   receive >>= CC.putMVar latestRc
@@ -160,18 +156,15 @@ rcThread rcSub latestRc = do
 
 main :: IO ()
 main =
-  ZMQ.withContext $ \context ->
+  Zmq.withContext $ \context ->
   ZMQ.withSocket context ZMQ.Push $ \sensorPublisher ->
-  ZMQ.withSocket context ZMQ.Pub $ \simTelemPublisher -> do
-  ZMQ.withSocket context ZMQ.Sub $ \rcSub -> do
+  Zmq.withPublisher context chanSimTelem $ \sendSimTelem ->
+  Zmq.withSubscriber context chanRc "rc" $ \receiveRc -> do
     ZMQ.connect sensorPublisher chanSensors
-    ZMQ.bind simTelemPublisher chanSimTelem
-    ZMQ.connect rcSub chanRc
-    ZMQ.subscribe rcSub (pack "rc")
 
     -- spawn a thread updating the latest RC message
     latestRc <- CC.newEmptyMVar
-    _ <- CC.forkIO (rcThread rcSub latestRc)
+    _ <- CC.forkIO (rcThread (fmap Zmq.decodeProto receiveRc) latestRc)
     let getLatestRc = CC.readMVar latestRc
 
     let ts = 0.002
@@ -196,8 +189,7 @@ main =
                          , Msg.w0 = 0
                          }
           ZMQ.sendMulti sensorPublisher (NE.fromList [BSL.toStrict (PB.messagePut yc)])
-          ZMQ.sendMulti simTelemPublisher (NE.fromList [pack "sim_telemetry",
-                                                        BSL.toStrict (PB.messagePut simTelem)])
+          sendSimTelem "sim_telemetry" (Zmq.encodeProto simTelem)
 
           let x1 = integrate ts x0 u
           print clock
