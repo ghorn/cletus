@@ -15,6 +15,7 @@ cabal-version:       >=1.10
 library
   hs-source-dirs:      src
   exposed-modules:     Channels
+                       , MsgHelpers
                        , ZmqHelpers
                        , SpatialMathT
                        , Model.Aircraft
@@ -31,6 +32,7 @@ library
                        , zeromq4-haskell
                        , bytestring
                        , semigroups
+                       , clock
 
   default-language: Haskell2010
 
@@ -54,6 +56,8 @@ executable opt-o-mex
                        , linear >=1.10
                        , cereal
                        , vector
+                       , containers
+                       , protocol-buffers
   default-language:    Haskell2010
 
 executable dynoplot
@@ -83,6 +87,21 @@ executable sim
 executable wtfviz
   hs-source-dirs:    progs
   main-is:           WtfViz.hs
+  other-modules:     DrawAC
+  build-depends:       base >= 4.5.0 && < 4.8
+                     , cletus
+                     , spatial-math
+                     , not-gloss >= 0.5.0
+                     , random
+                     , protocol-buffers
+--                     , ekg
+
+  ghc-options:        -O2 -threaded -with-rtsopts=-T
+  default-language:    Haskell2010
+
+executable optviz
+  hs-source-dirs:    progs
+  main-is:           OptViz.hs
   other-modules:     DrawAC
   build-depends:       base >= 4.5.0 && < 4.8
                      , cletus

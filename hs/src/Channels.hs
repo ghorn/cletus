@@ -4,6 +4,7 @@ module Channels ( chanRc
                 , chanSimTelem
                 , chanSensors
                 , chanDynoPlot
+                , chanOptTelem
                 ) where
 
 chanRc :: String
@@ -17,3 +18,6 @@ chanSensors = "ipc:///tmp/sensors"
 
 chanDynoPlot :: String
 chanDynoPlot = "ipc:///tmp/dynoplot"
+
+chanOptTelem :: String
+chanOptTelem = "ipc:///tmp/opttelem"

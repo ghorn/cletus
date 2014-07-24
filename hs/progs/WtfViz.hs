@@ -20,7 +20,7 @@
 {-# Language OverloadedStrings #-}
 {-# Language CPP #-}
 
---module Main ( main ) where
+module Main ( main ) where
 
 import System.Random ( Random(..), randomRs, mkStdGen)
 import Control.Concurrent ( MVar, forkIO, modifyMVar_, newMVar, readMVar)

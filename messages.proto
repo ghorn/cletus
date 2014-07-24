@@ -67,3 +67,13 @@ message SimTelem {
   repeated string messages = 3;
   required double w0 = 4;
 }
+
+message AcPose {
+  required Xyz r_n2b_n = 1;
+  required Dcm dcm_n2b = 3;
+}
+
+message OptTelem {
+  repeated AcPose poses = 1;
+  repeated string messages = 2;
+}
