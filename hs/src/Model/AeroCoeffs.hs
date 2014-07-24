@@ -7,6 +7,7 @@ module Model.AeroCoeffs
        ( AeroForceCoeffs(..)
        , AeroMomentCoeffs(..)
        , AeroRefs(..)
+       , AeroOutputs(..)
        , ControlSurfaces(..)
        , aeroForcesMoments
        ) where
@@ -99,6 +100,12 @@ data AeroRefs a =
            } deriving (Functor, Generic, Generic1, Show)
 instance Vectorize AeroRefs
 
+data AeroOutputs a =
+  AeroOutputs { aoAlphaDeg :: a
+              , aoBetaDeg :: a
+              , aoAirspeed :: a
+              } deriving (Functor, Generic, Generic1, Show)
+instance Vectorize AeroOutputs
 
 -- | Compute aerodynamic forces/moments in the body frame.
 -- Parameters:
@@ -106,10 +113,15 @@ instance Vectorize AeroRefs
 -- v_bw_b: body velocity in the wind frame, expressed in the body frame
 -- w_bn_b: body angular velocity w.r.t. NED
 aeroForcesMoments :: Floating a => AeroForceCoeffs a -> AeroMomentCoeffs a -> AeroRefs a ->
-                     V3 a -> V3 a -> ControlSurfaces a -> (V3 a, V3 a)
+                     V3 a -> V3 a -> ControlSurfaces a -> (V3 a, V3 a, AeroOutputs a)
 aeroForcesMoments forceCoeffs momentCoeffs refs v_bw_b w_bn_b controlSurfaces =
-  (forces, moments)
+  (forces, moments, outputs)
   where
+    outputs = AeroOutputs { aoAlphaDeg = alpha * 180 / pi
+                          , aoBetaDeg = beta * 180 / pi
+                          , aoAirspeed = airspeed
+                          }
+
     V3 cL cD cY = aeroForceCoeffs alpha beta controlSurfaces forceCoeffs
     c_lmn = aeroMomentCoeffs alpha beta airspeed w_bn_b controlSurfaces momentCoeffs refs
 

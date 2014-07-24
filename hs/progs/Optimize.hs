@@ -13,6 +13,7 @@ import qualified Data.Foldable as F
 import qualified Data.Vector as V
 import qualified Data.Sequence as S
 import qualified Text.ProtocolBuffers as PB
+import Text.Printf ( printf )
 
 import Dyno.Vectorize
 import Dyno.View
@@ -141,9 +142,15 @@ pathcBnds = PathC { pcAlphaDeg = (Just (-5), Just 10)
 xbnd :: AcX (Maybe Double, Maybe Double)
 xbnd = AcX { ac_r_n2b_n = V3T $ V3 (Nothing,Nothing) (Nothing,Nothing) (Nothing, Just (-1))
            , ac_v_bn_b = fill (Nothing,Nothing)
-           , ac_R_n2b = Rot $ fill $ fill (Just (-1.2), Just 1.2)
+           , ac_R_n2b = Rot $ V3
+                        (V3 unb unb unb)
+                        (V3 unb unb unb)
+                        (V3 unb unb pos)
            , ac_w_bn_b = fill (Just (-8*2*pi), Just (8*2*pi))
            }
+  where
+    unb = (Just (-1.2), Just 1.2)
+    pos = (Just 0, Just 1.2)
 
 d2r :: Floating a => a -> a
 d2r d = d*pi/180
@@ -161,23 +168,33 @@ gliderVx0 = 20
 
 bc0 :: Floating a => AcX a -> AcX a -> Bc0 a
 bc0 (AcX x0 v0 dcm0 w0) _ =
-  Bc0 (AcX (x0 - V3T (V3 0 0 (-2))) (v0 - V3T (V3 gliderVx0 0 0)) (dcm0 - Rot eye3) w0)
+  Bc0 (AcX (x0 - V3T (V3 0 0 z0)) (v0 - V3T (V3 gliderVx0 0 0)) (dcm0 - Rot eye3) w0)
 
 
 bc12 :: Floating a => AcX a -> AcX a -> Bc12 a
 bc12 (AcX x0 v0 dcm0 w0) (AcX xF _ _ _) =
-  Bc12 (AcX (x0 - V3T (V3 0 0 (-2))) (v0 - V3T (V3 gliderVx0 0 0)) (dcm0 - Rot eye3) w0)
-       (xF - V3T (V3 0 0 (-2)))
+  Bc12 (AcX (x0 - V3T (V3 0 0 z0)) (v0 - V3T (V3 gliderVx0 0 0)) (dcm0 - Rot eye3) w0)
+       (xF - V3T (V3 0 0 z0))
+
+z0 :: Num a => a
+z0 = -2
 
 initialGuess :: CollTraj AcX None AcU None JNone NCollStages CollDeg (Vector Double)
-initialGuess = makeGuess 10 guessX (\_ ->  None) guessU None
+initialGuess = makeGuess tf guessX (\_ ->  None) guessU None
   where
-    guessX = (\t -> AcX { ac_r_n2b_n = V3T $ V3 (gliderVx0*t) 0 0
-                        , ac_v_bn_b = V3T $ V3 gliderVx0 0 0
-                        , ac_R_n2b = Rot eye3
-                        , ac_w_bn_b = fill 0
-                        })
+    guessX t = AcX { ac_r_n2b_n = V3T $ V3 (r*(sin (t*w))) (r*(1 - cos (t*w))) z0
+                   , ac_v_bn_b = V3T $ V3 (w*r*(cos (t*w))) (w*r*(sin (t*w))) z0
+                   , ac_R_n2b = Rot eye3 `compose` (toDcm (Rot quat))
+                   , ac_w_bn_b = V3T $ V3 0 0 w
+                   }
+      where
+        quat = Quaternion (cos(w*t/2)) (V3 0 0 (sin (w*t/2)))
+
     guessU = (\_ -> fill 0)
+
+    w = 2*pi/tf
+    tf = 10
+    r = gliderVx0/w
 
 {-
 initialGuess :: CollTraj AcX None AcU None JNone NCollStages CollDeg (Vector Double)
@@ -196,7 +213,7 @@ norm2 :: Num a => V3T f a -> a
 norm2 (V3T (V3 x y z)) = x*x + y*y + z*z
 
 mayer0 :: Floating a => a -> AcX a -> AcX a -> J (Cov JNone) SX -> J (Cov JNone) SX -> a
-mayer0 t _ (AcX pF _ _ _) _ _ = t + 100*(norm2 (pF - V3T (V3 0 0 (-2))))
+mayer0 t _ (AcX pF _ _ _) _ _ = t + 100*(norm2 (pF - V3T (V3 0 0 z0)))
 
 mayer1 :: Floating a => a -> AcX a -> AcX a -> J (Cov JNone) SX -> J (Cov JNone) SX -> a
 mayer1 t _ _ _ _ = t
@@ -218,13 +235,14 @@ main = do
     Zmq.withPublisher context chanOptTelem $ \sendOptTelemMsg -> do
       let guess0 = cat initialGuess
 
-          cb :: J (CollTraj AcX None AcU None JNone NCollStages CollDeg) (Vector Double) -> IO Bool
-          cb traj = do
+          callback :: J (CollTraj AcX None AcU None JNone NCollStages CollDeg) (Vector Double)
+                      -> IO Bool
+          callback traj = do
             -- dynoplot
             let dynoPlotMsg = Zmq.encodeSerial (ctToDynamic traj, toMeta traj)
             sendDynoPlotMsg "dynoplot" dynoPlotMsg
             -- 3d vis
-            let CollTraj _ _ _ stages' xf = split traj
+            let CollTraj tf' _ _ stages' xf = split traj
                 stages :: [(CollStage (JV AcX) (JV None) (JV AcU) CollDeg) (Vector Double)]
                 stages = map split $ F.toList $ unJVec (split stages')
 
@@ -251,29 +269,31 @@ main = do
                 stateToPose acX = Msg.AcPose
                                     (toXyz (ac_r_n2b_n acX))
                                     (toDcmMsg (ac_R_n2b acX))
-                msgs = ["woo"]
+                tf :: Double
+                tf = (V.head . unS . split) tf'
+                msgs = [printf "final time: %.2f" tf]
                 optTelemMsg = Msg.OptTelem (S.fromList poses) (S.fromList (map PB.fromString msgs))
 
             sendOptTelemMsg "opt_telem" (Zmq.encodeProto optTelemMsg)
             return True
 
-      (msg0,opt0') <- solveNlp' solver (nlp0 { nlpX0' = guess0 }) (Just cb)
+      (msg0,opt0') <- solveNlp' solver (nlp0 { nlpX0' = guess0 }) (Just callback)
       opt0 <- case msg0 of Left msg' -> error msg'
                            Right _ -> return opt0'
       let guess1 = (xOpt' opt0) :: J (CollTraj AcX None AcU None JNone NCollStages CollDeg) (Vector Double)
-      (msg1,opt1') <- solveNlp' solver (nlp1 { nlpX0' = guess1 }) (Just cb)
+      (msg1,opt1') <- solveNlp' solver (nlp1 { nlpX0' = guess1 }) (Just callback)
       opt1 <- case msg1 of Left msg' -> error msg'
                            Right _ -> return opt1'
 
       let guess2 = (xOpt' opt1) :: J (CollTraj AcX None AcU None JNone NCollStages CollDeg) (Vector Double)
-      (msg2,opt2') <- solveNlp' solver (nlp2 { nlpX0' = guess2 }) (Just cb)
+      (msg2,opt2') <- solveNlp' solver (nlp2 { nlpX0' = guess2 }) (Just callback)
       opt2 <- case msg2 of Left msg' -> error msg'
                            Right _ -> return opt2'
 
 --    let xopt = xOpt opt
 --        lambda = lambdaOpt opt
 --
---    snoptOpt' <- solveNlp snoptSolver (nlp {nlpX0 = xopt}) (Just cb) (Just lambda)
+--    snoptOpt' <- solveNlp snoptSolver (nlp {nlpX0 = xopt}) (Just callback) (Just lambda)
 --    snoptOpt <- case snoptOpt' of Left msg -> error msg
 --                                  Right opt'' -> return opt''
 --    let xopt' = xOpt snoptOpt

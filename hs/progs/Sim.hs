@@ -47,7 +47,7 @@ getSensors x u = Sensors { y_gyro = rot dcm_b2m (ac_w_bn_b x)
                          , y_gps_vel = rot' (ac_R_n2b x) (ac_v_bn_b x)
                          }
   where
-    (x', v_bn_b') = bettyOde x u
+    (x', (v_bn_b',_)) = bettyOde x u
     w_bn_b' = ac_w_bn_b x'
     w_bn_b = ac_w_bn_b x
 
@@ -59,7 +59,7 @@ getSensors x u = Sensors { y_gyro = rot dcm_b2m (ac_w_bn_b x)
     accel_b = (v_bn_b' - rot dcm_n2b g) + w_bn_b' `cross` r_b2m_b + w_bn_b `cross` (w_bn_b `cross` r_b2m_b)
 
 
-bettyOde :: Floating a => AcX a -> AcU a -> (AcX a, V3T B a)
+bettyOde :: Floating a => AcX a -> AcU a -> (AcX a, (V3T B a, AeroOutputs a))
 bettyOde = aircraftOde (bettyMass, V3T (fmap V3T bettyInertia)) bettyFc bettyMc bettyRefs
 
 integrate :: (Floating a, Additive AcX) => a -> AcX a -> AcU a -> AcX a
