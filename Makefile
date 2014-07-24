@@ -1,5 +1,5 @@
 # What's the executable called?
-PROJ =  run_controller run_actuators run_sensors run_function_test run_uart tests/test_uart
+PROJ =  run_controller run_actuators run_sensors run_function_test run_uart tests/test_uart tests/test_lisa_message
 
 # What C or C++ files must we compile to make the executable?
 C_SRC = run_controller.c \
@@ -13,7 +13,9 @@ C_SRC = run_controller.c \
         misc.c \
         zmq.c \
         run_function_test.c \
-        tests/test_uart.c
+        tests/test_uart.c   \
+        tests/test_lisa_message.c
+
 
 CXX_SRC = \
 #	main.cpp \
