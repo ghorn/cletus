@@ -184,11 +184,13 @@ initialGuess = makeGuess tf guessX (\_ ->  None) guessU None
   where
     guessX t = AcX { ac_r_n2b_n = V3T $ V3 (r*(sin (t*w))) (r*(1 - cos (t*w))) z0
                    , ac_v_bn_b = V3T $ V3 (w*r*(cos (t*w))) (w*r*(sin (t*w))) z0
-                   , ac_R_n2b = Rot eye3 `compose` (toDcm (Rot quat))
-                   , ac_w_bn_b = V3T $ V3 0 0 w
+                   , ac_R_n2b = Rot eye3 `compose` turn `compose` bank
+                   , ac_w_bn_b = rot bank (V3T (V3 0 0 w))
                    }
       where
-        quat = Quaternion (cos(w*t/2)) (V3 0 0 (sin (w*t/2)))
+        turn = toDcm $ Rot $ Quaternion (cos(w*t/2)) (V3 0 0 (sin (w*t/2)))
+        bank = toDcm $ Rot $ Quaternion (cos(qBank/2)) (V3 (sin (qBank/2)) 0 0)
+        qBank = 30*pi/180
 
     guessU = (\_ -> fill 0)
 
