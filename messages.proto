@@ -31,12 +31,53 @@ message Timestamp {
   required uint64 tnsec = 2;
 }
 
+message Gps{
+    required Timestamp timestamp = 1;
+    required Xyz pos = 2;
+    required Xyz vel = 3;
+}
+
+message Gyro{
+    required Timestamp timestamp = 1;
+    required Xyz data = 2;
+}
+
+message Accel{
+    required Timestamp timestamp = 1;
+    required Xyz data = 2;
+}
+
+message Mag{
+    required Timestamp timestamp = 1;
+    required Xyz data = 2;
+}
+
+message Airspeed{
+    required Timestamp timestamp = 1;
+    required double scaled = 2;
+    optional uint32 raw = 3;
+    optional uint32 offset = 4;
+
+}
+
+
 message Sensors {
-  required Timestamp timestamp = 1;
-  required Xyz gyro = 2;
-  required Xyz accel = 3;
-  required Xyz gps_pos = 4;
-  required Xyz gps_vel = 5;
+enum Type {
+  IMU_ONLY = 1;
+  IMU_AIRSPEED = 2;
+  IMU_GPS = 3;
+  IMU_GPS_AIRSPEED = 4;
+  }
+
+// Identifies which field is filled in.
+required Type type = 1;
+
+// One of the following will be filled in.
+  required Gyro gyro = 2;
+  required Accel accel = 3;
+  required Mag mag =4;
+  optional Airspeed airspeed =5;
+  optional Gps gps =6 ;
 }
 
 message Actuators {
