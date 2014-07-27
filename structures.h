@@ -140,7 +140,7 @@ typedef struct {
   ahrs_int_t ahrs_int;
   ahrs_double_t ahrs_double;
   rc_t rc;
-} sensors_t;
+} lisa_messages_t;
 
 typedef struct {
   timestamp_t start;

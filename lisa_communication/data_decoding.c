@@ -398,9 +398,9 @@ void DEC_err_handler(DEC_errCode err,void (*write_error_ptr)(char *,char *,int))
     }
 }
 
-void get_new_sensor_struct(sensors_t * const data_struct)
+void get_new_sensor_struct(lisa_messages_t * const data_struct)
 {
-  memcpy(data_struct,&(data_ptr->zmq_sensors), sizeof(sensors_t));
+  memcpy(data_struct,&(data_ptr->zmq_sensors), sizeof(lisa_messages_t));
 }
 
 uint8_t set_actuators(actuators_t* const message, unsigned char encoded_data[])
