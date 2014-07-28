@@ -165,16 +165,22 @@ ubnd =
                   , csFlaps = (Just (d2r (-0.01)), Just (d2r 0.01))
                   }
 gliderVx0 :: Num a => a
-gliderVx0 = 20
+gliderVx0 = 15
+
+q0 :: Floating a => a
+q0 = 10*pi/180
+
+dcm0' :: Floating a => Rot N B (M33 a)
+dcm0' = Rot eye3 `compose` toDcm (Rot (Quaternion (cos (q0/2)) (V3 0 (sin (q0/2)) 0)))
 
 bc0 :: Floating a => AcX a -> AcX a -> Bc0 a
 bc0 (AcX x0 v0 dcm0 w0) _ =
-  Bc0 (AcX (x0 - V3T (V3 0 0 z0)) (v0 - V3T (V3 gliderVx0 0 0)) (dcm0 - Rot eye3) w0)
+  Bc0 (AcX (x0 - V3T (V3 0 0 z0)) (v0 - V3T (V3 gliderVx0 0 0)) (dcm0 - dcm0') w0)
 
 
 bc12 :: Floating a => AcX a -> AcX a -> Bc12 a
 bc12 (AcX x0 v0 dcm0 w0) (AcX xF _ _ _) =
-  Bc12 (AcX (x0 - V3T (V3 0 0 z0)) (v0 - V3T (V3 gliderVx0 0 0)) (dcm0 - Rot eye3) w0)
+  Bc12 (AcX (x0 - V3T (V3 0 0 z0)) (v0 - V3T (V3 gliderVx0 0 0)) (dcm0 - dcm0') w0)
        (xF - V3T (V3 0 0 z0))
 
 z0 :: Num a => a
