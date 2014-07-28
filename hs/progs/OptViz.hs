@@ -102,7 +102,7 @@ drawOneAc acPose = ac
     pos = fromXyz (Msg.r_n2b_n acPose)
     quat = quatOfDcm (fromDcm (Msg.dcm_n2b acPose))
 
-    visSpan = 1
+    visSpan = 1.5
 
     ac = Trans pos $ Scale (visSpan,visSpan,visSpan) ac'
     (ac',_) = drawAc kiteAlpha (V3 0 0 0) quat

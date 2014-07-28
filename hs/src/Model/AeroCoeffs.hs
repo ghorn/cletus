@@ -104,8 +104,10 @@ data AeroOutputs a =
   AeroOutputs { aoAlphaDeg :: a
               , aoBetaDeg :: a
               , aoAirspeed :: a
+              , ao_v_bw_b :: V3 a
               } deriving (Functor, Generic, Generic1, Show)
 instance Vectorize AeroOutputs
+instance (Lookup a, Generic a) => Lookup (AeroOutputs a)
 
 -- | Compute aerodynamic forces/moments in the body frame.
 -- Parameters:
@@ -120,6 +122,7 @@ aeroForcesMoments forceCoeffs momentCoeffs refs v_bw_b w_bn_b controlSurfaces =
     outputs = AeroOutputs { aoAlphaDeg = alpha * 180 / pi
                           , aoBetaDeg = beta * 180 / pi
                           , aoAirspeed = airspeed
+                          , ao_v_bw_b = v_bw_b
                           }
 
     V3 cL cD cY = aeroForceCoeffs alpha beta controlSurfaces forceCoeffs

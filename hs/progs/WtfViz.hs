@@ -104,7 +104,7 @@ drawFun state@(State {sTelem=Just telem}) =
     pos@(V3 x y z) = fromXyz (Msg.r_n2b_n cs)
     quat = quatOfDcm (fromDcm (Msg.dcm_n2b cs))
 
-    visSpan = 1
+    visSpan = 1.5
 
     points = Points (sParticles state) (Just 2) $ makeColor 1 1 1 0.5
     zLine = Line [V3 x y (planeZ-0.01), pos]            $ makeColor 0.1 0.2 1 0.5

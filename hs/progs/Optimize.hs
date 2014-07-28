@@ -20,7 +20,8 @@ import Dyno.View
 import Dyno.Ipopt
 import Dyno.Snopt
 import Dyno.Nlp
-import Dyno.NlpSolver ( NlpSolverStuff, solveNlp' )
+import Dyno.NlpSolver ( NlpSolverStuff(..), solveNlp' )
+import Dyno.Casadi.Option
 
 import Dyno.Ocp
 import Dyno.DirectCollocation
@@ -149,8 +150,8 @@ xbnd = AcX { ac_r_n2b_n = V3T $ V3 (Nothing,Nothing) (Nothing,Nothing) (Nothing,
            , ac_w_bn_b = fill (Just (-8*2*pi), Just (8*2*pi))
            }
   where
-    unb = (Just (-1.2), Just 1.2)
-    pos = (Just 0, Just 1.2)
+    unb = (Just (-1.5), Just 1.5)
+    pos = (Just 0, Just 1.5)
 
 d2r :: Floating a => a -> a
 d2r d = d*pi/180
@@ -183,7 +184,7 @@ initialGuess :: CollTraj AcX None AcU None JNone NCollStages CollDeg (Vector Dou
 initialGuess = makeGuess tf guessX (\_ ->  None) guessU None
   where
     guessX t = AcX { ac_r_n2b_n = V3T $ V3 (r*(sin (t*w))) (r*(1 - cos (t*w))) z0
-                   , ac_v_bn_b = V3T $ V3 (w*r*(cos (t*w))) (w*r*(sin (t*w))) z0
+                   , ac_v_bn_b = V3T $ V3 (w*r) 0 0
                    , ac_R_n2b = Rot eye3 `compose` turn `compose` bank
                    , ac_w_bn_b = rot bank (V3T (V3 0 0 w))
                    }
@@ -197,19 +198,6 @@ initialGuess = makeGuess tf guessX (\_ ->  None) guessU None
     w = 2*pi/tf
     tf = 10
     r = gliderVx0/w
-
-{-
-initialGuess :: CollTraj AcX None AcU None JNone NCollStages CollDeg (Vector Double)
-initialGuess = makeGuess maxTime guessX (\_ ->  None) guessU None
-  where
-    guessX = (\t -> AcX { ac_r_n2b_n = V3 (maxTime * sin (pi*t/maxTime)) (maxTime * cos (2*pi*t/maxTime) - maxTime)  (-2)
-                        , ac_v_bn_b = V3 30 0 0
-                        , ac_R_n2b = eye3
-                        , ac_w_bn_b = fill 0
-                        , ac_u = fill 0
-                        })
-    guessU = (\_ -> fill 0)
--}
 
 norm2 :: Num a => V3T f a -> a
 norm2 (V3T (V3 x y z)) = x*x + y*y + z*z
@@ -225,13 +213,13 @@ mayer2 t _ _ _ _ = -t
 
 solver :: NlpSolverStuff
 solver = ipoptSolver
---solver = snoptSolver
+--solver = snoptSolver { options = [("detect_linear", Opt False)] }
 
 main :: IO ()
 main = do
-  nlp0 <- makeCollNlp $ ocp mayer0 bc0
-  nlp1 <- makeCollNlp $ ocp mayer1 bc12
-  nlp2 <- makeCollNlp $ ocp mayer2 bc12
+--  (nlp0,toDyn0) <- makeCollNlp $ ocp mayer0 bc0
+--  (nlp1,cb1) <- makeCollNlp $ ocp mayer1 bc12
+  (nlp0,toDyn0) <- makeCollNlp $ ocp mayer2 bc12
   Zmq.withContext $ \context ->
     Zmq.withPublisher context chanDynoPlot $ \sendDynoPlotMsg ->
     Zmq.withPublisher context chanOptTelem $ \sendOptTelemMsg -> do
@@ -240,8 +228,9 @@ main = do
           callback :: J (CollTraj AcX None AcU None JNone NCollStages CollDeg) (Vector Double)
                       -> IO Bool
           callback traj = do
+            (dyn,_) <- toDyn0 traj
             -- dynoplot
-            let dynoPlotMsg = Zmq.encodeSerial (ctToDynamic traj, toMeta traj)
+            let dynoPlotMsg = Zmq.encodeSerial (dyn, toMeta (Proxy :: Proxy AeroOutputs) traj)
             sendDynoPlotMsg "dynoplot" dynoPlotMsg
             -- 3d vis
             let CollTraj tf' _ _ stages' xf = split traj
@@ -282,27 +271,13 @@ main = do
       (msg0,opt0') <- solveNlp' solver (nlp0 { nlpX0' = guess0 }) (Just callback)
       opt0 <- case msg0 of Left msg' -> error msg'
                            Right _ -> return opt0'
-      let guess1 = (xOpt' opt0) :: J (CollTraj AcX None AcU None JNone NCollStages CollDeg) (Vector Double)
-      (msg1,opt1') <- solveNlp' solver (nlp1 { nlpX0' = guess1 }) (Just callback)
-      opt1 <- case msg1 of Left msg' -> error msg'
-                           Right _ -> return opt1'
-
-      let guess2 = (xOpt' opt1) :: J (CollTraj AcX None AcU None JNone NCollStages CollDeg) (Vector Double)
-      (msg2,opt2') <- solveNlp' solver (nlp2 { nlpX0' = guess2 }) (Just callback)
-      opt2 <- case msg2 of Left msg' -> error msg'
-                           Right _ -> return opt2'
-
---    let xopt = xOpt opt
---        lambda = lambdaOpt opt
+--      let guess1 = (xOpt' opt0) :: J (CollTraj AcX None AcU None JNone NCollStages CollDeg) (Vector Double)
+--      (msg1,opt1') <- solveNlp' solver (nlp1 { nlpX0' = guess1 }) (Just callback)
+--      opt1 <- case msg1 of Left msg' -> error msg'
+--                           Right _ -> return opt1'
 --
---    snoptOpt' <- solveNlp snoptSolver (nlp {nlpX0 = xopt}) (Just callback) (Just lambda)
---    snoptOpt <- case snoptOpt' of Left msg -> error msg
---                                  Right opt'' -> return opt''
---    let xopt' = xOpt snoptOpt
---        lambda' = lambdaOpt opt
---        lambdax' = vectorize $ lambdaX lambda'
---        lambdag' = vectorize $ lambdaG lambda'
---    _ <- solveSqp (nlp {nlpX0 = xopt}) fullStep
---    _ <- solveSqp (nlp {nlpX0 = xopt}) armilloSearch
-
+--      let guess2 = (xOpt' opt1) :: J (CollTraj AcX None AcU None JNone NCollStages CollDeg) (Vector Double)
+--      (msg2,opt2') <- solveNlp' solver (nlp2 { nlpX0' = guess2 }) (Just callback)
+--      opt2 <- case msg2 of Left msg' -> error msg'
+--                           Right _ -> return opt2'
       return ()
