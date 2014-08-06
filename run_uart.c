@@ -224,19 +224,25 @@ int main(int argc __attribute__((unused)),
           //******************************************************
           //Send message without sender ID, so message ID can be used as Filter
           //******************************************************
-          else if(read_uart(msg_data,msg_length-2) == msg_length - 2)
+          else if(read_uart(msg_data,msg_length-2) == msg_length - 2) //without the already read startbyte and length
             {
 #ifdef DEBUG
               printf("Message was read completely \n");
 #endif
-              if (check_checksum(msg_length,msg_data) == UART_ERR_NONE)
+              //Check 1: Sender ID must be correct.
+              if (msg_data[0] == SENDER_ID)
                 {
+                  //Check 2: Checksum must be correct
+                  if (check_checksum(msg_length,msg_data) == UART_ERR_NONE)
+                    {
 #ifdef DEBUG
-                  printf("Passed Checksum test. Sending Message [%i bytes] with ID %i\n",
-                         msg_length-3, msg_data[1]);
+                      printf("Passed Checksum test. Sending Message [%i bytes] with ID %i\n",
+                             msg_length-3, msg_data[1]);
 #endif
-                  zmq_send(zsock_lisa,&msg_data[1],msg_length-3,0);
-                  poll_lisa->events = ZMQ_POLLOUT;
+                      const int new_length =add_timestamp(&msg_data[1], msg_length);
+                      zmq_send(zsock_lisa,&msg_data[1],new_length,0);
+                      poll_lisa->events = ZMQ_POLLOUT;
+                    }
                 }
               else{
                   printf("ERROR with Checksum test with ID %i\n",msg_data[1]);

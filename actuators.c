@@ -21,7 +21,7 @@
 #include "./misc.h"
 #include "./actuators.h"
 
-#include "./lisa_communication/data_decoding.h"
+//#include "./lisa_communication/data_decoding.h"
 
 const double coef = 1000.0;
 

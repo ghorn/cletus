@@ -18,8 +18,7 @@
 #include "./log.h"
 
 #include "./uart.h"
-#include "./lisa_communication/data_decoding.h"
-
+#include "./lisa_messages.h"
 
 
 
@@ -63,7 +62,7 @@ int main(int argc __attribute__((unused)),
   lisa_message_t output;
   output.startbyte = 0x99;
   output.length = sizeof(lisa_message_t);
-  output.sender_id = BONE_PLANE;
+  output.sender_id = SENDER_ID;
   output.message_id = SERVO_COMMANDS;
 
 
