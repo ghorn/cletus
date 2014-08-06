@@ -21,7 +21,7 @@ CXX_SRC = \
 #	main.cpp \
 #	parsing.cpp
 
-LIBS = $(shell pkg-config --libs libzmq) -lm -lrt -lprotobuf
+LIBS = $(shell pkg-config --libs libzmq) -lm -lrt -lprotobuf -lprotobuf-c protos_c/messages.pb-c.o
 
 Q ?= @
 
@@ -39,7 +39,7 @@ HS_PROTOS = hs/src/Messages.hs
 UNAME := $(shell uname)
 
 LDFLAGS = $(LIBS)
-INCLUDES =
+INCLUDES = -I./protos_c
 
 #CFLAGS = -O3 -Wall -Wextra -Werror -std=gnu99 -Wimplicit -Wshadow -Wswitch-default -Wswitch-enum -Wundef -Wuninitialized -Wpointer-arith -Wstrict-prototypes -Wmissing-prototypes -Wcast-align -Wformat=2 -Wimplicit-function-declaration -Wredundant-decls -Wformat-security  -Werror -Os -march=native -ftree-vectorize -flto -fPIC -D_FORTIFY_SOURCE=2 -fstack-protector-all -fno-strict-overflow   -g -ftrapv
 
@@ -80,7 +80,7 @@ CXX ?= g++
 HS_STRUCTS = hs/src/Structs/Structures.hs hs/src/Structs/Structures.hsc
 
 .PHONY: all
-all: $(PROJ) $(PROTOS_C) $(PROTOS_CXX) protos_cpp/messages.pb.o protos_c/messages.pb-c.o
+all: $(PROTOS_C) $(PROTOS_CXX)  protos_cpp/messages.pb.o protos_c/messages.pb-c.o $(PROJ)
 hs: $(HS_PROTOS)
 
 .SECONDEXPANSION:
@@ -124,7 +124,7 @@ sim/src/Structs/Structures.hs : sim/src/Structs/Structures.hsc
 
 %.o : %.c
 	@echo CC $@
-	$(Q)$(CC) $(CFLAGS) -c $< -o $@
+	$(Q)$(CC) $(CFLAGS) -c $< -o  $@
 
 %.o : %.cpp
 	@echo CXX $@
