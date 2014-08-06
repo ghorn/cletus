@@ -18,6 +18,9 @@
 #include "./log.h"
 #include "./sensors.h"
 #include "./misc.h"
+
+#include "./lisa_messages.h"
+
 //#define ALL
 //#define DEBUG
 #ifdef ALL
@@ -38,7 +41,7 @@ const double ahrs_unit_coef = 0.0000305;
 
 /* ZMQ resources */
 static void *zctx = NULL;
-static void *zsock_imu = NULL;
+static void *zsock_sensors = NULL;
 static void *zsock_gps = NULL;
 static void *zsock_rc = NULL;
 static void *zsock_ahrs = NULL;
@@ -58,7 +61,7 @@ int txfails = 0, rxfails = 0;
 
 static void __attribute__((noreturn)) die(int code) {
   zdestroy(zsock_log, NULL);
-  zdestroy(zsock_imu, zctx);
+  zdestroy(zsock_sensors, zctx);
   zdestroy(zsock_gps, zctx);
   zdestroy(zsock_rc, zctx);
   zdestroy(zsock_ahrs, zctx);
@@ -120,8 +123,8 @@ int main(int argc __attribute__((unused)),
    * also set a small-ish buffer size so that the PUSH/PULL socket
    * pair will block or a PUB/SUB socket pair won't accumulate too
    * many outdated messages. */
-  zsock_imu = setup_zmq_sender(IMU_CHAN, &zctx, ZMQ_PUSH, 1, 500);
-  if (NULL == zsock_imu)
+  zsock_sensors = setup_zmq_sender(SENSORS_CHAN, &zctx, ZMQ_PUSH, 1, 500);
+  if (NULL == zsock_sensors)
     return 1;;
   zsock_gps = setup_zmq_sender(GPS_CHAN, &zctx, ZMQ_PUB, 1, 500);
   if (NULL == zsock_gps)
@@ -186,7 +189,7 @@ int main(int argc __attribute__((unused)),
   zmq_pollitem_t polls[] = {
     //Sending polls
     {
-      .socket=zsock_imu,
+      .socket=zsock_sensors,
       .fd=-1,
       .events=0,
       .revents=0
@@ -292,11 +295,21 @@ int main(int argc __attribute__((unused)),
 
 
 
+  //Initializing Protobuf messages
+  Sensors protobuf_container = SENSORS__INIT;
+  Sensors* const protobuf_ptr = &protobuf_container;
+  void *zmq_buffer;
+  zmq_buffer = malloc(1024);
+  unsigned int length;
+
+
+  lisa_messages_t data_container;
+  lisa_messages_t* const data_ptr = &data_container;
+
 
 
   const int npolls = sizeof(polls) / sizeof(polls[0]);
-  sensors_t data_container;
-  sensors_t * const data_ptr = &data_container;
+
   /* const int noutputs = npolls - ninputs; */
 
   /* Here's the main loop -- we only do stuff when input or output
@@ -338,7 +351,9 @@ int main(int argc __attribute__((unused)),
               poll_lisa_gyro->revents =0;
             }
           else {
+              copy_timestamp(&(data_ptr->imu_raw.imu_gyro.timestamp),protobuf_ptr->gyro->timestamp);
 #ifdef RAW
+              raw_to_protobuf(&(data_ptr->imu_raw.imu_gyro.data),&(protobuf_ptr->gyro->data)
 #ifdef DEBUG
 
               printf("Received GYRO RAW with timestamp %lu%lu \n X: %u\tY: %u\t Z: %u\t \n",
@@ -348,8 +363,7 @@ int main(int argc __attribute__((unused)),
                      data_ptr->imu_raw.imu_gyro.data.z );
 #endif
 #else
-              xyz_convert_to_double(&(data_ptr->imu_raw.imu_gyro.data), &(data_ptr->imu_scaled.imu_gyro_scaled.data),gyro_scale_unit_coef );
-              memcpy(&(data_ptr->imu_scaled.imu_gyro_scaled.timestamp), &(data_ptr->imu_raw.imu_gyro.timestamp), sizeof(timestamp_t));
+              scaled_to_protobuf(&(data_ptr->imu_raw.imu_gyro.data), protobuf_ptr->gyro->data, gyro_scale_unit_coef);
 #ifdef DEBUG
 
               printf("Received GYRO SCALED with timestamp %lu%lu \n X: %f\tY: %f\t Z: %f\t \n",
@@ -374,7 +388,10 @@ int main(int argc __attribute__((unused)),
               poll_lisa_accel->revents =0;
             }
           else {
+              copy_timestamp(&(data_ptr->imu_raw.imu_accel.timestamp),protobuf_ptr->accel->timestamp);
 #ifdef RAW
+              raw_to_protobuf(&(data_ptr->imu_raw.imu_accel.data),&(protobuf_ptr->accel->data)
+
 #ifdef DEBUG
 
               printf("Received ACCELERATION RAW with timestamp %lu%lu \n X: %u\tY: %u\t Z: %u\t \n",
@@ -384,8 +401,7 @@ int main(int argc __attribute__((unused)),
                      data_ptr->imu_raw.imu_accel.data.z );
 #endif
 #else
-              xyz_convert_to_double(&(data_ptr->imu_raw.imu_accel.data), &(data_ptr->imu_scaled.imu_accel_scaled.data),acc_scale_unit_coef );
-              memcpy(&(data_ptr->imu_scaled.imu_accel_scaled.timestamp), &(data_ptr->imu_raw.imu_accel.timestamp), sizeof(timestamp_t));
+              scaled_to_protobuf(&(data_ptr->imu_raw.imu_accel.data), protobuf_ptr->accel->data, acc_scale_unit_coef);
 #ifdef DEBUG
 
               printf("Received ACCELERATION SCALED with timestamp %lu%lu \n X: %f\tY: %f\t Z: %f\t \n",
@@ -411,7 +427,10 @@ int main(int argc __attribute__((unused)),
               poll_lisa_mag->revents =0;
             }
           else {
+              copy_timestamp(&(data_ptr->imu_raw.imu_mag.timestamp),protobuf_ptr->mag->timestamp);
+
 #ifdef RAW
+              raw_to_protobuf(&(data_ptr->imu_raw.imu_mag.data),&(protobuf_ptr->mag->data)
 #ifdef DEBUG
 
               printf("Received MAGNETOMETER RAW with timestamp %lu%lu \n X: %u\tY: %u\t Z: %u\t \n",
@@ -421,8 +440,8 @@ int main(int argc __attribute__((unused)),
                      data_ptr->imu_raw.imu_mag.data.z );
 #endif
 #else
-              xyz_convert_to_double(&(data_ptr->imu_raw.imu_mag.data), &(data_ptr->imu_scaled.imu_mag_scaled.data),mag_scale_unit_coef );
-              memcpy(&(data_ptr->imu_scaled.imu_mag_scaled.timestamp), &(data_ptr->imu_raw.imu_mag.timestamp), sizeof(timestamp_t));
+              scaled_to_protobuf(&(data_ptr->imu_raw.imu_mag.data), protobuf_ptr->mag->data, mag_scale_unit_coef);
+
 #ifdef DEBUG
 
               printf("Received ACCELERATION SCALED with timestamp %lu%lu \n X: %f\tY: %f\t Z: %f\t \n",
@@ -441,15 +460,42 @@ int main(int argc __attribute__((unused)),
       //********************************************
       if (poll_lisa_gyro->revents > 0 && poll_lisa_mag->revents > 0 && poll_lisa_accel->revents > 0)
         {
-#ifdef RAW
-          const void *bufs[] = {&data_ptr->imu_raw};
-          const uint32_t lens[] = {sizeof(imu_raw_t)};
-          const int zs = zmq_sendm(zsock_imu, bufs, lens,1);
+#if defined(AIRSPEED) && defined(GPS)
+          if (poll_lisa_airspeed->revents > 0 && poll_lisa_gps->revents > 0)
+            protobuf_ptr->type = SENSORS__TYPE__IMU_GPS_AIRSPEED;
+          else if (poll_lisa_airspeed->revents > 0)
+            protobuf_ptr->type = SENSORS__TYPE__IMU_AIRSPEED;
+          else if (poll_lisa_gps->revents > 0)
+            protobuf_ptr->type = SENSORS__TYPE__IMU_GPS;
+          else
+            protobuf_ptr->type = SENSORS__TYPE__IMU_ONLY;
 #else
-          const void *bufs[] = {&data_ptr->imu_scaled};
-          const uint32_t lens[] = {sizeof(imu_scaled_t)};
-          const int zs = zmq_sendm(zsock_imu, bufs, lens,1);
+           protobuf_ptr->type = SENSORS__TYPE__IMU_ONLY;
 #endif
+#ifdef AIRSPEED
+          if (poll_lisa_airspeed->revents > 0)
+            protobuf_ptr->type = SENSORS__TYPE__IMU_AIRSPEED;
+          else
+            protobuf_ptr->type = SENSORS__TYPE__IMU_ONLY;
+#endif
+#ifdef GPS
+          if (poll_lisa_gps->revents > 0)
+            protobuf_ptr->type = SENSORS__TYPE__IMU_GPS;
+          else
+            protobuf_ptr->type = SENSORS__TYPE__IMU_ONLY;
+#endif
+
+
+
+
+
+
+          sensors__pack(protobuf_ptr,zmq_buffer);
+
+
+          const int zs = zmq_sendm(zsock_sensors, zmq_buffer, &length, 1);
+          length = sensors__get_packed_size(protobuf_ptr);
+
           if (zs < 0) {
               txfails++;
             } else {
