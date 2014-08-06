@@ -107,11 +107,11 @@ $(PROTOS_CXX) : messages.proto
 
 protos_cpp/messages.pb.o : protos_cpp/messages.pb.cc protos_cpp/messages.pb.h
 	@echo CXX protos_cpp/messages.pb.cc
-	$(Q)$(CXX) -O3 -Wall -Werror -c protos_cpp/messages.pb.cc -o protos_cpp/messages.pb.o
+	$(Q)$(CXX) -O3 -Wall -Werror -lprotobuf -c protos_cpp/messages.pb.cc -o protos_cpp/messages.pb.o
 
 protos_c/messages.pb-c.o : protos_c/messages.pb-c.c protos_c/messages.pb-c.h
 	@echo CC protos_c/messages.pb-c.c
-	$(Q)$(CC) -O3 -Wall -Werror -c protos_c/messages.pb-c.c -o protos_c/messages.pb-c.o
+	$(Q)$(CC) -O3 -Wall -Werror -lprotobuf-c -c protos_c/messages.pb-c.c -o protos_c/messages.pb-c.o
 
 
 sim/src/Structs/Structures.hsc : structures.h
