@@ -2,11 +2,12 @@
 #include <stdio.h>
 #include <string.h>
 #include <fcntl.h>
+#include <inttypes.h>
 
 
 
 #include "./uart.h"
-
+#include <time.h>
 
 
 UART_errCode serial_port_new(void);
@@ -27,6 +28,20 @@ speed_t speed = B921600;
 const char device[]="/dev/ttyO4";
 const char device_enabled_check[] = "ttyO4_armhf.com"; //For Angstrom: enable-uart5
 const char device_path[] = "/sys/devices/bone_capemgr.9/slots"; //For Angstrom: /sys/devices/bone_capemgr.8/slots
+
+
+int add_timestamp(uint8_t*const buffer,const int msg_length){
+#if DEBUG  > 1
+  printf("Entering add_timestamp\n");
+#endif
+
+  struct timespec timestamp;
+  clock_gettime(CLOCK_MONOTONIC, &timestamp);
+  int timestamp_position = msg_length - BYTES_HEADER - BYTES_CHECKSUM -1;
+  memcpy(&buffer[timestamp_position],&timestamp,sizeof(timestamp));
+
+  return timestamp_position + sizeof(timestamp) +1;
+}
 
 
 int read_uart(uint8_t* const buffer,int length)
