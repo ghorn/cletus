@@ -13,6 +13,18 @@
  * GLOBALS
  * ******************************/
 
+
+
+
+enum lisa_msg_info{
+  BYTES_CHECKSUM = 2, //Number of bytes used for the checksum
+  BYTES_HEADER =  3, //Number of Bytes until message (startbyte, length, senderid)
+  SENDER_ID = 106, //Senser ID of the Lisa set with paparazzi
+  LISA_STARTBYTE = 0x99,
+  WINDSENSOR_STARTBYTE =0x24
+};
+
+
 enum uart_errCode {
   UART_ERR_READ= -6 ,
   UART_ERR_READ_START_BYTE = -5,
@@ -30,11 +42,7 @@ enum uart_errCode {
 };
 typedef enum uart_errCode UART_errCode;
 
-enum msg_startbytes {
-  LISA_STARTBYTE = 0x99,
-  WINDSENSOR_STARTBYTE =0x24
-};
-typedef enum msg_startbytes MSG_startbytes;
+
 
 
 typedef struct{
@@ -82,6 +90,7 @@ extern UART_errCode serial_port_close(void);
 int serial_port_read_temp(uint8_t buffer[],int length) ;
 int check_checksum(uint8_t length, uint8_t* message);
 UART_errCode serial_port_flush_input(void);
+int add_timestamp(uint8_t* const buffer, const int msg_length);
 
 
 
