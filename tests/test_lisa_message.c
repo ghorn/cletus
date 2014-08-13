@@ -98,7 +98,7 @@ int main(int argc __attribute__((unused)),
   unsigned char *buffer = malloc(BUFFER_SIZE);
 
   //sensor data
-  Airspeed_ets airspeed;
+  MSG_Airspeed_ets airspeed;
 
 
   //***********************************************************
@@ -131,7 +131,7 @@ int main(int argc __attribute__((unused)),
               clock_gettime(CLOCK_MONOTONIC, &finish);
               elapsed = (finish.tv_nsec - start.tv_nsec) / 1000000000.0;
               sum_elapsed += elapsed;
-              memcpy(&airspeed,&buffer[1],sizeof(Airspeed_ets));
+              memcpy(&airspeed,&buffer[1],sizeof(MSG_Airspeed_ets));
 
               printf("Received Messages: %lu [ID:%u] \tPeriod: %f s \t[AVG: %f]\tFrequency %f\t[AVG: %f]\n",
                      counter, msg_ID, elapsed, sum_elapsed/counter, 1.0/elapsed, 1.0/(sum_elapsed/counter));

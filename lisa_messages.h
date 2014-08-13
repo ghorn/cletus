@@ -35,7 +35,30 @@ typedef struct { // id = 57
   uint16_t adc;
   uint16_t offset;
   float scaled;
-} Airspeed_ets;
+} MSG_Airspeed_ets;
+
+
+
+typedef struct { // id = 133
+  int mx;
+  int my;
+  int mz;
+} MSG_Mag_scaled;
+
+
+typedef struct { // id = 131
+  int gx;
+  int gy;
+  int gz;
+} MSG_Gyro_scaled;
+
+typedef struct { // id = 133
+  int ax;
+  int ay;
+  int az;
+} MSG_Accel_scaled;
+
+
 
 
 #endif // LISA_MESSAGES_H
