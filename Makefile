@@ -24,7 +24,7 @@ CXX_SRC = \
 #	main.cpp \
 #	parsing.cpp
 
-LIBS = $(shell pkg-config --libs libzmq) -lm -lrt -lprotobuf -lprotobuf-c protos_c/messages.pb-c.o
+LIBS = $(shell pkg-config --libs libzmq) $(shell pkg-config --libs libprotobuf-c)-lm -lrt -lprotobuf 
 
 Q ?= @
 
@@ -53,7 +53,7 @@ ifeq ($(UNAME),Darwin)
 endif
 
 
-OBJ = $(C_SRC:%.c=%.o) $(CXX_SRC:%.cpp=%.o) $(CXX_SRC:%.cc=%.o)
+OBJ = $(C_SRC:%.c=%.o) $(CXX_SRC:%.cpp=%.o) $(CXX_SRC:%.cc=%.o) protos_c/messages.pb-c.o
 
 ## Compile pedantically and save pain later
 CXX_WARNINGFLAGS = -Wall -Wextra -Wshadow
