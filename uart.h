@@ -19,7 +19,7 @@
 enum lisa_msg_info{
   BYTES_CHECKSUM = 2, //Number of bytes used for the checksum
   BYTES_HEADER =  3, //Number of Bytes until message (startbyte, length, senderid)
-  SENDER_ID = 106, //Senser ID of the Lisa set with paparazzi
+  SENDER_ID = 166, //Senser ID of the Lisa set with paparazzi
   LISA_STARTBYTE = 0x99,
   WINDSENSOR_STARTBYTE =0x24
 };

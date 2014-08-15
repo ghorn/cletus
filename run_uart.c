@@ -245,7 +245,7 @@ int main(int argc __attribute__((unused)),
                     }
                 }
               else{
-                  printf("ERROR with Checksum test with ID %i\n",msg_data[1]);
+                  printf("ERROR wrong SENDER ID %i\n",msg_data[0]);
                   serial_port_flush_input();
                 }
               msg_length_counter = 0;
