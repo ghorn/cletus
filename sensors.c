@@ -82,21 +82,21 @@ void quat_convert_to_double(const quaternion_t *const source, quaternion_double_
   dest->qz = (double)source->qz * coef;
 }
 
-void raw_to_protobuf(const xyz_int *const source, Xyz *dest)
+void raw_to_protobuf(const xyz_int *const source, XyzProto *dest)
 {
   dest->x = (double)source->x;
   dest->y = (double)source->y;
   dest->z = (double)source->z;
 }
 
-void scaled_to_protobuf(const xyz_int *const source, Xyz *dest, double coef)
+void scaled_to_protobuf(const xyz_int *const source, XyzProto *dest, double coef)
 {
   dest->x = (double)source->x * coef;
   dest->y = (double)source->y * coef;
   dest->z = (double)source->z * coef;
 }
 
-void copy_timestamp(const timestamp_t *const source, Timestamp *dest)
+void copy_timestamp(const timestamp_t *const source, TimestampProto *dest)
 {
    memcpy(dest, source, sizeof(timestamp_t));
 }
