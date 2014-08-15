@@ -37,7 +37,7 @@ int add_timestamp(uint8_t*const buffer,const int msg_length){
 
   struct timespec timestamp;
   clock_gettime(CLOCK_MONOTONIC, &timestamp);
-  int timestamp_position = msg_length - BYTES_HEADER - BYTES_CHECKSUM -1;
+  int timestamp_position = msg_length - BYTES_HEADER - BYTES_CHECKSUM;
   memcpy(&buffer[timestamp_position],&timestamp,sizeof(timestamp));
 
   return timestamp_position + sizeof(timestamp) +1;
