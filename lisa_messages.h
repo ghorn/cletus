@@ -40,22 +40,22 @@ typedef struct { // id = 57
 
 
 typedef struct { // id = 133
-  int mx;
-  int my;
-  int mz;
+  int32_t mx;
+  int32_t my;
+  int32_t mz;
 } MSG_Mag_scaled;
 
 
 typedef struct { // id = 131
-  int gx;
-  int gy;
-  int gz;
+  int32_t gx;
+  int32_t gy;
+  int32_t gz;
 } MSG_Gyro_scaled;
 
 typedef struct { // id = 133
-  int ax;
-  int ay;
-  int az;
+  int32_t ax;
+  int32_t ay;
+  int32_t az;
 } MSG_Accel_scaled;
 
 
