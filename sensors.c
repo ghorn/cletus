@@ -102,3 +102,15 @@ void copy_timestamp(const timestamp_t *const source, TimestampProto *dest)
 }
 
 
+char * toArray(int number)
+    {
+        int n = log10(number) + 1;
+        int i;
+      char *numberArray = calloc(n, sizeof(char));
+        for ( i = 0; i < n; ++i, number /= 10 )
+        {
+            numberArray[i] = number % 10;
+        }
+        return numberArray;
+    }
+

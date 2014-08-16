@@ -125,30 +125,30 @@ int main(int argc __attribute__((unused)),
         return 1;;
     //TODO: Setting multiple Filters for one socket. Testing requiered
 #ifdef RAW
-    zsock_lisa_gyro = setup_zmq_receiver_filtered(LISA_CHAN,&zctx,ZMQ_SUB,&IMU_GYRO_RAW,1,INPUT_BUFFER_SIZE);
+    zsock_lisa_gyro = setup_zmq_receiver(LISA_CHAN,&zctx,ZMQ_SUB,toArray(IMU_GYRO_RAW),1,INPUT_BUFFER_SIZE);
     if (NULL == zsock_lisa_gyro)
         die(1);
-    zsock_lisa_accel = setup_zmq_receiver_filtered(LISA_CHAN,&zctx,ZMQ_SUB,&IMU_ACC_RAW,1,INPUT_BUFFER_SIZE);
+    zsock_lisa_accel = setup_zmq_receiver(LISA_CHAN,&zctx,ZMQ_SUB,toArray(IMU_ACC_RAW),1,INPUT_BUFFER_SIZE);
     if (NULL == zsock_lisa_accel)
         die(1);
-    zsock_lisa_mag = setup_zmq_receiver_filtered(LISA_CHAN,&zctx,ZMQ_SUB,&IMU_MAG_RAW,1,INPUT_BUFFER_SIZE);
+    zsock_lisa_mag = setup_zmq_receiver(LISA_CHAN,&zctx,ZMQ_SUB,toArray(IMU_MAG_RAW),1,INPUT_BUFFER_SIZE);
     if (NULL == zsock_lisa_gyro)
         die(1);
 #else
-    zsock_lisa_gyro = setup_zmq_receiver_filtered(LISA_CHAN,&zctx,ZMQ_SUB,(char)IMU_GYRO_SCALED,1,INPUT_BUFFER_SIZE);
+    zsock_lisa_gyro = setup_zmq_receiver(LISA_CHAN,&zctx,ZMQ_SUB,toArray(IMU_GYRO_SCALED),1,INPUT_BUFFER_SIZE);
     if (NULL == zsock_lisa_gyro)
         die(1);
-    zsock_lisa_accel = setup_zmq_receiver_filtered(LISA_CHAN,&zctx,ZMQ_SUB,(char)IMU_ACC_SCALED,1,INPUT_BUFFER_SIZE);
+    zsock_lisa_accel = setup_zmq_receiver(LISA_CHAN,&zctx,ZMQ_SUB,toArray(IMU_ACC_SCALED),1,INPUT_BUFFER_SIZE);
     if (NULL == zsock_lisa_accel)
         die(1);
-    zsock_lisa_mag = setup_zmq_receiver_filtered(LISA_CHAN,&zctx,ZMQ_SUB,(char)IMU_MAG_SCALED,1,INPUT_BUFFER_SIZE);
+    zsock_lisa_mag = setup_zmq_receiver(LISA_CHAN,&zctx,ZMQ_SUB,toArray(IMU_MAG_SCALED),1,INPUT_BUFFER_SIZE);
     if (NULL == zsock_lisa_mag)
         die(1);
 #endif
-    zsock_lisa_ahrs = setup_zmq_receiver_filtered(LISA_CHAN,&zctx,ZMQ_SUB,(char)AHRS_QUAT_INT,1,INPUT_BUFFER_SIZE);
+    zsock_lisa_ahrs = setup_zmq_receiver(LISA_CHAN,&zctx,ZMQ_SUB,toArray(AHRS_QUAT_INT),1,INPUT_BUFFER_SIZE);
     if (NULL == zsock_lisa_ahrs)
         die(1);
-    zsock_lisa_airspeed = setup_zmq_receiver_filtered(LISA_CHAN,&zctx,ZMQ_SUB,(char)AIRSPEED_ETS,1,INPUT_BUFFER_SIZE);
+    zsock_lisa_airspeed = setup_zmq_receiver(LISA_CHAN,&zctx,ZMQ_SUB,toArray(AIRSPEED_ETS),1,INPUT_BUFFER_SIZE);
     if (NULL == zsock_lisa_airspeed)
         die(1);
 

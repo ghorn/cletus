@@ -27,7 +27,7 @@ void quat_convert_to_double(const quaternion_t* const source, quaternion_double_
 void raw_to_protobuf(const xyz_int *const source, XyzProto *dest);
 void scaled_to_protobuf(const xyz_int *const source, XyzProto *dest, double coef);
 void copy_timestamp(const timestamp_t *const source, TimestampProto *dest);
-
+char * toArray(int number);
 
 
 
