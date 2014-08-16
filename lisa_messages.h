@@ -31,7 +31,7 @@ enum Message_id{
 };
 
 
-typedef struct { // id = 57
+typedef struct __attribute__((packed)){ // id = 57
   uint16_t adc;
   uint16_t offset;
   float scaled;
@@ -39,20 +39,20 @@ typedef struct { // id = 57
 
 
 
-typedef struct { // id = 133
+typedef struct __attribute__((packed)){ // id = 133
   int32_t mx;
   int32_t my;
   int32_t mz;
 } MSG_Mag_scaled;
 
 
-typedef struct { // id = 131
+typedef struct __attribute__((packed)){ // id = 131
   int32_t gx;
   int32_t gy;
   int32_t gz;
 } MSG_Gyro_scaled;
 
-typedef struct { // id = 133
+typedef struct __attribute__((packed)){ // id = 133
   int32_t ax;
   int32_t ay;
   int32_t az;
