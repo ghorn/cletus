@@ -289,9 +289,10 @@ inline void *setup_zmq_receiver(const char *path, void **context,
     goto eit;
   if (ZMQ_SUB == type) {
     _filter = filter;
-    if (zfilter(sockit, filter) < 0)
+    if (zfilter(sockit, filter) < 0){
       goto eit;
     _filter = NULL;
+    }
   }
   if (zaddpath(sockit, path) < 0)
     goto eit;
