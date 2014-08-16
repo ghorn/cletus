@@ -140,7 +140,7 @@ int main(int argc __attribute__((unused)),
                         AIRSPEED_ETS, airspeed.adc, airspeed.offset, airspeed.scaled );
                 break;
             case IMU_ACCEL_RAW:
-            case IMU_ACC_SCALED:
+            case IMU_ACCEL_SCALED:
                 memcpy(&accel, &buffer[1], sizeof(MSG_Accel_scaled));
                 fprintf(log_file,"%u ; %lld.%.9ld ; %i ; %i ; %i ; %i \n",counter, (long long)timestamp.tv_sec, timestamp.tv_nsec,
                         buffer[0], accel.ax, accel.ay, accel.az );
