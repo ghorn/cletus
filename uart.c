@@ -40,7 +40,7 @@ int add_timestamp(uint8_t*const buffer,const int msg_length){
     int timestamp_position = msg_length - BYTES_HEADER - BYTES_CHECKSUM;
     memcpy(&buffer[timestamp_position],&timestamp,sizeof(timestamp));
 
-    return timestamp_position + sizeof(timestamp) +1;
+    return timestamp_position + sizeof(timestamp);
 }
 
 
