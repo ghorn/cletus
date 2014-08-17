@@ -21,6 +21,8 @@
 
 #include "./lisa_messages.h"
 
+
+
 //#define ALL
 //#define DEBUG
 #ifdef ALL
@@ -353,7 +355,7 @@ int main(int argc __attribute__((unused)),
             else {
                 copy_timestamp(&(data_ptr->imu_raw.imu_gyro.timestamp),gyro.timestamp);
 #ifdef DEBUG
-                printf("Received GYRO (ID:%u) and timestamp %lu.%lu sec ",
+                printf("Received GYRO (ID:%u) and timestamp %"PRIu64".%"PRIu64"  sec ",
                        data_ptr->imu_raw.imu_gyro.id,
                        gyro.timestamp->tsec,
                        gyro.timestamp->tnsec);
@@ -381,7 +383,7 @@ int main(int argc __attribute__((unused)),
             else {
                 copy_timestamp(&(data_ptr->imu_raw.imu_accel.timestamp),accel.timestamp);
 #ifdef DEBUG
-                printf("Received ACCELERATION (ID:%i) and timestamp %lu.%lu sec ",
+                printf("Received ACCELERATION (ID:%i) and timestamp %"PRIu64".%"PRIu64"  sec ",
                        data_ptr->imu_raw.imu_accel.id,
                        accel.timestamp->tsec,
                        accel.timestamp->tnsec);
@@ -410,7 +412,7 @@ int main(int argc __attribute__((unused)),
             else {
                 copy_timestamp(&(data_ptr->imu_raw.imu_mag.timestamp),mag.timestamp);
 #ifdef DEBUG
-                printf("Received MAGNETOMETER (ID:%i) and timestamp %lu.%lu sec ",
+                printf("Received MAGNETOMETER (ID:%i) and timestamp %"PRIu64".%"PRIu64"  sec ",
                        data_ptr->imu_raw.imu_mag.id,
                        mag.timestamp->tsec,
                        mag.timestamp->tnsec);
