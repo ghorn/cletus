@@ -87,6 +87,9 @@ void raw_to_protobuf(const xyz_int *const source, XyzProto *dest)
   dest->x = (double)source->x;
   dest->y = (double)source->y;
   dest->z = (double)source->z;
+#ifdef DEBUG
+  printf(" X: %f ; Y: %f ; Z: %f \n",dest->x,dest->y,dest->z);
+#endif
 }
 
 void scaled_to_protobuf(const xyz_int *const source, XyzProto *dest, double coef)
@@ -94,6 +97,9 @@ void scaled_to_protobuf(const xyz_int *const source, XyzProto *dest, double coef
   dest->x = (double)source->x * coef;
   dest->y = (double)source->y * coef;
   dest->z = (double)source->z * coef;
+#ifdef DEBUG
+  printf(" X: %f ; Y: %f ; Z: %f \n",dest->x,dest->y,dest->z);
+#endif
 }
 
 void copy_timestamp(const timestamp_t *const source, TimestampProto *dest)
