@@ -32,6 +32,7 @@
 #endif
 
 
+
 const double gyro_scale_unit_coef = 0.0139882;
 const double acc_scale_unit_coef = 0.0009766;
 const double mag_scale_unit_coef = 0.0004883;
@@ -297,8 +298,8 @@ int main(int argc __attribute__((unused)),
 
 
 
-    void *zmq_buffer;
-    zmq_buffer = malloc(1024);
+    uint8_t zmq_buffer[1024];
+    void* zmq_buffer_ptr = &zmq_buffer;
     unsigned int length;
 
 
@@ -351,27 +352,18 @@ int main(int argc __attribute__((unused)),
             }
             else {
                 copy_timestamp(&(data_ptr->imu_raw.imu_gyro.timestamp),gyro.timestamp);
-#ifdef RAW
-                raw_to_protobuf(&(data_ptr->imu_raw.imu_gyro.data),&(protobuf_ptr->gyro->data)
-                #ifdef DEBUG
-
-                                printf("Received GYRO RAW with timestamp %lu%lu \n X: %u\tY: %u\t Z: %u\t \n",
-                                       (long unsigned)data_ptr->imu_raw.imu_gyro.timestamp.tsec, (long unsigned)data_ptr->imu_raw.imu_gyro.timestamp.tsec,
-                                       data_ptr->imu_raw.imu_gyro.data.x,
-                                       data_ptr->imu_raw.imu_gyro.data.y,
-                                       data_ptr->imu_raw.imu_gyro.data.z );
-        #endif
-        #else
-                scaled_to_protobuf(&(data_ptr->imu_raw.imu_gyro.data), gyro.data, gyro_scale_unit_coef);
 #ifdef DEBUG
-
-                printf("Received GYRO SCALED with timestamp %lu%lu \n X: %f\tY: %f\t Z: %f\t \n",
-                       (long unsigned)data_ptr->imu_scaled.imu_gyro_scaled.timestamp.tsec, (long unsigned)data_ptr->imu_scaled.imu_gyro_scaled.timestamp.tsec,
-                       data_ptr->imu_scaled.imu_gyro_scaled.data.x,
-                       data_ptr->imu_scaled.imu_gyro_scaled.data.y,
-                       data_ptr->imu_scaled.imu_gyro_scaled.data.z );
-
+                printf("Received GYRO (ID:%u) and timestamp %lu.%lu sec ",
+                       data_ptr->imu_raw.imu_gyro.id,
+                       gyro.timestamp->tsec,
+                       gyro.timestamp->tnsec);
 #endif
+#ifdef RAW
+                raw_to_protobuf(&(data_ptr->imu_raw.imu_gyro.data),&(protobuf_ptr->gyro->data);
+
+                #else
+                scaled_to_protobuf(&(data_ptr->imu_raw.imu_gyro.data), gyro.data, gyro_scale_unit_coef);
+
 #endif
             }
         }
@@ -388,28 +380,18 @@ int main(int argc __attribute__((unused)),
             }
             else {
                 copy_timestamp(&(data_ptr->imu_raw.imu_accel.timestamp),accel.timestamp);
+#ifdef DEBUG
+                printf("Received ACCELERATION (ID:%i) and timestamp %lu.%lu sec ",
+                       data_ptr->imu_raw.imu_accel.id,
+                       accel.timestamp->tsec,
+                       accel.timestamp->tnsec);
+#endif
 #ifdef RAW
-                raw_to_protobuf(&(data_ptr->imu_raw.imu_accel.data),&(protobuf_ptr->accel->data)
+                raw_to_protobuf(&(data_ptr->imu_raw.imu_accel.data),&(protobuf_ptr->accel->data);
 
-                #ifdef DEBUG
-
-                                printf("Received ACCELERATION RAW with timestamp %lu%lu \n X: %u\tY: %u\t Z: %u\t \n",
-                                       (long unsigned)data_ptr->imu_raw.imu_accel.timestamp.tsec, (long unsigned)data_ptr->imu_raw.imu_accel.timestamp.tsec,
-                                       data_ptr->imu_raw.imu_accel.data.x,
-                                       data_ptr->imu_raw.imu_accel.data.y,
-                                       data_ptr->imu_raw.imu_accel.data.z );
-        #endif
         #else
                 scaled_to_protobuf(&(data_ptr->imu_raw.imu_accel.data), accel.data, acc_scale_unit_coef);
-#ifdef DEBUG
 
-                printf("Received ACCELERATION SCALED with timestamp %lu%lu \n X: %f\tY: %f\t Z: %f\t \n",
-                       (long unsigned)data_ptr->imu_scaled.imu_accel_scaled.timestamp.tsec, (long unsigned)data_ptr->imu_scaled.imu_accel_scaled.timestamp.tsec,
-                       data_ptr->imu_scaled.imu_accel_scaled.data.x,
-                       data_ptr->imu_scaled.imu_accel_scaled.data.y,
-                       data_ptr->imu_scaled.imu_accel_scaled.data.z );
-
-#endif
 #endif
             }
         }
@@ -427,29 +409,18 @@ int main(int argc __attribute__((unused)),
             }
             else {
                 copy_timestamp(&(data_ptr->imu_raw.imu_mag.timestamp),mag.timestamp);
+#ifdef DEBUG
+                printf("Received MAGNETOMETER (ID:%i) and timestamp %lu.%lu sec ",
+                       data_ptr->imu_raw.imu_mag.id,
+                       mag.timestamp->tsec,
+                       mag.timestamp->tnsec);
+#endif
 
 #ifdef RAW
-                raw_to_protobuf(&(data_ptr->imu_raw.imu_mag.data),&(protobuf_ptr->mag->data)
-                #ifdef DEBUG
+                raw_to_protobuf(&(data_ptr->imu_raw.imu_mag.data),&(protobuf_ptr->mag->data);
 
-                                printf("Received MAGNETOMETER RAW with timestamp %lu%lu \n X: %u\tY: %u\t Z: %u\t \n",
-                                       (long unsigned)data_ptr->imu_raw.imu_mag.timestamp.tsec, (long unsigned)data_ptr->imu_raw.imu_mag.timestamp.tsec,
-                                       data_ptr->imu_raw.imu_mag.data.x,
-                                       data_ptr->imu_raw.imu_mag.data.y,
-                                       data_ptr->imu_raw.imu_mag.data.z );
-        #endif
         #else
                 scaled_to_protobuf(&(data_ptr->imu_raw.imu_mag.data), mag.data, mag_scale_unit_coef);
-
-#ifdef DEBUG
-
-                printf("Received ACCELERATION SCALED with timestamp %lu%lu \n X: %f\tY: %f\t Z: %f\t \n",
-                       (long unsigned)data_ptr->imu_scaled.imu_mag_scaled.timestamp.tsec, (long unsigned)data_ptr->imu_scaled.imu_mag_scaled.timestamp.tsec,
-                       data_ptr->imu_scaled.imu_mag_scaled.data.x,
-                       data_ptr->imu_scaled.imu_mag_scaled.data.y,
-                       data_ptr->imu_scaled.imu_mag_scaled.data.z );
-
-#endif
 #endif
             }
         }
@@ -509,9 +480,9 @@ int main(int argc __attribute__((unused)),
             //pack
             sensors_proto__pack(&sensors,zmq_buffer);
 
-
-            const int zs = zmq_sendm(zsock_sensors, zmq_buffer, &length, 1);
             length = sensors_proto__get_packed_size(&sensors);
+
+            const int zs = zmq_sendm(zsock_sensors, zmq_buffer_ptr, &length, 1);
 
             if (zs < 0) {
                 txfails++;
