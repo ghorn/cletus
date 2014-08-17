@@ -253,11 +253,12 @@ int main(int argc __attribute__((unused)),
                     //Check 2: Checksum must be correct
                     if (check_checksum(msg_length,msg_data) == UART_ERR_NONE)
                     {
+
+                        const int new_length =add_timestamp(&msg_data[1], msg_length);
 #ifdef DEBUG
                         printf("Passed Checksum test. Sending Message [%i bytes] with ID %i\n",
-                               msg_length-3, msg_data[1]);
+                               new_length, msg_data[1]);
 #endif
-                        const int new_length =add_timestamp(&msg_data[1], msg_length);
                         switch (msg_data[1]) {
                         case IMU_ACCEL:
                         case IMU_ACCEL_RAW:
