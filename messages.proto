@@ -82,7 +82,7 @@ required Type type = 1;
 
 message Actuators_proto {
   required Timestamp_proto start = 1;
-  required Timestamp_proto stop = 2;
+  optional Timestamp_proto stop = 2;
   required double flaps = 3;
   required double ail = 4;
   required double rudd = 5;
