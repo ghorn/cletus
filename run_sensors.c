@@ -302,7 +302,7 @@ int main(int argc __attribute__((unused)),
 
     uint8_t zmq_buffer[1024];
     void* zmq_buffer_ptr = &zmq_buffer;
-    unsigned int length;
+    unsigned int packed_length;
 
 
     lisa_messages_t data_container;
@@ -363,7 +363,7 @@ int main(int argc __attribute__((unused)),
 #ifdef RAW
                 raw_to_protobuf(&(data_ptr->imu_raw.imu_gyro.data),&(protobuf_ptr->gyro->data);
 
-                #else
+        #else
                 scaled_to_protobuf(&(data_ptr->imu_raw.imu_gyro.data), gyro.data, gyro_scale_unit_coef);
 
 #endif
@@ -436,6 +436,9 @@ int main(int argc __attribute__((unused)),
         //********************************************
         if (poll_lisa_gyro->revents > 0 && poll_lisa_mag->revents > 0 && poll_lisa_accel->revents > 0)
         {
+            sensors.accel = &accel;
+            sensors.gyro = &gyro;
+            sensors.mag = &mag;
 #if defined(AIRSPEED) && defined(GPS)
             if (poll_lisa_airspeed->revents > 0 && poll_lisa_gps->revents > 0)
             {
@@ -478,26 +481,28 @@ int main(int argc __attribute__((unused)),
             sensors.type = SENSORS_PROTO__TYPE__IMU_ONLY;
 #endif
 
-
-            //pack
+            //get size of packed data
+            packed_length = sensors_proto__get_packed_size(&sensors);
+            //pack data to buffer
             sensors_proto__pack(&sensors,zmq_buffer);
 
-            length = sensors_proto__get_packed_size(&sensors);
 
-            const int zs = zmq_sendm(zsock_sensors, zmq_buffer_ptr, &length, 1);
+            const int zs = zmq_send(zsock_sensors, zmq_buffer_ptr, packed_length, 0);
 
             if (zs < 0) {
                 txfails++;
             } else {
-                printf("IMU sent to controller!, size: %d\n", (int)sizeof(imu_raw_t));
+                printf("IMU sent to controller!, size: %u\n", packed_length);
                 poll_sensors->events = 0;
             }
+            //Resetting
             poll_sensors->revents = 0;
             poll_lisa_gyro->revents = 0;
             poll_lisa_mag->revents = 0;
             poll_lisa_accel->revents = 0;
             poll_lisa_airspeed->revents = 0;
             poll_lisa_gps->revents = 0;
+            sensors_proto__init(&sensors);
         }
 
 
