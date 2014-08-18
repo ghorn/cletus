@@ -104,7 +104,8 @@ void scaled_to_protobuf(const xyz_int *const source, XyzProto *dest, double coef
 
 void copy_timestamp(const timestamp_t *const source, TimestampProto *dest)
 {
-   memcpy(dest, source, sizeof(timestamp_t));
+   dest->tnsec = source->tnsec;
+   dest->tsec = source->tsec;
 }
 
 
