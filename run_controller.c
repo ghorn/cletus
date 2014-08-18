@@ -137,14 +137,14 @@ int main(int argc __attribute__((unused)),
     SensorsProto *sensors_ptr;         // Sensors
     ActuatorsProto actuators = ACTUATORS_PROTO__INIT;
     TimestampProto actuators_timstamp_start = TIMESTAMP_PROTO__INIT;
-    TimestampProto actuators_timstamp_stop = TIMESTAMP_PROTO__INIT;
+//    TimestampProto actuators_timstamp_stop = TIMESTAMP_PROTO__INIT;
     actuators.start = &actuators_timstamp_start;
-    actuators.stop = &actuators_timstamp_stop;
+//    actuators.stop = &actuators_timstamp_stop;
 
 
 
     const u_int8_t npolls = sizeof(polls) / sizeof(polls[0]);
-    u_int32_t length;
+    unsigned int packed_length;
 
     clock_gettime(CLOCK_MONOTONIC ,&t);
     /* start after one second */
@@ -181,20 +181,12 @@ int main(int argc __attribute__((unused)),
 
         if (bail) die(bail);
         if (poll_sensors->revents & ZMQ_POLLIN) {
-            const int zr = zmq_recvm(zsock_sensors, zmq_buffer,
-                                     MAX_MSG_SIZE);
-            if (zr < (int) MAX_MSG_SIZE)
-            {
-                err("couldn't read sensors!");
-                rxfails++;
-                /* Better clear the output flag, in case we corrupted the
-                   * data. */
-                poll_actuators->events = 0;
-                poll_log->events = 0;
-            }
-            else
-            {
-                sensors_ptr = sensors_proto__unpack(NULL, MAX_MSG_SIZE, zmq_buffer);
+            const int zmq_received = zmq_recvm(zsock_sensors, zmq_buffer,
+                                     MESSAGE__CONSTANTS__MAX_MESSAGE_SIZE);
+
+                sensors_ptr = sensors_proto__unpack(NULL, zmq_received, zmq_buffer);
+                if (sensors_ptr != NULL)
+                {
 #ifdef DEBUG
                 printf("Controller received Sensor data containing: ");
                 switch (sensors_ptr->type) {
@@ -220,7 +212,7 @@ int main(int argc __attribute__((unused)),
 #endif
                 /* Here is where you might run your controller when you get a
                    * complete set of sensor inputs. */
-                //run_demo_controller(&y_incoming, &u_outgoing);
+                run_demo_controller(sensors_ptr, &actuators);
                 /* Controller went OK (it had damn well better) -- enable
                    * output sockets. */
 #ifdef DEBUG
@@ -236,9 +228,9 @@ int main(int argc __attribute__((unused)),
 
         if (bail) die(bail);
         if (poll_actuators->revents & ZMQ_POLLOUT) {
-            length = actuators_proto__get_packed_size(&actuators); //
+            packed_length = actuators_proto__get_packed_size(&actuators); //
             actuators_proto__pack(&actuators, zmq_buffer);
-            const int zs = zmq_sendm(zsock_actuators,(void*) zmq_buffer, &length,1);
+            const int zs = zmq_send(zsock_actuators,zmq_buffer, packed_length,0);
             if (zs < 0) {
                 txfails++;
             } else {
