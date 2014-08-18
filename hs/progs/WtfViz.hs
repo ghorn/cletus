@@ -20,15 +20,11 @@
 {-# Language OverloadedStrings #-}
 {-# Language CPP #-}
 
---module Main ( main ) where
+module Main ( main ) where
 
 import System.Random ( Random(..), randomRs, mkStdGen)
-import Data.ByteString.Char8 ( unpack )
-import qualified System.ZMQ4 as ZMQ
 import Control.Concurrent ( MVar, forkIO, modifyMVar_, newMVar, readMVar)
-import Control.Monad ( unless, forever )
-import qualified Data.ByteString as BS
-import qualified Data.ByteString.Lazy as BSL
+import Control.Monad ( forever )
 import qualified Data.Foldable as F
 --import System.Remote.Monitoring ( forkServer )
 import qualified Text.ProtocolBuffers as PB
@@ -40,6 +36,8 @@ import qualified Messages.Xyz as Msg
 import qualified Messages.SimTelem as Msg
 import qualified Messages.AcState as Msg
 import qualified Messages.Dcm as Msg
+
+import qualified ZmqHelpers as Zmq
 
 import DrawAC
 import Channels ( chanSimTelem )
@@ -106,7 +104,7 @@ drawFun state@(State {sTelem=Just telem}) =
     pos@(V3 x y z) = fromXyz (Msg.r_n2b_n cs)
     quat = quatOfDcm (fromDcm (Msg.dcm_n2b cs))
 
-    visSpan = 1
+    visSpan = 1.5
 
     points = Points (sParticles state) (Just 2) $ makeColor 1 1 1 0.5
     zLine = Line [V3 x y (planeZ-0.01), pos]            $ makeColor 0.1 0.2 1 0.5
@@ -199,17 +197,13 @@ updateState telem x0 =
 
 
 sub :: MVar State -> IO ()
-sub m = ZMQ.withContext $ \context ->
-  ZMQ.withSocket context ZMQ.Sub $ \subscriber -> do
-    ZMQ.connect subscriber chanSimTelem
-    let channel = "sim_telemetry"
-    ZMQ.subscribe subscriber channel
+sub m = Zmq.withContext $ \context ->
+  Zmq.withSubscriber context chanSimTelem "sim_telemetry" $ \receive -> do
     forever $ do
-      channel':msg <- ZMQ.receiveMulti subscriber :: IO [BS.ByteString]
-      unless (channel' == channel) $ error $ "bad channel: " ++ unpack channel'
-      let cs = case PB.messageGet (BSL.concat (map BSL.fromStrict msg)) of
+      msg <- receive
+      let cs = case Zmq.decodeProto msg of
             Left err -> error err
-            Right (cs',_) -> cs'
+            Right cs' -> cs'
       modifyMVar_ m (updateState cs)
       return ()
 

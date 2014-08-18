@@ -87,19 +87,19 @@ instance (Lookup a, Generic a) => Lookup (AcR a)
 
 aircraftOde :: forall a. Floating a =>
        (a, M33T B B a) -> AeroForceCoeffs a -> AeroMomentCoeffs a -> AeroRefs a ->
-       AcX a -> AcU a -> (AcX a, V3T B a)
+       AcX a -> AcU a -> (AcX a, (V3T B a, AeroOutputs a))
 aircraftOde
   (mass, inertia)
   forceCoeffs
   momentCoeffs
   refs
   (AcX       _  v_bn_b  dcm_n2b  w_bn_b )
-  (AcU controlSurfaces) = (ddtState, v_bn_b')
+  (AcU controlSurfaces) = (ddtState, (v_bn_b', outputs))
   where
     v_bw_b :: V3T B a
     v_bw_b = v_bn_b -- no wind for now
 
-    (aero_forces_body', moments_body') =
+    (aero_forces_body', moments_body', outputs) =
       aeroForcesMoments forceCoeffs momentCoeffs refs (unV v_bw_b) (unV w_bn_b) controlSurfaces
     aero_forces_body = V3T aero_forces_body' :: V3T B a
     moments_body = V3T moments_body' :: V3T B a

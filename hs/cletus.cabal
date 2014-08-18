@@ -15,6 +15,8 @@ cabal-version:       >=1.10
 library
   hs-source-dirs:      src
   exposed-modules:     Channels
+                       , MsgHelpers
+                       , ZmqHelpers
                        , SpatialMathT
                        , Model.Aircraft
                        , Model.AeroCoeffs
@@ -27,6 +29,11 @@ library
                        , dynobud
                        , linear >=1.10
                        , spatial-math
+                       , zeromq4-haskell
+                       , bytestring
+                       , semigroups
+                       , clock
+
   default-language: Haskell2010
 
 executable rc
@@ -37,11 +44,31 @@ executable rc
                        , usb >= 1.2.0.1 && < 1.3
                        , bytestring
                        , vector
-                       , zeromq4-haskell
-                       , semigroups
-                       , protocol-buffers
                        , cmdargs
   default-language:    Haskell2010
+
+executable opt-o-mex
+  hs-source-dirs:      progs
+  main-is:             Optimize.hs
+  build-depends:       base >=4.7 && <4.8
+                       , cletus
+                       , dynobud
+                       , linear >=1.10
+                       , cereal
+                       , vector
+                       , containers
+                       , protocol-buffers
+  default-language:    Haskell2010
+
+executable dynoplot
+  hs-source-dirs:      progs
+  main-is:             DynoPlot.hs
+  default-language:    Haskell2010
+  build-depends:       base >=4.6 && <5
+                       , dynobud
+                       , cletus
+                       , vector
+  ghc-options:         -O2
 
 executable sim
   hs-source-dirs:      progs
@@ -49,13 +76,11 @@ executable sim
   other-modules:
   build-depends:         base >=4.7 && <4.8
                        , cletus
-                       , bytestring
-                       , semigroups
                        , containers
                        , zeromq4-haskell
                        , clock
                        , protocol-buffers
-                       , linear >=1.10 && <1.11
+                       , linear >=1.10
   default-language:    Haskell2010
 
 
@@ -68,11 +93,36 @@ executable wtfviz
                      , spatial-math
                      , not-gloss >= 0.5.0
                      , random
-                     , bytestring
-                     , zeromq4-haskell
                      , protocol-buffers
 --                     , ekg
 
-  ghc-options:       -O2 -threaded -with-rtsopts=-T
+  ghc-options:        -O2 -threaded -with-rtsopts=-T
   default-language:    Haskell2010
 
+executable optviz
+  hs-source-dirs:    progs
+  main-is:           OptViz.hs
+  other-modules:     DrawAC
+  build-depends:       base >= 4.5.0 && < 4.8
+                     , cletus
+                     , spatial-math
+                     , not-gloss >= 0.5.0
+                     , random
+                     , protocol-buffers
+--                     , ekg
+
+  ghc-options:        -O2 -threaded -with-rtsopts=-T
+  default-language:    Haskell2010
+
+executable plotter
+  hs-source-dirs:    progs
+  main-is:           Plotter.hs
+  other-modules:
+  build-depends:       base >= 4.5.0 && < 4.8
+                     , cletus
+                     , protocol-buffers
+                     , Plot-ho-matic >= 0.4.0.0
+--                     , ekg
+
+  ghc-options:        -O2 -threaded -with-rtsopts=-T
+  default-language:    Haskell2010
