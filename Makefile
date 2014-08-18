@@ -1,5 +1,5 @@
 # What's the executable called?
-PROJ =  run_controller run_actuators run_sensors run_function_test run_uart tests/test_uart tests/test_lisa_message tests/log_lisa
+PROJ =  run_controller run_actuators run_sensors run_function_test run_uart tests/test_uart tests/test_lisa_message tests/log_lisa sim_uart
 
 
 
@@ -17,7 +17,8 @@ C_SRC = run_controller.c \
         run_function_test.c \
         tests/test_uart.c   \
         tests/test_lisa_message.c \
-	tests/log_lisa.c
+	tests/log_lisa.c \
+	sim_uart.c
 
 
 CXX_SRC = \
@@ -65,7 +66,7 @@ CXX_WARNINGFLAGS += -Werror
 DEBUGFLAGS ?= -g -DDEBUG # -pg to generate profiling information
 
 ## Sensorflags for activating special sensor
-SENSORFLAGS ?= -DIMU
+#SENSORFLAGS ?= -DIMU
 #SENSORFLAGS ?= -DGPS
 #SENSORFLAGS ?= -DAIRSPEED
 #SENSORFLAGS ?= -DAHRS
