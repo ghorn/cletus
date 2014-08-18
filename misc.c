@@ -15,11 +15,27 @@ double floating_time(const timestamp_t * const t) {
   return (double)t->tsec + ((double)t->tnsec)/1e9;
 }
 
+double floating_ProtoTime(const TimestampProto * const t) {
+  return (double)t->tsec + ((double)t->tnsec)/1e9;
+}
+
 void gettime(timestamp_t * const t) {
   struct timespec ts;
   clock_gettime(CLOCK_MONOTONIC, &ts);
   t->tsec = ts.tv_sec;
   t->tnsec = ts.tv_nsec;
+}
+
+double calcCurrentLatency(timestamp_t * const ref) {
+  timestamp_t current;
+  gettime(&current);
+  return floating_time(&current) - floating_time(ref);
+}
+
+double calcCurrentLatencyProto(TimestampProto * const ref) {
+  timestamp_t current;
+  gettime(&current);
+  return floating_time(&current) - floating_ProtoTime(ref);
 }
 
 
@@ -58,4 +74,6 @@ void calc_next_shot(timespec* const t,const int interval)
       t->tv_sec++;
     }
 }
+
+
 

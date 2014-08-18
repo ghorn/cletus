@@ -10,6 +10,7 @@
 
 #include <time.h>
 #include "./structures.h"
+#include "./protos_c/messages.pb-c.h"
 #include <string.h>
 #include <sched.h>
 
@@ -29,6 +30,10 @@ void gettime(timestamp_t * const t);
 void stack_prefault(void);
 int set_priority(sched_param* const param, const int priority);
 void calc_next_shot(timespec* const t, const int interval);
+double floating_ProtoTime(const TimestampProto * const t);
+double calcCurrentLatency(timestamp_t * const ref);
+double calcCurrentLatencyProto(TimestampProto * const ref);
+
 
 //*******************************
 // MACROS for Console output

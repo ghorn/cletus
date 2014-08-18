@@ -359,10 +359,11 @@ int main(int argc __attribute__((unused)),
             else {
                 copy_timestamp(&(data_ptr->imu_raw.imu_gyro.timestamp),gyro.timestamp);
 #ifdef DEBUG
-                printf("Received GYRO (ID:%u) and timestamp %"PRIu64".%"PRIu64"  sec ",
+                printf("Received GYRO (ID:%u) and timestamp %"PRIu64".%"PRIu64"  sec (Latency:%fus) ",
                        data_ptr->imu_raw.imu_gyro.id,
                        gyro.timestamp->tsec,
-                       gyro.timestamp->tnsec);
+                       gyro.timestamp->tnsec,
+                       calcCurrentLatencyProto(gyro.timestamp)*1e6);
 #endif
 #ifdef RAW
                 raw_to_protobuf(&(data_ptr->imu_raw.imu_gyro.data),&(protobuf_ptr->gyro->data);
@@ -387,10 +388,11 @@ int main(int argc __attribute__((unused)),
             else {
                 copy_timestamp(&(data_ptr->imu_raw.imu_accel.timestamp),accel.timestamp);
 #ifdef DEBUG
-                printf("Received ACCELERATION (ID:%i) and timestamp %"PRIu64".%"PRIu64"  sec ",
+                printf("Received ACCELERATION (ID:%i) and timestamp %"PRIu64".%"PRIu64"  sec (Latency:%fus) ",
                        data_ptr->imu_raw.imu_accel.id,
                        accel.timestamp->tsec,
-                       accel.timestamp->tnsec);
+                       accel.timestamp->tnsec,
+                       calcCurrentLatencyProto(accel.timestamp)*1e6);
 #endif
 #ifdef RAW
                 raw_to_protobuf(&(data_ptr->imu_raw.imu_accel.data),&(protobuf_ptr->accel->data);
@@ -416,10 +418,11 @@ int main(int argc __attribute__((unused)),
             else {
                 copy_timestamp(&(data_ptr->imu_raw.imu_mag.timestamp),mag.timestamp);
 #ifdef DEBUG
-                printf("Received MAGNETOMETER (ID:%i) and timestamp %"PRIu64".%"PRIu64"  sec ",
+                printf("Received MAGNETOMETER (ID:%i) and timestamp %"PRIu64".%"PRIu64"  sec (Latency:%fus) ",
                        data_ptr->imu_raw.imu_mag.id,
                        mag.timestamp->tsec,
-                       mag.timestamp->tnsec);
+                       mag.timestamp->tnsec,
+                       calcCurrentLatencyProto(mag.timestamp)*1e6);
 #endif
 
 #ifdef RAW
