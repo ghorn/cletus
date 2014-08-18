@@ -78,8 +78,11 @@ int main(int argc __attribute__((unused)),
         signal(SIGABRT, SIG_IGN);
 
     /* ZMQ setup first. */
-
+#ifdef PUSHPULL
+    zsock_sensors = setup_zmq_receiver(SENSORS_CHAN, &zctx, ZMQ_PULL, NULL, 1, 500);
+#else
     zsock_sensors = setup_zmq_receiver(SENSORS_CHAN, &zctx, ZMQ_SUB, NULL, 1, 500);
+#endif
     if (NULL == zsock_sensors)
         return 1;
     zsock_actuators = setup_zmq_sender(ACTUATORS_CHAN, &zctx, ZMQ_PUB, 1, 500);
