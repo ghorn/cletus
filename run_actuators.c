@@ -113,7 +113,7 @@ int main(int argc __attribute__((unused)),
     }
 
   /* Actuator data storage. */
-  actuators_t incoming;
+  ActuatorsProto* incoming;
   lisa_message_t output;
   output.startbyte = 0x99;
   output.length = sizeof(lisa_message_t);
@@ -151,7 +151,7 @@ int main(int argc __attribute__((unused)),
   zmq_pollitem_t* poll_log = &polls[1];
 
   const int npolls = sizeof(polls) / sizeof(polls[0]);
-
+  uint8_t zmq_buffer[MESSAGE__CONSTANTS__MAX_MESSAGE_SIZE]; // Input data container for bytes
 
   clock_gettime(CLOCK_MONOTONIC ,&t);
   /* start after one second */
@@ -184,18 +184,16 @@ int main(int argc __attribute__((unused)),
       if (bail) die(bail);
       if (poll_controller->revents & ZMQ_POLLIN) {
           /* Read in some sensor data from this sensor. */
-          const int zr = zmq_recvm(zsock_in, (uint8_t *) &incoming,
-                                   sizeof(incoming));
-          if (zr < (int) sizeof(incoming)) {
-              err("couldn't read actuator commands!");
-              rxfails++;
-              /* Better clear the output flag, in case we corrupted the
-         * data. */
-              poll_log->events = 0;
-            } else {
-              printf("read from controller OK!, time: %.3f\n",floating_time(&(incoming.stop)));
-              /* Data OK -- enable output sockets. */
-              convert_for_lisa(&incoming, &output);
+          const int zr = zmq_recvm(zsock_in, zmq_buffer,
+                                  MESSAGE__CONSTANTS__MAX_MESSAGE_SIZE);
+          incoming = actuators_proto__unpack(NULL,zr,zmq_buffer);
+
+
+          if (incoming != NULL){
+              printf("Received Actuators message with timestamp %"PRIu64".%"PRIu64 "sec and \n rudd:%f\n elev:%f\n ail:%f\n flaps:%f\n",
+                     incoming->start->tsec, incoming->start->tnsec,
+                     incoming->rudd, incoming->elev, incoming->ail, incoming->flaps);
+              convert_for_lisa(incoming, &output);
               write_uart((uint8_t*)&output,sizeof(output));
 #ifdef DEBUG
               printf("Writing servo commannds 1 -> %i \n\t 2 -> %i\n\t 3 -> %i\n\t 4 -> %i\n\t 5 -> %i\n\t 6 -> %i\n\t 7 -> %i\n",
@@ -211,20 +209,20 @@ int main(int argc __attribute__((unused)),
 
 
       if (bail) die(bail);
-      if (poll_log->revents & ZMQ_POLLOUT) {
-          const uint8_t type = LOG_MESSAGE_SENSORS;
-          const void *bufs[] = {&type, &incoming};
-          const uint32_t lens[] = {sizeof(type), sizeof(incoming)};
-          const int zs = zmq_sendm(zsock_log, bufs, lens,
-                                   sizeof(lens) / sizeof(lens[0]));
-          if (zs < 0) {
-              txfails++;
-            } else {
-              printf("Sent to logger!\n");
-              poll_log->events = 0;
-            }
-          poll_log->revents = 0;
-        }
+//      if (poll_log->revents & ZMQ_POLLOUT) {
+//          const uint8_t type = LOG_MESSAGE_SENSORS;
+//          const void *bufs[] = {&type, &incoming};
+//          const uint32_t lens[] = {sizeof(type), sizeof(incoming)};
+//          const int zs = zmq_send(zsock_log, bufs, lens,
+//                                   sizeof(lens) / sizeof(lens[0]));
+//          if (zs < 0) {
+//              txfails++;
+//            } else {
+//              printf("Sent to logger!\n");
+//              poll_log->events = 0;
+//            }
+//          poll_log->revents = 0;
+//        }
 
       calc_next_shot(&t,rt_interval);
 
