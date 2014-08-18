@@ -31,12 +31,13 @@ const char device_path[] = "/sys/devices/bone_capemgr.9/slots"; //For Angstrom: 
 
 
 int add_timestamp(uint8_t*const buffer,const int msg_length){
-#if DEBUG  > 1
-    printf("Entering add_timestamp\n");
-#endif
+
 
     timestamp_t timestamp;
     gettime(&timestamp);
+#if DEBUG  > 1
+    printf("Added timestamp: %f\n", floating_time(&timestamp));
+#endif
     int timestamp_position = msg_length - BYTES_HEADER - BYTES_CHECKSUM;
     memcpy(&buffer[timestamp_position],&timestamp,sizeof(timestamp));
 

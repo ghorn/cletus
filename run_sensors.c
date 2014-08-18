@@ -92,14 +92,6 @@ int main(int argc __attribute__((unused)),
 
 
 
-    //uint8_t input_buffer[INPUT_BUFFER_SIZE];
-    //init the data decode pointers
-    //init_decoding();
-
-
-
-
-
     setbuf(stdin, NULL);
     /* Confignals. */
     if (signal(SIGINT, &sigdie) == SIG_IGN)
@@ -359,11 +351,10 @@ int main(int argc __attribute__((unused)),
             else {
                 copy_timestamp(&(data_ptr->imu_raw.imu_gyro.timestamp),gyro.timestamp);
 #ifdef DEBUG
-                printf("Received GYRO (ID:%u) and timestamp %"PRIu64".%"PRIu64"  sec (Latency:%fus) ",
+                printf("Received GYRO (ID:%u) and timestamp %f sec (Latency:%fms) ",
                        data_ptr->imu_raw.imu_gyro.id,
-                       gyro.timestamp->tsec,
-                       gyro.timestamp->tnsec,
-                       calcCurrentLatencyProto(gyro.timestamp)*1e6);
+                       floating_ProtoTime(gyro.timestamp),
+                       calcCurrentLatencyProto(gyro.timestamp)*1e3);
 #endif
 #ifdef RAW
                 raw_to_protobuf(&(data_ptr->imu_raw.imu_gyro.data),&(protobuf_ptr->gyro->data);
@@ -388,11 +379,10 @@ int main(int argc __attribute__((unused)),
             else {
                 copy_timestamp(&(data_ptr->imu_raw.imu_accel.timestamp),accel.timestamp);
 #ifdef DEBUG
-                printf("Received ACCELERATION (ID:%i) and timestamp %"PRIu64".%"PRIu64"  sec (Latency:%fus) ",
+                printf("Received ACCELERATION (ID:%i) and timestamp %f sec (Latency:%fms) ",
                        data_ptr->imu_raw.imu_accel.id,
-                       accel.timestamp->tsec,
-                       accel.timestamp->tnsec,
-                       calcCurrentLatencyProto(accel.timestamp)*1e6);
+                       floating_ProtoTime(accel.timestamp),
+                       calcCurrentLatencyProto(accel.timestamp)*1e3);
 #endif
 #ifdef RAW
                 raw_to_protobuf(&(data_ptr->imu_raw.imu_accel.data),&(protobuf_ptr->accel->data);
@@ -418,11 +408,10 @@ int main(int argc __attribute__((unused)),
             else {
                 copy_timestamp(&(data_ptr->imu_raw.imu_mag.timestamp),mag.timestamp);
 #ifdef DEBUG
-                printf("Received MAGNETOMETER (ID:%i) and timestamp %"PRIu64".%"PRIu64"  sec (Latency:%fus) ",
+                printf("Received MAGNETOMETER (ID:%i) and timestamp %f sec (Latency:%fms) ",
                        data_ptr->imu_raw.imu_mag.id,
-                       mag.timestamp->tsec,
-                       mag.timestamp->tnsec,
-                       calcCurrentLatencyProto(mag.timestamp)*1e6);
+                       floating_ProtoTime(mag.timestamp),
+                       calcCurrentLatencyProto(mag.timestamp)*1e3);
 #endif
 
 #ifdef RAW
@@ -510,6 +499,7 @@ int main(int argc __attribute__((unused)),
             poll_lisa_airspeed->revents = 0;
             poll_lisa_gps->revents = 0;
             sensors_proto__init(&sensors);
+
         }
 
 
