@@ -304,7 +304,7 @@ int main(int argc __attribute__((unused)),
 
 
 
-    uint8_t zmq_buffer[1024];
+    uint8_t zmq_buffer[MESSAGE__CONSTANTS__MAX_MESSAGE_SIZE];
     void* zmq_buffer_ptr = &zmq_buffer;
     unsigned int packed_length;
 

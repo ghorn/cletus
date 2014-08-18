@@ -131,7 +131,7 @@ int main(int argc __attribute__((unused)),
     zmq_pollitem_t* poll_log = &polls[2];
 
 
-    uint8_t zmq_buffer[MAX_MSG_SIZE]; // Input data container for bytes
+    uint8_t zmq_buffer[MESSAGE__CONSTANTS__MAX_MESSAGE_SIZE]; // Input data container for bytes
 
     //Placeholders for PROTOBUF data
     SensorsProto *sensors_ptr;         // Sensors

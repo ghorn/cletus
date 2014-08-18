@@ -4,6 +4,10 @@ enum Mode3 {
   Mode2 = 2;
 }
 
+enum Message_Constants{
+MAX_MESSAGE_SIZE = 256;
+}
+
 enum UpDown {
   Up = 0;
   Down = 1;
