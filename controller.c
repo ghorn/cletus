@@ -44,14 +44,18 @@
 ////         t0,tf,(tf-t0)*1e6, (t0 - floating_time(&(y->imu.imu_accel_scaled.timestamp)))*1e6);
 ////}
 
-////void run_demo_controller(const sensors_t * const y, actuators_t * const u) {
-////  if (y->imu.imu_accel_scaled.data.y != 0.0)
-////    u->rudd = y->imu.imu_accel_scaled.data.y;
-////  if (y->imu.imu_accel_scaled.data.y != 0.0)
-////    {
-////      u->flaps = y->imu.imu_accel_scaled.data.x;
-////      u->elev = y->imu.imu_accel_scaled.data.x;
-////      u->ail =  -1*y->imu.imu_accel_scaled.data.x;
-////    }
+void run_demo_controller(const SensorsProto* const y, ActuatorsProto* const u) {
+    if (y->accel->data->y != 0.0)
+        u->rudd = y->accel->data->y;
+    if (y->accel->data->y != 0.0)
+    {
+        u->flaps = y->accel->data->x;
+        u->elev = y->accel->data->x;
+        u->ail =  -1*y->accel->data->x;
+    }
+    timestamp_t timestamp;
+    gettime(&timestamp);
+    u->start->tsec = timestamp.tsec;
+    u->start->tnsec = timestamp.tnsec;
 
-//}
+}
