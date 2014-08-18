@@ -24,8 +24,9 @@
 //#include "./lisa_communication/data_decoding.h"
 
 const double coef = 1000.0;
+const int LENGTH_INDEX = 1;
 
-void convert_for_lisa(const actuators_t* const actuators, lisa_message_t* const msg)
+void convert_for_lisa(const ActuatorsProto* const actuators, lisa_message_t* const msg)
 {
   msg->servos_msg.servo_1 = (int16_t)(actuators->ail * coef);
   msg->servos_msg.servo_2 = (int16_t)(actuators->ail * coef);
@@ -35,5 +36,22 @@ void convert_for_lisa(const actuators_t* const actuators, lisa_message_t* const 
   msg->servos_msg.servo_6 = (int16_t)(actuators->rudd * coef);
   msg->servos_msg.servo_7 = 0;
 
-  //calculate_checksum((uint8_t*) msg, &(msg->checksum1), &(msg->checksum2));
+  calculate_checksum((uint8_t*) msg, &(msg->checksum1), &(msg->checksum2));
+}
+
+
+void calculate_checksum(uint8_t buffer[],uint8_t *checksum_1,uint8_t *checksum_2){
+#if DEBUG  > 1
+  printf("Entering calculate_checksum\n");
+#endif
+  int length = buffer[LENGTH_INDEX];
+  *checksum_1=0;
+  *checksum_2=0;
+
+  //start byte '0x99' is not in checksum
+  for (int i=1;i<length-2;i++)
+    {
+      *checksum_1 += buffer[i];
+      *checksum_2 += *checksum_1;
+    }
 }
