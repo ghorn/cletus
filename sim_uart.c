@@ -115,6 +115,8 @@ int main(int argc __attribute__((unused)),
     mag_dummy.id = IMU_MAG_SCALED;
     gyro_dummy.id = IMU_GYRO_SCALED;
 
+    uint8_t sequenceNumber = 0;
+
 
 
     /* Here's the main loop -- we only do stuff when input or output
@@ -130,20 +132,22 @@ int main(int argc __attribute__((unused)),
         if (bail) die(bail);
 
 
-
+        accel_dummy.id = sequenceNumber;
         accel_dummy.data.x = rand();
         accel_dummy.data.y = rand();
         accel_dummy.data.z = rand();
 
+        mag_dummy.id = sequenceNumber;
         mag_dummy.data.x = rand();
         mag_dummy.data.y = rand();
         mag_dummy.data.z = rand();
 
-
+        gyro_dummy.id = sequenceNumber;
         gyro_dummy.data.x = rand();
         gyro_dummy.data.y = rand();
         gyro_dummy.data.z = rand();
 
+        sequenceNumber++;
         timestamp_t timestamp;
         gettime(&timestamp);
         accel_dummy.timestamp = timestamp;
@@ -151,19 +155,29 @@ int main(int argc __attribute__((unused)),
         mag_dummy.timestamp = timestamp;
 
         printf("Timestamp: %f...",floating_time(&timestamp));
-
+        printf("ID: %u...",sequenceNumber);
         memcpy(&msg_data[0], &accel_dummy,sizeof(accel_raw_t));
-        zmq_send(zsock_accel,&msg_data[0],sizeof(accel_raw_t),0);
-        printf("Sending ACCEL...");
+        int returned = zmq_send(zsock_accel,&msg_data[0],sizeof(accel_raw_t),ZMQ_NOBLOCK);
+        printf("Sending ACCEL%i...", returned);
 
         memcpy(&msg_data[0], &mag_dummy, sizeof(mag_raw_t));
-        zmq_send(zsock_mag,&msg_data[0],sizeof(mag_raw_t),0);
-        printf("Sending MAG...");
+        returned = zmq_send(zsock_mag,&msg_data[0],sizeof(mag_raw_t),ZMQ_NOBLOCK);
+        printf("Sending MAG %i...", returned);
 
 
         memcpy(&msg_data[0], &gyro_dummy,sizeof(gyro_raw_t));
-        zmq_send(zsock_gyro,&msg_data[0],sizeof(gyro_raw_t),0);
-        printf("Sending GYRO...\n");
+        returned =  zmq_send(zsock_gyro,&msg_data[0],sizeof(gyro_raw_t),ZMQ_NOBLOCK);
+        printf("Sending GYRO%i...\n", returned);
+
+
+        int hwm;
+        size_t fd_size = sizeof(int);
+        zmq_getsockopt(zsock_gyro, ZMQ_SNDHWM, &hwm, &fd_size);
+        hwm = 1;
+        zmq_setsockopt(zsock_gyro, ZMQ_SNDHWM, &hwm, sizeof(int));
+
+        printf("HWM: %i", hwm);
+
 
         //sleep
         usleep(SLEEP_TIME_us);
