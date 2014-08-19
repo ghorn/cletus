@@ -138,7 +138,7 @@ clean:
 	rm -f $(PROJ)
 	rm -f $(PROTOS)
 	rm -f hs/src/Messages.hs
-	rm -rf hs/src/Messages
+	rm -rf hs/src/Messages/*
 	rm -f protos_cpp/messages.pb.*
 	rm -f protos_c/messages.pb-c.*
 	rm -f $(OBJ)
