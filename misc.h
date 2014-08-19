@@ -30,9 +30,9 @@ void gettime(timestamp_t * const t);
 void stack_prefault(void);
 int set_priority(sched_param* const param, const int priority);
 void calc_next_shot(timespec* const t, const int interval);
-double floating_ProtoTime(const TimestampProto * const t);
+double floating_ProtoTime(const Protobetty__Timestamp * const t);
 double calcCurrentLatency(timestamp_t * const ref);
-double calcCurrentLatencyProto(TimestampProto * const ref);
+double calcCurrentLatencyProto(Protobetty__Timestamp * const ref);
 
 
 //*******************************

@@ -113,7 +113,7 @@ int main(int argc __attribute__((unused)),
     }
 
   /* Actuator data storage. */
-  ActuatorsProto* incoming;
+  Protobetty__Actuators* incoming;
   lisa_message_t output;
   output.startbyte = 0x99;
   output.length = sizeof(lisa_message_t);
@@ -151,7 +151,7 @@ int main(int argc __attribute__((unused)),
   zmq_pollitem_t* poll_log = &polls[1];
 
   const int npolls = sizeof(polls) / sizeof(polls[0]);
-  uint8_t zmq_buffer[MESSAGE__CONSTANTS__MAX_MESSAGE_SIZE]; // Input data container for bytes
+  uint8_t zmq_buffer[PROTOBETTY__MESSAGE__CONSTANTS__MAX_MESSAGE_SIZE]; // Input data container for bytes
 
   clock_gettime(CLOCK_MONOTONIC ,&t);
   /* start after one second */
@@ -185,8 +185,8 @@ int main(int argc __attribute__((unused)),
       if (poll_controller->revents & ZMQ_POLLIN) {
           /* Read in some sensor data from this sensor. */
           const int zr = zmq_recvm(zsock_in, zmq_buffer,
-                                  MESSAGE__CONSTANTS__MAX_MESSAGE_SIZE);
-          incoming = actuators_proto__unpack(NULL,zr,zmq_buffer);
+                                  PROTOBETTY__MESSAGE__CONSTANTS__MAX_MESSAGE_SIZE);
+          incoming = protobetty__actuators__unpack(NULL,zr,zmq_buffer);
 
 
           if (incoming != NULL){

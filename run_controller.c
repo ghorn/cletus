@@ -131,12 +131,12 @@ int main(int argc __attribute__((unused)),
     zmq_pollitem_t* poll_log = &polls[2];
 
 
-    uint8_t zmq_buffer[MESSAGE__CONSTANTS__MAX_MESSAGE_SIZE]; // Input data container for bytes
+    uint8_t zmq_buffer[PROTOBETTY__MESSAGE__CONSTANTS__MAX_MESSAGE_SIZE]; // Input data container for bytes
 
     //Placeholders for PROTOBUF data
-    SensorsProto *sensors_ptr;         // Sensors
-    ActuatorsProto actuators = ACTUATORS_PROTO__INIT;
-    TimestampProto actuators_timstamp_start = TIMESTAMP_PROTO__INIT;
+    Protobetty__Sensors *sensors_ptr;         // Sensors
+    Protobetty__Actuators actuators = PROTOBETTY__ACTUATORS__INIT;
+    Protobetty__Timestamp actuators_timstamp_start = PROTOBETTY__TIMESTAMP__INIT;
 //    TimestampProto actuators_timstamp_stop = TIMESTAMP_PROTO__INIT;
     actuators.start = &actuators_timstamp_start;
 //    actuators.stop = &actuators_timstamp_stop;
@@ -182,27 +182,27 @@ int main(int argc __attribute__((unused)),
         if (bail) die(bail);
         if (poll_sensors->revents & ZMQ_POLLIN) {
             const int zmq_received = zmq_recvm(zsock_sensors, zmq_buffer,
-                                     MESSAGE__CONSTANTS__MAX_MESSAGE_SIZE);
+                                     PROTOBETTY__MESSAGE__CONSTANTS__MAX_MESSAGE_SIZE);
 
-                sensors_ptr = sensors_proto__unpack(NULL, zmq_received, zmq_buffer);
+                sensors_ptr = protobetty__sensors__unpack(NULL, zmq_received, zmq_buffer);
                 if (sensors_ptr != NULL)
                 {
 #ifdef DEBUG
                 printf("Controller received Sensor data containing: ");
                 switch (sensors_ptr->type) {
-                case SENSORS_PROTO__TYPE__IMU_ONLY:
+                case PROTOBETTY__SENSORS__TYPE__IMU_ONLY:
                     printf("IMU_ONLY\n");
                     break;
-                case SENSORS_PROTO__TYPE__IMU_GPS:
+                case PROTOBETTY__SENSORS__TYPE__IMU_GPS:
                     printf("IMU ; GPS\n");
                     break;
-                case SENSORS_PROTO__TYPE__IMU_AIRSPEED:
+                case PROTOBETTY__SENSORS__TYPE__IMU_AIRSPEED:
                     printf("IMU ; AIRSPEED\n");
                     break;
-                case SENSORS_PROTO__TYPE__IMU_GPS_AIRSPEED:
+                case PROTOBETTY__SENSORS__TYPE__IMU_GPS_AIRSPEED:
                     printf("IMU ; GPS ; AIRSPEED\n");
                     break;
-                case _SENSORS_PROTO__TYPE_IS_INT_SIZE:
+                case _PROTOBETTY__SENSORS__TYPE_IS_INT_SIZE:
                     printf("INT SIZE case -> no vailid type\n");
                     break;
                 default:
@@ -228,8 +228,8 @@ int main(int argc __attribute__((unused)),
 
         if (bail) die(bail);
         if (poll_actuators->revents & ZMQ_POLLOUT) {
-            packed_length = actuators_proto__get_packed_size(&actuators); //
-            actuators_proto__pack(&actuators, zmq_buffer);
+            packed_length = protobetty__actuators__get_packed_size(&actuators); //
+            protobetty__actuators__pack(&actuators, zmq_buffer);
             const int zs = zmq_send(zsock_actuators,zmq_buffer, packed_length,0);
             if (zs < 0) {
                 txfails++;

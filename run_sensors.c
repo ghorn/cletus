@@ -255,48 +255,48 @@ int main(int argc __attribute__((unused)),
  *the pointer will set to the corresponding submessages
  */
     //Initializing Protobuf messages main sensor message
-    SensorsProto sensors = SENSORS_PROTO__INIT;
+    Protobetty__Sensors sensors = PROTOBETTY__SENSORS__INIT;
 #ifdef IMU
     //Initialize Protobuf for Gyro
-    GyroProto gyro = GYRO_PROTO__INIT;
-    TimestampProto gyro_timestamp = TIMESTAMP_PROTO__INIT;
-    XyzProto gyro_data = XYZ_PROTO__INIT;
+    Protobetty__Gyro gyro =PROTOBETTY__GYRO__INIT;
+    Protobetty__Timestamp gyro_timestamp = PROTOBETTY__TIMESTAMP__INIT;
+    Protobetty__Xyz gyro_data = PROTOBETTY__XYZ__INIT;
     gyro.data = &gyro_data;
     gyro.timestamp = &gyro_timestamp;
     //Initialize Protobuf for Accelerometer
-    AccelProto accel = ACCEL_PROTO__INIT;
-    TimestampProto accel_timestamp = TIMESTAMP_PROTO__INIT;
-    XyzProto accel_data = XYZ_PROTO__INIT;
+    Protobetty__Accel accel = PROTOBETTY__ACCEL__INIT;
+    Protobetty__Timestamp accel_timestamp = PROTOBETTY__TIMESTAMP__INIT;
+    Protobetty__Xyz accel_data = PROTOBETTY__XYZ__INIT;
     accel.data = &accel_data;
     accel.timestamp = &accel_timestamp;
     //Initialize Protobuf for Magnetometer
-    MagProto mag = MAG_PROTO__INIT;
-    TimestampProto mag_timestamp = TIMESTAMP_PROTO__INIT;
-    XyzProto mag_data = XYZ_PROTO__INIT;
+    Protobetty__Mag mag = PROTOBETTY__MAG__INIT;
+    Protobetty__Timestamp mag_timestamp = PROTOBETTY__TIMESTAMP__INIT;
+    Protobetty__Xyz mag_data = PROTOBETTY__XYZ__INIT;
     mag.data = &mag_data;
     mag.timestamp = &mag_timestamp;
 #endif
 #ifdef AIRSPEED
     //Initialize Protobuf for Airspeed
-    AirspeedProto airspeed = AIRSPEED_PROTO__INIT;
-    TimestampProto airspeed_timestamp = TIMESTAMP_PROTO__INIT;
+    Protobetty__Airspeed airspeed = PROTOBETTY__AIRSPEED__INIT;
+    Protobetty__Timestamp airspeed_timestamp = PROTOBETTY__TIMESTAMP__INIT;
     airspeed.timestamp = &airspeed_timestamp;
 #endif
 #ifdef GPS
     //Initialize Protobuf for GPS
-    GpsProto gps = GPS_PROTO__INIT;
-    TimestampProto gps_timestamp = TIMESTAMP_PROTO__INIT;
+    Protobetty__Gps gps = PROTOBETTY__GPS__INIT;
+    Protobetty__Timestamp gps_timestamp = PROTOBETTY__TIMESTAMP__INIT;
     gps.timestamp = &gps_timestamp;
-    XyzProto gps_pos = XYZ_PROTO__INIT;
+    Protobetty__Xyz gps_pos = PROTOBETTY__XYZ__INIT;
     gps.pos = &gps_pos;
-    XyzProto gps_vel = XYZ_PROTO__INIT;
+    Protobetty__Xyz gps_vel = PROTOBETTY__XYZ__INIT;
     gps.vel = &gps_vel;
 #endif
 
 
 
 
-    uint8_t zmq_buffer[MESSAGE__CONSTANTS__MAX_MESSAGE_SIZE];
+    uint8_t zmq_buffer[PROTOBETTY__MESSAGE__CONSTANTS__MAX_MESSAGE_SIZE];
     void* zmq_buffer_ptr = &zmq_buffer;
     unsigned int packed_length;
 
@@ -438,27 +438,27 @@ int main(int argc __attribute__((unused)),
 #if defined(AIRSPEED) && defined(GPS)
             if (poll_lisa_airspeed->revents > 0 && poll_lisa_gps->revents > 0)
             {
-                sensors.type = SENSORS_PROTO__TYPE__IMU_GPS_AIRSPEED;
+                sensors.type = PROTOBETTY__SENSORS__TYPE__IMU_GPS_AIRSPEED;
                 sensors.airspeed = &airspeed;
                 sensors.gps = &gps;
             }
             else if (poll_lisa_airspeed->revents > 0)
             {
-                sensors.type = SENSORS_PROTO__TYPE__IMU_AIRSPEED;
+                sensors.type = PROTOBETTY__SENSORS__TYPE__IMU_AIRSPEED;
                 sensors.airspeed = &airspeed;
             }
             else if (poll_lisa_gps->revents > 0)
             {
-                sensors.type = SENSORS_PROTO__TYPE__IMU_GPS;
+                sensors.type = PROTOBETTY__SENSORS__TYPE__IMU_GPS;
                 sensors.gps = &gps;
             }
             else
-                sensors.type = SENSORS_PROTO__TYPE__IMU_ONLY;
+                sensors.type = PROTOBETTY__SENSORS__TYPE__IMU_ONLY;
 #else
 #ifdef AIRSPEED
             if (poll_lisa_airspeed->revents > 0)
             {
-                sensors.type = SENSORS_PROTO__TYPE__IMU_AIRSPEED;
+                sensors.type = PROTOBETTY__SENSORS__TYPE__IMU_AIRSPEED;
                 sensors.airspeed = &airspeed;
             }
             else
@@ -467,20 +467,20 @@ int main(int argc __attribute__((unused)),
 #ifdef GPS
             if (poll_lisa_gps->revents > 0)
             {
-                sensors.type = SENSORS_PROTO__TYPE__IMU_GPS;
+                sensors.type = PROTOBETTY__SENSORS__TYPE__IMU_GPS;
                 sensors.gps = &gps;
             }
             else
-                sensors.type = SENSORS_PROTO__TYPE__IMU_ONLY;
+                sensors.type = PROTOBETTY__SENSORS__TYPE__IMU_ONLY;
 #endif
 
-            sensors.type = SENSORS_PROTO__TYPE__IMU_ONLY;
+            sensors.type = PROTOBETTY__SENSORS__TYPE__IMU_ONLY;
 #endif
 
             //get size of packed data
-            packed_length = sensors_proto__get_packed_size(&sensors);
+            packed_length = protobetty__sensors__get_packed_size(&sensors);
             //pack data to buffer
-            sensors_proto__pack(&sensors,zmq_buffer);
+            protobetty__sensors__pack(&sensors,zmq_buffer);
 
 
             const int zs = zmq_send(zsock_sensors, zmq_buffer_ptr, packed_length, 0);
@@ -498,7 +498,7 @@ int main(int argc __attribute__((unused)),
             poll_lisa_accel->revents = 0;
             poll_lisa_airspeed->revents = 0;
             poll_lisa_gps->revents = 0;
-            sensors_proto__init(&sensors);
+            protobetty__sensors__init(&sensors);
 
         }
 

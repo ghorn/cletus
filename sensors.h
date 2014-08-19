@@ -24,9 +24,9 @@ void get_sensors(lisa_messages_t * const y);
 int get_lisa_data(lisa_messages_t * const data, uint8_t input_buffer[]);
 void xyz_convert_to_double(const xyz_int* const source, xyz_double * dest, double coef);
 void quat_convert_to_double(const quaternion_t* const source, quaternion_double_t *dest, double coef);
-void raw_to_protobuf(const xyz_int *const source, XyzProto *dest);
-void scaled_to_protobuf(const xyz_int *const source, XyzProto *dest, double coef);
-void copy_timestamp(const timestamp_t *const source, TimestampProto *dest);
+void raw_to_protobuf(const xyz_int *const source, Protobetty__Xyz *dest);
+void scaled_to_protobuf(const xyz_int *const source, Protobetty__Xyz *dest, double coef);
+void copy_timestamp(const timestamp_t *const source, Protobetty__Timestamp *dest);
 char * toArray(int number);
 
 
