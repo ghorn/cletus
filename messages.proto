@@ -114,8 +114,8 @@ message SimTelem_proto {
 }
 
 message AcPose {
-  required Xyz r_n2b_n = 1;
-  required Dcm dcm_n2b = 3;
+  required Xyz_proto r_n2b_n = 1;
+  required Dcm_proto dcm_n2b = 3;
 }
 
 message OptTelem {
