@@ -26,6 +26,13 @@ void gettime(timestamp_t * const t) {
   t->tnsec = ts.tv_nsec;
 }
 
+void get_protbetty_timestamp(Protobetty__Timestamp * const t) {
+  struct timespec ts;
+  clock_gettime(CLOCK_MONOTONIC, &ts);
+  t->tsec = ts.tv_sec;
+  t->tnsec = ts.tv_nsec;
+}
+
 double calcCurrentLatency(timestamp_t * const ref) {
   timestamp_t current;
   gettime(&current);
