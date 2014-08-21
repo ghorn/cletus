@@ -21,6 +21,8 @@
 
 #include "./uart.h"
 #include "./lisa_messages.h"
+#include "./print_output.h"
+
 
 
 #ifdef ALL
@@ -39,6 +41,10 @@ static void *zsock_mag = NULL;
 static void *zsock_accel = NULL;
 static void *zsock_airspeed = NULL;
 static void *zsock_lisa = NULL;
+static void *zsock_print = NULL;
+
+static char* TAG = "RUN_UART";
+
 
 static void *zsock_log = NULL;
 
@@ -106,6 +112,9 @@ int main(int argc __attribute__((unused)),
     zsock_airspeed = setup_zmq_sender(AIRSPEED_CHAN, &zctx, ZMQ_PUB, 5, 500);
     if (NULL == zsock_lisa)
         die(1);
+    zsock_print = setup_zmq_sender(PRINT_CHAN, &zctx, ZMQ_PUB, 5, 500);
+    if (NULL == zsock_print)
+        die(1);
 
 
     zmq_pollitem_t polls[] = {
@@ -169,7 +178,7 @@ int main(int argc __attribute__((unused)),
         //******************************************************
         /* Poll for activity on UART; time out after 10 milliseconds. */
         //******************************************************
-        const int polled = zmq_poll(polls, npolls, 5);
+        const int polled = zmq_poll(polls, npolls, 10);
         if (polled < 0) {
             if (bail) die(bail);
             zerr("while polling");
@@ -193,7 +202,7 @@ int main(int argc __attribute__((unused)),
                 if (msg_startbyte == LISA_STARTBYTE)
                 {
 #ifdef DEBUG
-                    printf("Read Lisa startbyte. \n");
+                    send_debug(zsock_print,TAG,"Read Lisa startbyte. \n");
 #endif
                     //Deactivate Startbyte poller
                     poll_startbyte->events = 0;
@@ -211,7 +220,7 @@ int main(int argc __attribute__((unused)),
             if(read_uart(&msg_length,1) ==1)
             {
 #ifdef DEBUG
-                printf("Read Message Length [%i bytes] \n", msg_length);
+                send_debug(zsock_print,TAG,"Read Message Length [%i bytes] \n", msg_length);
 #endif
                 if (msg_length < 100){
                     poll_length->events = 0;
@@ -245,7 +254,7 @@ int main(int argc __attribute__((unused)),
             else if(read_uart(msg_data,msg_length-2) == msg_length - 2) //without the already read startbyte and length
             {
 #ifdef DEBUG
-                printf("Message was read completely \n");
+                send_debug(zsock_print,TAG,"Message was read completely \n");
 #endif
                 //Check 1: Sender ID must be correct.
                 if (msg_data[0] == SENDER_ID)
@@ -256,7 +265,7 @@ int main(int argc __attribute__((unused)),
 
                         const int new_length =add_timestamp(&msg_data[1], msg_length);
 #ifdef DEBUG
-                        printf("Passed Checksum test. Sending Message [%i bytes] with ID %i\n",
+                        send_debug(zsock_print,TAG,"Passed Checksum test. Sending Message [%i bytes] with ID %i\n",
                                new_length, msg_data[1]);
 #endif
                         switch (msg_data[1]) {
@@ -286,7 +295,7 @@ int main(int argc __attribute__((unused)),
                     }
                 }
                 else{
-                    printf("ERROR wrong SENDER ID %i\n",msg_data[0]);
+                    send_debug(zsock_print,TAG,"ERROR wrong SENDER ID %i\n",msg_data[0]);
                     serial_port_flush_input();
                 }
                 msg_length_counter = 0;

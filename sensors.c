@@ -88,7 +88,7 @@ void raw_to_protobuf(const xyz_int *const source, Protobetty__Xyz *dest)
   dest->y = (double)source->y;
   dest->z = (double)source->z;
 #ifdef DEBUG
-  printf("\n X: %f ;\n Y: %f ;\n Z: %f \n",dest->x,dest->y,dest->z);
+//  printf("\n X: %f ;\n Y: %f ;\n Z: %f \n",dest->x,dest->y,dest->z);
 #endif
 }
 
@@ -98,7 +98,7 @@ void scaled_to_protobuf(const xyz_int *const source, Protobetty__Xyz *dest, doub
   dest->y = (double)source->y * coef;
   dest->z = (double)source->z * coef;
 #ifdef DEBUG
-  printf("\n X: %f ;\n Y: %f ;\n Z: %f \n",dest->x,dest->y,dest->z);
+ // printf("\n X: %f ;\n Y: %f ;\n Z: %f \n",dest->x,dest->y,dest->z);
 #endif
 }
 
