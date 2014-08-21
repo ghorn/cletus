@@ -93,10 +93,11 @@ static void sigdie(int signum) {
 int main(int argc __attribute__((unused)),
          char **argv __attribute__((unused))) {
 
-      struct sched_param param;
-      set_priority(&param, RT_PRIORITY);
-      stack_prefault();
-
+    struct sched_param param;
+    set_priority(&param, RT_PRIORITY);
+    stack_prefault();
+    struct timespec t;
+    int rt_interval = 5000000; /* 5ms*/
 
 
     setbuf(stdin, NULL);
@@ -317,6 +318,10 @@ int main(int argc __attribute__((unused)),
 
     const int npolls = sizeof(polls) / sizeof(polls[0]);
 
+    clock_gettime(CLOCK_MONOTONIC ,&t);
+    /* start after one second */
+    t.tv_sec++;
+
     /* const int noutputs = npolls - ninputs; */
 
     /* Here's the main loop -- we only do stuff when input or output
@@ -330,6 +335,8 @@ int main(int argc __attribute__((unused)),
    * mostly out of laziness. */
     for (;;) {
 
+        /* wait until next shot */
+        clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, &t, NULL);
         //Poll on activated channels for messages
         if (bail) die(bail);
         /* Poll for activity; time out after 10 milliseconds. */
@@ -337,11 +344,11 @@ int main(int argc __attribute__((unused)),
         if (polled < 0) {
             if (bail) die(bail);
             printf("while polling");
-            usleep(5000); // 200 Hz
+            calc_next_shot(&t,rt_interval);
             continue;
         } else if (polled == 0) {
             if (bail) die(bail);
-            usleep(5000); // 200 Hz
+            calc_next_shot(&t,rt_interval);
             continue;
         }
 
@@ -361,9 +368,9 @@ int main(int argc __attribute__((unused)),
                 copy_timestamp(&(data_ptr->imu_raw.imu_gyro.timestamp),gyro.timestamp);
 #ifdef DEBUG
                 send_debug(zsock_print,TAG,"Received GYRO (ID:%u) and timestamp %f sec (Latency:%fms) ",
-                       data_ptr->imu_raw.imu_gyro.id,
-                       floating_ProtoTime(gyro.timestamp),
-                       calcCurrentLatencyProto(gyro.timestamp)*1e3);
+                           data_ptr->imu_raw.imu_gyro.id,
+                           floating_ProtoTime(gyro.timestamp),
+                           calcCurrentLatencyProto(gyro.timestamp)*1e3);
 #endif
 #ifdef RAW
                 raw_to_protobuf(&(data_ptr->imu_raw.imu_gyro.data),&(protobuf_ptr->gyro->data);
@@ -389,9 +396,9 @@ int main(int argc __attribute__((unused)),
                 copy_timestamp(&(data_ptr->imu_raw.imu_accel.timestamp),accel.timestamp);
 #ifdef DEBUG
                 send_debug(zsock_print,TAG,"Received ACCELERATION (ID:%i) and timestamp %f sec (Latency:%fms) ",
-                       data_ptr->imu_raw.imu_accel.id,
-                       floating_ProtoTime(accel.timestamp),
-                       calcCurrentLatencyProto(accel.timestamp)*1e3);
+                           data_ptr->imu_raw.imu_accel.id,
+                           floating_ProtoTime(accel.timestamp),
+                           calcCurrentLatencyProto(accel.timestamp)*1e3);
 #endif
 #ifdef RAW
                 raw_to_protobuf(&(data_ptr->imu_raw.imu_accel.data),&(protobuf_ptr->accel->data);
@@ -418,9 +425,9 @@ int main(int argc __attribute__((unused)),
                 copy_timestamp(&(data_ptr->imu_raw.imu_mag.timestamp),mag.timestamp);
 #ifdef DEBUG
                 send_debug(zsock_print,TAG,"Received MAGNETOMETER (ID:%i) and timestamp %f sec (Latency:%fms) ",
-                       data_ptr->imu_raw.imu_mag.id,
-                       floating_ProtoTime(mag.timestamp),
-                       calcCurrentLatencyProto(mag.timestamp)*1e3);
+                           data_ptr->imu_raw.imu_mag.id,
+                           floating_ProtoTime(mag.timestamp),
+                           calcCurrentLatencyProto(mag.timestamp)*1e3);
 #endif
 
 #ifdef RAW
@@ -508,6 +515,8 @@ int main(int argc __attribute__((unused)),
             poll_lisa_airspeed->revents = 0;
             poll_lisa_gps->revents = 0;
             protobetty__sensors__init(&sensors);
+            calc_next_shot(&t,rt_interval);
+
 
         }
 
