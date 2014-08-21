@@ -20,6 +20,7 @@
 #include "./misc.h"
 
 #include "./lisa_messages.h"
+#include "./print_output.h"
 
 
 
@@ -40,6 +41,8 @@ const double acc_scale_unit_coef = 0.0009766;
 const double mag_scale_unit_coef = 0.0004883;
 const double ahrs_unit_coef = 0.0000305;
 
+char* TAG = "RUN_SENSORS";
+
 
 
 /* ZMQ resources */
@@ -53,6 +56,8 @@ static void *zsock_lisa_gps = NULL;
 static void *zsock_lisa_rc = NULL;
 static void *zsock_lisa_ahrs = NULL;
 static void *zsock_lisa_airspeed = NULL;
+static void *zsock_print = NULL;
+
 
 
 /* Error tracking. */
@@ -60,14 +65,16 @@ int txfails = 0, rxfails = 0;
 
 static void __attribute__((noreturn)) die(int code) {
     zdestroy(zsock_log, zctx);
-    zdestroy(zsock_sensors, zctx);
+    zdestroy(zsock_sensors, NULL);
     //Receive sockets
-    zdestroy(zsock_lisa_gyro, zctx);
-    zdestroy(zsock_lisa_mag, zctx);
-    zdestroy(zsock_lisa_accel, zctx);
-    zdestroy(zsock_lisa_gps, zctx);
-    zdestroy(zsock_lisa_ahrs, zctx);
-    zdestroy(zsock_lisa_airspeed, zctx);
+    zdestroy(zsock_lisa_gyro, NULL);
+    zdestroy(zsock_lisa_mag, NULL);
+    zdestroy(zsock_lisa_accel, NULL);
+    zdestroy(zsock_lisa_gps, NULL);
+    zdestroy(zsock_lisa_ahrs, NULL);
+    zdestroy(zsock_lisa_airspeed, NULL);
+    zdestroy(zsock_print, NULL);
+
 
 
 
@@ -86,9 +93,9 @@ static void sigdie(int signum) {
 int main(int argc __attribute__((unused)),
          char **argv __attribute__((unused))) {
 
-    //  struct sched_param param;
-    //  set_priority(&param, RT_PRIORITY);
-    //  stack_prefault();
+      struct sched_param param;
+      set_priority(&param, RT_PRIORITY);
+      stack_prefault();
 
 
 
@@ -138,7 +145,9 @@ int main(int argc __attribute__((unused)),
     zsock_lisa_airspeed = setup_zmq_receiver(AIRSPEED_CHAN,&zctx,ZMQ_SUB,NULL,1,INPUT_BUFFER_SIZE);
     if (NULL == zsock_lisa_airspeed)
         die(1);
-
+    zsock_print = setup_zmq_sender(PRINT_CHAN, &zctx, ZMQ_PUB, 100, 500);
+    if (NULL == zsock_print)
+        die(1);
 
     /* Use big buffers here.  We're just publishing the data for
    * logging, so we don't mind saving some data until the logger can
@@ -351,7 +360,7 @@ int main(int argc __attribute__((unused)),
             else {
                 copy_timestamp(&(data_ptr->imu_raw.imu_gyro.timestamp),gyro.timestamp);
 #ifdef DEBUG
-                printf("Received GYRO (ID:%u) and timestamp %f sec (Latency:%fms) ",
+                send_debug(zsock_print,TAG,"Received GYRO (ID:%u) and timestamp %f sec (Latency:%fms) ",
                        data_ptr->imu_raw.imu_gyro.id,
                        floating_ProtoTime(gyro.timestamp),
                        calcCurrentLatencyProto(gyro.timestamp)*1e3);
@@ -379,7 +388,7 @@ int main(int argc __attribute__((unused)),
             else {
                 copy_timestamp(&(data_ptr->imu_raw.imu_accel.timestamp),accel.timestamp);
 #ifdef DEBUG
-                printf("Received ACCELERATION (ID:%i) and timestamp %f sec (Latency:%fms) ",
+                send_debug(zsock_print,TAG,"Received ACCELERATION (ID:%i) and timestamp %f sec (Latency:%fms) ",
                        data_ptr->imu_raw.imu_accel.id,
                        floating_ProtoTime(accel.timestamp),
                        calcCurrentLatencyProto(accel.timestamp)*1e3);
@@ -408,7 +417,7 @@ int main(int argc __attribute__((unused)),
             else {
                 copy_timestamp(&(data_ptr->imu_raw.imu_mag.timestamp),mag.timestamp);
 #ifdef DEBUG
-                printf("Received MAGNETOMETER (ID:%i) and timestamp %f sec (Latency:%fms) ",
+                send_debug(zsock_print,TAG,"Received MAGNETOMETER (ID:%i) and timestamp %f sec (Latency:%fms) ",
                        data_ptr->imu_raw.imu_mag.id,
                        floating_ProtoTime(mag.timestamp),
                        calcCurrentLatencyProto(mag.timestamp)*1e3);
@@ -488,7 +497,7 @@ int main(int argc __attribute__((unused)),
             if (zs < 0) {
                 txfails++;
             } else {
-                printf("IMU sent to controller!, size: %u\n", packed_length);
+                send_debug(zsock_print,TAG,"IMU sent to controller!, size: %u\n", packed_length);
                 poll_sensors->events = 0;
             }
             //Resetting
@@ -515,7 +524,7 @@ int main(int argc __attribute__((unused)),
         //                case GPS_INT:
         //#ifdef DEBUG
 
-        //                  printf("Received GPS Position data (X:%i ; Y:%i ; Z:%i\n",
+        //                  send_debug(zsock_print,TAG,"Received GPS Position data (X:%i ; Y:%i ; Z:%i\n",
         //                         outgoing.gps.pos_data.x,outgoing.gps.pos_data.y,outgoing.gps.pos_data.z);
         //#endif
         //                  poll_gps->events =  ZMQ_POLLOUT;
@@ -527,7 +536,7 @@ int main(int argc __attribute__((unused)),
         //                  xyz_convert_to_double(&(outgoing.imu.imu_accel.data), &(outgoing.imu.imu_accel_scaled.data),acc_scale_unit_coef );
         //#ifdef DEBUG
 
-        //                  printf("Received Acceleration data (X:%f ; Y:%f; Z:%f\n",
+        //                  send_debug(zsock_print,TAG,"Received Acceleration data (X:%f ; Y:%f; Z:%f\n",
         //                         outgoing.imu.imu_accel_scaled.data.x,outgoing.imu.imu_accel_scaled.data.y,outgoing.imu.imu_accel_scaled.data.z);
         //#endif
         //                  poll_imu->events =  ZMQ_POLLOUT;
@@ -536,7 +545,7 @@ int main(int argc __attribute__((unused)),
         //                case IMU_GYRO_SCALED:
         //                  xyz_convert_to_double(&(outgoing.imu.imu_gyro.data), &(outgoing.imu.imu_gyro_scaled.data),gyro_scale_unit_coef );
         //#ifdef DEBUG
-        //                  printf("Received Gyro data (X:%f ; Y:%f ; Z:%f\n",
+        //                  send_debug(zsock_print,TAG,"Received Gyro data (X:%f ; Y:%f ; Z:%f\n",
         //                         outgoing.imu.imu_gyro_scaled.data.x,outgoing.imu.imu_gyro_scaled.data.y,outgoing.imu.imu_gyro_scaled.data.z);
         //#endif
         //                  poll_imu->events =  ZMQ_POLLOUT;
@@ -545,7 +554,7 @@ int main(int argc __attribute__((unused)),
         //                case IMU_MAG_SCALED:
         //                  xyz_convert_to_double(&(outgoing.imu.imu_mag.data), &(outgoing.imu.imu_mag_scaled.data),mag_scale_unit_coef );
         //#ifdef DEBUG
-        //                  printf("Received Mag data (X:%f ; Y:%f ; Z:%f\n",
+        //                  send_debug(zsock_print,TAG,"Received Mag data (X:%f ; Y:%f ; Z:%f\n",
         //                         outgoing.imu.imu_mag_scaled.data.x,outgoing.imu.imu_mag_scaled.data.y,outgoing.imu.imu_mag_scaled.data.z);
         //#endif
         //                  poll_imu->events =  ZMQ_POLLOUT;
@@ -555,7 +564,7 @@ int main(int argc __attribute__((unused)),
         //#ifdef AIRSPEED
         //                case AIRSPEED_ETS:
         //#ifdef DEBUG
-        //                  printf("Received Airspeed data (X:%f ; Y:%f ; Z:%f\n",
+        //                  send_debug(zsock_print,TAG,"Received Airspeed data (X:%f ; Y:%f ; Z:%f\n",
         //                         outgoing.imu.imu_gyro_scaled.data.x,outgoing.imu.imu_gyro_scaled.data.y,outgoing.imu.imu_gyro_scaled.data.z);
         //#endif
         //                  poll_airspeed->events =  ZMQ_POLLOUT;
@@ -567,9 +576,9 @@ int main(int argc __attribute__((unused)),
         //                  quat_convert_to_double(&(outgoing.ahrs.body), &(outgoing.ahrs.body_converted),ahrs_unit_coef );
         //                  quat_convert_to_double(&(outgoing.ahrs.imu), &(outgoing.ahrs.imu_converted),ahrs_unit_coef );
         //#ifdef DEBUG
-        //                  printf("Received AHRS body data (I:%f X:%f ; Y:%f ; Z:%f\n",
+        //                  send_debug(zsock_print,TAG,"Received AHRS body data (I:%f X:%f ; Y:%f ; Z:%f\n",
         //                         outgoing.ahrs.body_converted.qi,outgoing.ahrs.body_converted.qx,outgoing.ahrs.body_converted.qy,outgoing.ahrs.body_converted.qz);
-        //                  printf("Received AHRS IMU data (I:%f X:%f ; Y:%f ; Z:%f\n",
+        //                  send_debug(zsock_print,TAG,"Received AHRS IMU data (I:%f X:%f ; Y:%f ; Z:%f\n",
         //                         outgoing.ahrs.imu_converted.qi,outgoing.ahrs.imu_converted.qx,outgoing.ahrs.imu_converted.qy,outgoing.ahrs.imu_converted.qz);
         //#endif
         //                  poll_ahrs->events =  ZMQ_POLLOUT;
@@ -579,7 +588,7 @@ int main(int argc __attribute__((unused)),
         //#ifdef RC
         //                case ROTORCRAFT_RADIO_CONTROL:
         //#ifdef DEBUG
-        //                  printf("RC Data: Mode: %i Status: %i \n", outgoing.rc.mode,outgoing.rc.status);
+        //                  send_debug(zsock_print,TAG,"RC Data: Mode: %i Status: %i \n", outgoing.rc.mode,outgoing.rc.status);
         //#endif
         //#endif
         //                default:
@@ -613,7 +622,7 @@ int main(int argc __attribute__((unused)),
         //                  if (zs < 0) {
         //                      txfails++;
         //                    } else {
-        //                      printf("GPS sent to controller!, size: %d\n", (int)sizeof(gps_t));
+        //                      send_debug(zsock_print,TAG,"GPS sent to controller!, size: %d\n", (int)sizeof(gps_t));
         //                      poll_gps->events = 0;
         //                    }
         //                  poll_gps->revents = 0;
@@ -629,7 +638,7 @@ int main(int argc __attribute__((unused)),
         //                  if (zs < 0) {
         //                      txfails++;
         //                    } else {
-        //                      printf("IMU sent to controller!, size: %d\n", (int)sizeof(imu_t));
+        //                      send_debug(zsock_print,TAG,"IMU sent to controller!, size: %d\n", (int)sizeof(imu_t));
         //                      poll_imu->events = 0;
         //                    }
         //                  poll_imu->revents = 0;
@@ -645,7 +654,7 @@ int main(int argc __attribute__((unused)),
         //                  if (zs < 0) {
         //                      txfails++;
         //                    } else {
-        //                      printf("AHRS sent to controller!, size: %d\n", (int)sizeof(ahrs_t));
+        //                      send_debug(zsock_print,TAG,"AHRS sent to controller!, size: %d\n", (int)sizeof(ahrs_t));
         //                      poll_ahrs->events = 0;
         //                    }
         //                  poll_ahrs->revents = 0;
@@ -661,7 +670,7 @@ int main(int argc __attribute__((unused)),
         //                  if (zs < 0) {
         //                      txfails++;
         //                    } else {
-        //                      printf("Sent to logger!\n");
+        //                      send_debug(zsock_print,TAG,"Sent to logger!\n");
         //                      /* Clear the events flag so we won't try to send until we
         //                 * have more data. */
         //                      poll_log->events = 0;
