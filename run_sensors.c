@@ -327,7 +327,7 @@ int main(int argc __attribute__((unused)),
         const int polled = zmq_poll(polls, npolls, 5);
         if (polled < 0) {
             if (bail) die(bail);
-            LOG_ERROR("while polling");
+            printf("while polling");
             usleep(5000); // 200 Hz
             continue;
         } else if (polled == 0) {
@@ -344,7 +344,7 @@ int main(int argc __attribute__((unused)),
         if (poll_lisa_gyro->revents & ZMQ_POLLIN) {
             const int zr = zmq_recvm(zsock_lisa_gyro,(uint8_t*) &data_ptr->imu_raw.imu_gyro,sizeof(gyro_raw_t));
             if (zr < (int) sizeof(gyro_raw_t)) {
-                LOG_ERROR("couldn't read gyro sensor!");
+                printf("couldn't read gyro sensor!");
                 rxfails++;
                 poll_lisa_gyro->revents =0;
             }
