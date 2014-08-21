@@ -123,3 +123,19 @@ message OptTelem {
   repeated AcPose poses = 1;
   repeated string messages = 2;
 }
+
+message Printf {
+enum Type {
+  DEBUG = 1;
+  INFO = 2;
+  WARNING = 3;
+  ERROR = 4;
+  }
+
+// Identifies which field is filled in.
+  required Type type = 1;
+// One of the following will be filled in.
+  required string message = 2;
+  optional Timestamp timestamp=3;
+  required string tag=4 [default=""];
+ }
