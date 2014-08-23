@@ -18,6 +18,7 @@
 #define RT_PRIORITY 48
 
 
+extern void *zsock_print;
 
 
 void get_sensors(lisa_messages_t * const y);

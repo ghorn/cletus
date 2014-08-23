@@ -22,6 +22,7 @@
 
 
 
+void *zsock_print = NULL;
 
 
 static void __attribute__((noreturn)) die(int code) {

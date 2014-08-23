@@ -28,6 +28,7 @@ const int BUFFER_SIZE = 50;
 /* ZMQ resources */
 static void *zctx = NULL;
 static void *zsock_data = NULL;
+void *zsock_print = NULL;
 
 FILE *log_file;
 

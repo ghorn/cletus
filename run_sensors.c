@@ -43,8 +43,6 @@ const double ahrs_unit_coef = 0.0000305;
 
 char* TAG = "RUN_SENSORS";
 
-
-
 /* ZMQ resources */
 static void *zctx = NULL;
 static void *zsock_sensors = NULL;
@@ -56,7 +54,9 @@ static void *zsock_lisa_gps = NULL;
 static void *zsock_lisa_rc = NULL;
 static void *zsock_lisa_ahrs = NULL;
 static void *zsock_lisa_airspeed = NULL;
-static void *zsock_print = NULL;
+void *zsock_print = NULL;
+
+
 
 
 
@@ -358,7 +358,7 @@ int main(int argc __attribute__((unused)),
         // GYRO data received
         //********************************************
         if (poll_lisa_gyro->revents & ZMQ_POLLIN) {
-            const int zr = zmq_recvm(zsock_lisa_gyro,(uint8_t*) &data_ptr->imu_raw.imu_gyro,sizeof(gyro_raw_t));
+            const int zr = zmq_recv(zsock_lisa_gyro,(uint8_t*) &data_ptr->imu_raw.imu_gyro,sizeof(gyro_raw_t),0);
             if (zr < (int) sizeof(gyro_raw_t)) {
                 printf("couldn't read gyro sensor!");
                 rxfails++;
@@ -386,7 +386,7 @@ int main(int argc __attribute__((unused)),
         // ACCELERATION data received
         //********************************************
         if (poll_lisa_accel->revents & ZMQ_POLLIN) {
-            const int zr = zmq_recvm(zsock_lisa_accel,(uint8_t*) &data_ptr->imu_raw.imu_accel,sizeof(accel_raw_t));
+            const int zr = zmq_recv(zsock_lisa_accel,(uint8_t*) &data_ptr->imu_raw.imu_accel,sizeof(accel_raw_t),0);
             if (zr < (int) sizeof(accel_raw_t)) {
                 err("couldn't read sensors!");
                 rxfails++;
@@ -415,7 +415,7 @@ int main(int argc __attribute__((unused)),
         // MAGNETOMETER data received
         //********************************************
         if (poll_lisa_mag->revents & ZMQ_POLLIN) {
-            const int zr = zmq_recvm(zsock_lisa_mag,(uint8_t*) &data_ptr->imu_raw.imu_mag,sizeof(mag_raw_t));
+            const int zr = zmq_recv(zsock_lisa_mag,(uint8_t*) &data_ptr->imu_raw.imu_mag,sizeof(mag_raw_t),0);
             if (zr < (int) sizeof(mag_raw_t)) {
                 err("couldn't read sensors!");
                 rxfails++;

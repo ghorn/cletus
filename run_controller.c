@@ -31,6 +31,8 @@ static void *zctx = NULL;
 static void *zsock_sensors = NULL;
 static void *zsock_actuators = NULL;
 static void *zsock_log = NULL;
+void *zsock_print = NULL;
+
 
 /* Error tracking. */
 int txfails = 0, rxfails = 0;

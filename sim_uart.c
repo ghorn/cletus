@@ -40,7 +40,7 @@ static void *zsock_mag = NULL;
 static void *zsock_accel = NULL;
 static void *zsock_airspeed = NULL;
 static void *zsock_lisa = NULL;
-static void *zsock_print = NULL;
+void *zsock_print = NULL;
 
 static void *zsock_log = NULL;
 

@@ -29,7 +29,7 @@
 
 /* ZMQ resources */
 static void *zctx = NULL;
-static void *zsock_print = NULL;
+void *zsock_print = NULL;
 
 /* Error tracking. */
 int txfails = 0, rxfails = 0;

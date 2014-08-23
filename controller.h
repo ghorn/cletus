@@ -12,6 +12,8 @@
 
 #define RT_PRIORITY 49
 #define RT_INTERVAL 100000; /* 100us*/
+extern void *zsock_print;
+
 
 void run_controller(const lisa_messages_t * const y, actuators_t * const u);
 
