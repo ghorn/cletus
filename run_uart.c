@@ -11,7 +11,6 @@
 #include <string.h>
 #include <signal.h>
 #include <zmq.h>
-#include <sys/ioctl.h>
 
 #include "./zmq.h"
 #include "./comms.h"
@@ -21,7 +20,7 @@
 
 #include "./uart.h"
 #include "./lisa_messages.h"
-#include "./print_output.h"
+
 
 
 
@@ -41,11 +40,10 @@ static void *zsock_mag = NULL;
 static void *zsock_accel = NULL;
 static void *zsock_airspeed = NULL;
 static void *zsock_lisa = NULL;
-static void *zsock_print = NULL;
 
 static char* TAG = "RUN_UART";
 
-
+void *zsock_print = NULL;
 static void *zsock_log = NULL;
 
 /* Error tracking. */
@@ -72,6 +70,7 @@ static void sigdie(int signum) {
 int main(int argc __attribute__((unused)),
          char **argv __attribute__((unused))) {
 
+    zsock_print = NULL;
 
     struct sched_param param;
     set_priority(&param, 49);
@@ -151,16 +150,16 @@ int main(int argc __attribute__((unused)),
         }
     };
 
-    zmq_pollitem_t* poll_startbyte = &polls[0];
-    zmq_pollitem_t* poll_length = &polls[1];
-    zmq_pollitem_t* poll_message = &polls[2];
+    //    zmq_pollitem_t* poll_startbyte = &polls[0];
+    //    zmq_pollitem_t* poll_length = &polls[1];
+    //    zmq_pollitem_t* poll_message = &polls[2];
     zmq_pollitem_t* poll_lisa = &polls[3];
 
-    const int npolls = sizeof(polls) / sizeof(polls[0]);
-    int msg_length_counter = 0;
-    uint8_t msg_startbyte;
-    uint8_t msg_length;
-    unsigned char msg_data[INPUT_BUFFER_SIZE];
+    //    const int npolls = sizeof(polls) / sizeof(polls[0]);
+    //    int msg_length_counter = 0;
+    //    uint8_t msg_startbyte;
+    int msg_length;
+    uint8_t msg_buffer[INPUT_BUFFER_SIZE];
 
 
     /* Here's the main loop -- we only do stuff when input or output
@@ -175,135 +174,186 @@ int main(int argc __attribute__((unused)),
     for (;;) {
         if (bail) die(bail);
 
-        //******************************************************
-        /* Poll for activity on UART; time out after 10 milliseconds. */
-        //******************************************************
-        const int polled = zmq_poll(polls, npolls, 10);
-        if (polled < 0) {
-            if (bail) die(bail);
-            zerr("while polling");
-            continue;
-        } else if (polled == 0) {
-            if (bail) die(bail);
-            continue;
-        }
-
-
-        if (bail) die(bail);
-        //******************************************************
-        // Check if we polled an event for startbyte
-        //******************************************************
-        if (poll_startbyte->revents & ZMQ_POLLIN) {
-            //get data from serial port
-            ioctl(serial_stream->fd, FIONREAD, &msg_length_counter); //set to number of bytes in buffer
-            if(read_uart(&msg_startbyte,1) ==1)
+        if(find_startbyte(poll_lisa,msg_buffer) > 0)
+        {
+            msg_length = read_lisa_message(poll_lisa, msg_buffer);
+            if (msg_length > 0)
             {
-                //Check if we found the right startbyte
-                if (msg_startbyte == LISA_STARTBYTE)
-                {
-#ifdef DEBUG
-                    send_debug(zsock_print,TAG,"Read Lisa startbyte. \n");
-#endif
-                    //Deactivate Startbyte poller
-                    poll_startbyte->events = 0;
-                    //Activate message length poller
-                    poll_length->events = ZMQ_POLLIN;
-                }
-            }
-            poll_startbyte->revents = 0;
-        }
-        //******************************************************
-        //Get Message length after reading startbyte
-        //******************************************************
-        else if (poll_length->revents & ZMQ_POLLIN) {
-            ioctl(serial_stream->fd, FIONREAD, &msg_length_counter); //set to number of bytes in buffer
-            if(read_uart(&msg_length,1) ==1)
-            {
-#ifdef DEBUG
-                send_debug(zsock_print,TAG,"Read Message Length [%i bytes] \n", msg_length);
-#endif
-                if (msg_length < 100){
-                    poll_length->events = 0;
-                    poll_message->events = ZMQ_POLLIN;
-                }
-                else
-                {
-                    //Drop message
-                    poll_length->events = 0;
-                    poll_startbyte->events = ZMQ_POLLIN;
-                    msg_length_counter =0;
-                    serial_port_flush_input();
-                }
-            }
-            poll_length->revents = 0;
-        }
-        //******************************************************
-        //Get Message itself
-        //******************************************************
-        else if (poll_message->revents & ZMQ_POLLIN) {
-            ioctl(serial_stream->fd, FIONREAD, &msg_length_counter); //set to number of bytes in buffer
-            //Get poll events until message was sent completely
-            if (msg_length_counter < msg_length)
-            {
-                poll_length->revents = 0;
-                continue;
-            }
-            //******************************************************
-            //Send message without sender ID, so message ID can be used as Filter
-            //******************************************************
-            else if(read_uart(msg_data,msg_length-2) == msg_length - 2) //without the already read startbyte and length
-            {
-#ifdef DEBUG
-                send_debug(zsock_print,TAG,"Message was read completely \n");
-#endif
                 //Check 1: Sender ID must be correct.
-                if (msg_data[0] == SENDER_ID)
+                if (msg_buffer[1] == SENDER_ID)
                 {
                     //Check 2: Checksum must be correct
-                    if (check_checksum(msg_length,msg_data) == UART_ERR_NONE)
+                    if (check_checksum(msg_buffer) == UART_ERR_NONE)
                     {
 
-                        const int new_length =add_timestamp(&msg_data[1], msg_length);
+                        msg_length = add_timestamp(msg_buffer, msg_length);
+                        msg_length -= BYTES_HEADER;
 #ifdef DEBUG
                         send_debug(zsock_print,TAG,"Passed Checksum test. Sending Message [%i bytes] with ID %i\n",
-                               new_length, msg_data[1]);
+                                   msg_length, msg_buffer[LISA_INDEX_MSG_ID]);
 #endif
-                        switch (msg_data[1]) {
+                        switch (msg_buffer[LISA_INDEX_MSG_ID]) {
                         case IMU_ACCEL:
                         case IMU_ACCEL_RAW:
                         case IMU_ACCEL_SCALED:
-                            zmq_send(zsock_accel,&msg_data[1],new_length,0);
+                            zmq_send(zsock_accel,&msg_buffer[LISA_INDEX_MSG_ID],msg_length,0);
                             break;
                         case IMU_GYRO:
                         case IMU_GYRO_RAW:
                         case IMU_GYRO_SCALED:
-                            zmq_send(zsock_gyro,&msg_data[1],new_length,0);
+                            zmq_send(zsock_gyro,&msg_buffer[LISA_INDEX_MSG_ID],msg_length,0);
                             break;
                         case IMU_MAG:
                         case IMU_MAG_RAW:
                         case IMU_MAG_SCALED:
-                            zmq_send(zsock_mag,&msg_data[1],new_length,0);
+                            zmq_send(zsock_mag,&msg_buffer[LISA_INDEX_MSG_ID],msg_length,0);
                             break;
                         case AIRSPEED_ETS:
-                            zmq_send(zsock_airspeed,&msg_data[1],new_length,0);
+                            zmq_send(zsock_airspeed,&msg_buffer[LISA_INDEX_MSG_ID],msg_length,0);
                             break;
                         default:
-                            zmq_send(zsock_lisa,&msg_data[1],new_length,0);
+                            zmq_send(zsock_lisa,&msg_buffer[LISA_INDEX_MSG_ID],msg_length,0);
                             break;
                         }
                         poll_lisa->events = ZMQ_POLLOUT;
                     }
                 }
                 else{
-                    send_debug(zsock_print,TAG,"ERROR wrong SENDER ID %i\n",msg_data[0]);
+                    send_debug(zsock_print,TAG,"ERROR wrong SENDER ID %i\n",msg_buffer[0]);
                     serial_port_flush_input();
                 }
-                msg_length_counter = 0;
-                poll_message->events =0;
-                poll_startbyte->events= ZMQ_POLLIN;
             }
-            poll_message->revents = 0;
         }
+
+        //        //******************************************************
+        //        /* Poll for activity on UART; time out after 10 milliseconds. */
+        //        //******************************************************
+        //        const int polled = zmq_poll(polls, npolls, 10);
+        //        if (polled < 0) {
+        //            if (bail) die(bail);
+        //            zerr("while polling");
+        //            continue;
+        //        } else if (polled == 0) {
+        //            if (bail) die(bail);
+        //            continue;
+        //        }
+
+
+        //        if (bail) die(bail);
+        //        //******************************************************
+        //        // Check if we polled an event for startbyte
+        //        //******************************************************
+        //        if (poll_startbyte->revents & ZMQ_POLLIN) {
+        //            //get data from serial port
+        //            ioctl(serial_stream->fd, FIONREAD, &msg_length_counter); //set to number of bytes in buffer
+        //            if(read_uart(&msg_startbyte,1) ==1)
+        //            {
+        //                //Check if we found the right startbyte
+        //                if (msg_startbyte == LISA_STARTBYTE)
+        //                {
+        //#ifdef DEBUG
+        //                    send_debug(zsock_print,TAG,"Read Lisa startbyte. \n");
+        //#endif
+        //                    //Deactivate Startbyte poller
+        //                    poll_startbyte->events = 0;
+        //                    //Activate message length poller
+        //                    poll_length->events = ZMQ_POLLIN;
+        //                }
+        //            }
+        //            poll_startbyte->revents = 0;
+        //        }
+        //        //******************************************************
+        //        //Get Message length after reading startbyte
+        //        //******************************************************
+        //        else if (poll_length->revents & ZMQ_POLLIN) {
+        //            ioctl(serial_stream->fd, FIONREAD, &msg_length_counter); //set to number of bytes in buffer
+        //            if(read_uart(&msg_length,1) ==1)
+        //            {
+        //#ifdef DEBUG
+        //                send_debug(zsock_print,TAG,"Read Message Length [%i bytes] \n", msg_length);
+        //#endif
+        //                if (msg_length < 100){
+        //                    poll_length->events = 0;
+        //                    poll_message->events = ZMQ_POLLIN;
+        //                }
+        //                else
+        //                {
+        //                    //Drop message
+        //                    poll_length->events = 0;
+        //                    poll_startbyte->events = ZMQ_POLLIN;
+        //                    msg_length_counter =0;
+        //                    serial_port_flush_input();
+        //                }
+        //            }
+        //            poll_length->revents = 0;
+        //        }
+        //        //******************************************************
+        //        //Get Message itself
+        //        //******************************************************
+        //        else if (poll_message->revents & ZMQ_POLLIN) {
+        //            ioctl(serial_stream->fd, FIONREAD, &msg_length_counter); //set to number of bytes in buffer
+        //            //Get poll events until message was sent completely
+        //            if (msg_length_counter < msg_length)
+        //            {
+        //                poll_length->revents = 0;
+        //                continue;
+        //            }
+        //            //******************************************************
+        //            //Send message without sender ID, so message ID can be used as Filter
+        //            //******************************************************
+        //            else if(read_uart(msg_data,msg_length-2) == msg_length - 2) //without the already read startbyte and length
+        //            {
+        //#ifdef DEBUG
+        //                send_debug(zsock_print,TAG,"Message was read completely \n");
+        //#endif
+        //                //Check 1: Sender ID must be correct.
+        //                if (msg_data[0] == SENDER_ID)
+        //                {
+        //                    //Check 2: Checksum must be correct
+        //                    if (check_checksum(msg_length,msg_data) == UART_ERR_NONE)
+        //                    {
+
+        //                        const int new_length =add_timestamp(&msg_data[1], msg_length);
+        //#ifdef DEBUG
+        //                        send_debug(zsock_print,TAG,"Passed Checksum test. Sending Message [%i bytes] with ID %i\n",
+        //                               new_length, msg_data[1]);
+        //#endif
+        //                        switch (msg_data[1]) {
+        //                        case IMU_ACCEL:
+        //                        case IMU_ACCEL_RAW:
+        //                        case IMU_ACCEL_SCALED:
+        //                            zmq_send(zsock_accel,&msg_data[1],new_length,0);
+        //                            break;
+        //                        case IMU_GYRO:
+        //                        case IMU_GYRO_RAW:
+        //                        case IMU_GYRO_SCALED:
+        //                            zmq_send(zsock_gyro,&msg_data[1],new_length,0);
+        //                            break;
+        //                        case IMU_MAG:
+        //                        case IMU_MAG_RAW:
+        //                        case IMU_MAG_SCALED:
+        //                            zmq_send(zsock_mag,&msg_data[1],new_length,0);
+        //                            break;
+        //                        case AIRSPEED_ETS:
+        //                            zmq_send(zsock_airspeed,&msg_data[1],new_length,0);
+        //                            break;
+        //                        default:
+        //                            zmq_send(zsock_lisa,&msg_data[1],new_length,0);
+        //                            break;
+        //                        }
+        //                        poll_lisa->events = ZMQ_POLLOUT;
+        //                    }
+        //                }
+        //                else{
+        //                    send_debug(zsock_print,TAG,"ERROR wrong SENDER ID %i\n",msg_data[0]);
+        //                    serial_port_flush_input();
+        //                }
+        //                msg_length_counter = 0;
+        //                poll_message->events =0;
+        //                poll_startbyte->events= ZMQ_POLLIN;
+        //            }
+        //            poll_message->revents = 0;
+        //        }
     }
 
     /* Shouldn't get here. */
