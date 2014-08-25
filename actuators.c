@@ -23,7 +23,7 @@
 
 //#include "./lisa_communication/data_decoding.h"
 
-const double coef = 1000.0;
+const double coef = 1.0;
 const int LENGTH_INDEX = 1;
 
 void convert_for_lisa(const Protobetty__Actuators * const actuators, lisa_message_t* const msg)
