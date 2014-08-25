@@ -17,6 +17,7 @@ void serial_port_free(void);
 void serial_port_flush(void);
 UART_errCode serial_port_flush_output(void);
 static int wait_for_data(zmq_pollitem_t* const pollitem, const int timeout_ms);
+static int find_startbyte(zmq_pollitem_t* const pollitem, uint8_t* const buffer);
 
 
 
@@ -376,7 +377,7 @@ void UART_err_handler( UART_errCode err_p,void (*write_error_ptr)(char *,char *,
     }
 }
 
-int find_startbyte(zmq_pollitem_t* const pollitem, uint8_t* const buffer)
+static int find_startbyte(zmq_pollitem_t* const pollitem, uint8_t* const buffer)
 {
     if (wait_for_data(pollitem, 100) > 0)
     {
@@ -391,6 +392,8 @@ int find_startbyte(zmq_pollitem_t* const pollitem, uint8_t* const buffer)
 
 int read_lisa_message(zmq_pollitem_t* const pollitem, uint8_t* const buffer)
 {
+    if (find_startbyte(pollitem,buffer)>0)
+    {
     if (wait_for_data(pollitem, 100) > 0)
     {
         ioctl(serial_stream->fd, FIONREAD); //set to number of bytes in buffer
@@ -408,12 +411,13 @@ int read_lisa_message(zmq_pollitem_t* const pollitem, uint8_t* const buffer)
                 else
                     return 0;
             }
-            read_uart(buffer,message_length);
+            read_uart(&buffer[1],message_length);
             return message_length;
         }
         else
             send_warning(zsock_print,TAG,
                          "Message length %i is larger than MAX. Seems like we are missing bytes.",message_length);
+    }
     }
     return 0;
 }

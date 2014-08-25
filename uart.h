@@ -99,8 +99,7 @@ int serial_port_read_temp(uint8_t buffer[],int length) ;
 int check_checksum(uint8_t* message);
 UART_errCode serial_port_flush_input(void);
 int add_timestamp(uint8_t* const buffer, const int msg_length);
-extern int read_lisa_message(zmq_pollitem_t* const pollitem, uint8_t* const buffer);
-extern int find_startbyte(zmq_pollitem_t* const pollitem, uint8_t* const buffer);
+int read_lisa_message(zmq_pollitem_t* const pollitem, uint8_t* const buffer);
 
 
 
