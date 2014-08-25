@@ -74,7 +74,7 @@ int main(int argc __attribute__((unused)),
 
     /* ZMQ setup first. */
 
-    zsock_print = setup_zmq_receiver(PRINT_CHAN, &zctx, ZMQ_SUB,NULL, 10000, 500);
+    zsock_print = setup_zmq_receiver(PRINT_CHAN, &zctx, ZMQ_PULL,NULL, 10000, 500);
     if (NULL == zsock_print)
         die(1);
 

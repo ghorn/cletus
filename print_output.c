@@ -31,7 +31,7 @@ void send_printf(void* zmq_sockit,char * toprint, int type, char* tag)
     uint8_t zmq_buffer[MAX_PRINT_MSG_SIZE];
     int length = protobetty__printf__get_packed_size(&message);
     protobetty__printf__pack(&message, &zmq_buffer[0]);
-    zmq_send(zmq_sockit,zmq_buffer,length,0);
+    zmq_send(zmq_sockit,zmq_buffer,length,ZMQ_NOBLOCK);
 
 }
 

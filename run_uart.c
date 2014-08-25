@@ -111,7 +111,7 @@ int main(int argc __attribute__((unused)),
     zsock_airspeed = setup_zmq_sender(AIRSPEED_CHAN, &zctx, ZMQ_PUB, 5, 500);
     if (NULL == zsock_lisa)
         die(1);
-    zsock_print = setup_zmq_sender(PRINT_CHAN, &zctx, ZMQ_PUB, 5, 500);
+    zsock_print = setup_zmq_sender(PRINT_CHAN, &zctx, ZMQ_PUSH, 5, 500);
     if (NULL == zsock_print)
         die(1);
 
