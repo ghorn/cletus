@@ -21,6 +21,7 @@
 
 #include "./uart.h"
 #include "./lisa_messages.h"
+#include "./print_output.h"
 
 
 #ifdef ALL
@@ -39,11 +40,13 @@ static void *zsock_mag = NULL;
 static void *zsock_accel = NULL;
 static void *zsock_airspeed = NULL;
 static void *zsock_lisa = NULL;
+void *zsock_print = NULL;
 
 static void *zsock_log = NULL;
 
 /* Error tracking. */
 int txfails = 0, rxfails = 0;
+char* TAG ="SIM_UART";
 
 static void __attribute__((noreturn)) die(int code) {
     zdestroy(zsock_uart, NULL);
@@ -99,11 +102,15 @@ int main(int argc __attribute__((unused)),
     zsock_airspeed = setup_zmq_sender(AIRSPEED_CHAN, &zctx, ZMQ_PUB, 5, 500);
     if (NULL == zsock_lisa)
         die(1);
+    zsock_print = setup_zmq_sender(PRINT_CHAN, &zctx, ZMQ_PUB, 100, 500);
+    if (NULL == zsock_print)
+        die(1);
 
 
 
 
     unsigned char msg_data[INPUT_BUFFER_SIZE];
+
 
 
     //Allocate messages
@@ -115,7 +122,9 @@ int main(int argc __attribute__((unused)),
     mag_dummy.id = IMU_MAG_SCALED;
     gyro_dummy.id = IMU_GYRO_SCALED;
 
+
     uint8_t sequenceNumber = 0;
+
 
 
 
@@ -130,7 +139,6 @@ int main(int argc __attribute__((unused)),
        * mostly out of laziness. */
     for (;;) {
         if (bail) die(bail);
-
 
         accel_dummy.id = sequenceNumber;
         accel_dummy.data.x = rand();
@@ -154,29 +162,17 @@ int main(int argc __attribute__((unused)),
         gyro_dummy.timestamp = timestamp;
         mag_dummy.timestamp = timestamp;
 
-        printf("Timestamp: %f...",floating_time(&timestamp));
-        printf("ID: %u...",sequenceNumber);
+
         memcpy(&msg_data[0], &accel_dummy,sizeof(accel_raw_t));
         int returned = zmq_send(zsock_accel,&msg_data[0],sizeof(accel_raw_t),ZMQ_NOBLOCK);
-        printf("Sending ACCEL%i...", returned);
 
         memcpy(&msg_data[0], &mag_dummy, sizeof(mag_raw_t));
         returned = zmq_send(zsock_mag,&msg_data[0],sizeof(mag_raw_t),ZMQ_NOBLOCK);
-        printf("Sending MAG %i...", returned);
 
 
         memcpy(&msg_data[0], &gyro_dummy,sizeof(gyro_raw_t));
         returned =  zmq_send(zsock_gyro,&msg_data[0],sizeof(gyro_raw_t),ZMQ_NOBLOCK);
-        printf("Sending GYRO%i...\n", returned);
-
-
-        int hwm;
-        size_t fd_size = sizeof(int);
-        zmq_getsockopt(zsock_gyro, ZMQ_SNDHWM, &hwm, &fd_size);
-        hwm = 1;
-        zmq_setsockopt(zsock_gyro, ZMQ_SNDHWM, &hwm, sizeof(int));
-
-        printf("HWM: %i", hwm);
+        send_debug(zsock_print,TAG,"Sending GYRO, MAG, ACCEL with ID: %u [Bytes:%u] ",sequenceNumber, returned);
 
 
         //sleep

@@ -15,11 +15,18 @@ double floating_time(const timestamp_t * const t) {
   return (double)t->tsec + ((double)t->tnsec)/1e9;
 }
 
-double floating_ProtoTime(const TimestampProto * const t) {
+double floating_ProtoTime(const Protobetty__Timestamp * const t) {
   return (double)t->tsec + ((double)t->tnsec)/1e9;
 }
 
 void gettime(timestamp_t * const t) {
+  struct timespec ts;
+  clock_gettime(CLOCK_MONOTONIC, &ts);
+  t->tsec = ts.tv_sec;
+  t->tnsec = ts.tv_nsec;
+}
+
+void get_protbetty_timestamp(Protobetty__Timestamp * const t) {
   struct timespec ts;
   clock_gettime(CLOCK_MONOTONIC, &ts);
   t->tsec = ts.tv_sec;
@@ -32,7 +39,7 @@ double calcCurrentLatency(timestamp_t * const ref) {
   return floating_time(&current) - floating_time(ref);
 }
 
-double calcCurrentLatencyProto(TimestampProto * const ref) {
+double calcCurrentLatencyProto(Protobetty__Timestamp * const ref) {
   timestamp_t current;
   gettime(&current);
   return floating_time(&current) - floating_ProtoTime(ref);

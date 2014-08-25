@@ -6,6 +6,10 @@
 #include <unistd.h>
 #include <stdint.h>
 #include <inttypes.h>
+#include <sys/ioctl.h>
+
+
+#include "./print_output.h"
 
 #define INPUT_BUFFER_SIZE 255
 
@@ -13,32 +17,36 @@
  * GLOBALS
  * ******************************/
 
+extern void *zsock_print;
 
 
 
 enum lisa_msg_info{
-  BYTES_CHECKSUM = 2, //Number of bytes used for the checksum
-  BYTES_HEADER =  3, //Number of Bytes until message (startbyte, length, senderid)
-  SENDER_ID = 166, //Senser ID of the Lisa set with paparazzi
-  LISA_STARTBYTE = 0x99,
-  WINDSENSOR_STARTBYTE =0x24
+    BYTES_CHECKSUM = 2, //Number of bytes used for the checksum
+    BYTES_HEADER =  2, //Number of Bytes until message  (length, senderid)
+    SENDER_ID = 166, //Senser ID of the Lisa set with paparazzi
+    LISA_STARTBYTE = 0x99,
+    WINDSENSOR_STARTBYTE =0x24,
+    LISA_INDEX_MSG_ID = 2,
+    LISA_INDEX_SENDER_ID = 1,
+    LISA_MAX_MSG_LENGTH = 50
 };
 
 
 enum uart_errCode {
-  UART_ERR_READ= -6 ,
-  UART_ERR_READ_START_BYTE = -5,
-  UART_ERR_READ_CHECKSUM = -4,
-  UART_ERR_READ_LENGTH = -3,
-  UART_ERR_READ_MESSAGE = -2,
-  UART_ERR_NONE=0,
-  UART_ERR_SERIAL_PORT_FLUSH_INPUT,
-  UART_ERR_SERIAL_PORT_FLUSH_OUTPUT,
-  UART_ERR_SERIAL_PORT_OPEN,
-  UART_ERR_SERIAL_PORT_CLOSE,
-  UART_ERR_SERIAL_PORT_CREATE,
-  UART_ERR_SERIAL_PORT_WRITE,
-  UART_ERR_UNDEFINED
+    UART_ERR_READ= -6 ,
+    UART_ERR_READ_START_BYTE = -5,
+    UART_ERR_READ_CHECKSUM = -4,
+    UART_ERR_READ_LENGTH = -3,
+    UART_ERR_READ_MESSAGE = -2,
+    UART_ERR_NONE=0,
+    UART_ERR_SERIAL_PORT_FLUSH_INPUT,
+    UART_ERR_SERIAL_PORT_FLUSH_OUTPUT,
+    UART_ERR_SERIAL_PORT_OPEN,
+    UART_ERR_SERIAL_PORT_CLOSE,
+    UART_ERR_SERIAL_PORT_CREATE,
+    UART_ERR_SERIAL_PORT_WRITE,
+    UART_ERR_UNDEFINED
 };
 typedef enum uart_errCode UART_errCode;
 
@@ -46,33 +54,33 @@ typedef enum uart_errCode UART_errCode;
 
 
 typedef struct{
-	int fd;                        /* serial device fd          */
-	struct termios orig_termios;   /* saved tty state structure */
-	struct termios cur_termios;    /* tty state structure       */
+    int fd;                        /* serial device fd          */
+    struct termios orig_termios;   /* saved tty state structure */
+    struct termios cur_termios;    /* tty state structure       */
 }serial_port;
 
 serial_port *serial_stream;
 
 /*typedef struct{
-	uint8_t startbyte;
-	uint8_t talker_id_1;
-	uint8_t talker_id_2;
-	uint8_t message_type_1;
-	uint8_t message_type_2;
-	uint8_t message_type_3;
-	uint8_t *message;
-	uint8_t asterisk;
-	uint8_t checksum;
+    uint8_t startbyte;
+    uint8_t talker_id_1;
+    uint8_t talker_id_2;
+    uint8_t message_type_1;
+    uint8_t message_type_2;
+    uint8_t message_type_3;
+    uint8_t *message;
+    uint8_t asterisk;
+    uint8_t checksum;
 }NMEA0183_message;
 
 typedef struct{
-	uint8_t startbyte;
-	uint8_t length;
-	uint8_t sender_id;
-	uint8_t message_id;
-	uint8_t *message;
-	uint8_t checksum_1;
-	uint8_t checksum_2;
+    uint8_t startbyte;
+    uint8_t length;
+    uint8_t sender_id;
+    uint8_t message_id;
+    uint8_t *message;
+    uint8_t checksum_1;
+    uint8_t checksum_2;
 }Lisa_message;*/
 
 /********************************
@@ -88,9 +96,14 @@ extern UART_errCode write_uart(uint8_t output[],long unsigned int message_length
 int read_uart(uint8_t* const buffer,int length);
 extern UART_errCode serial_port_close(void);
 int serial_port_read_temp(uint8_t buffer[],int length) ;
-int check_checksum(uint8_t length, uint8_t* message);
+int check_checksum(uint8_t* message);
 UART_errCode serial_port_flush_input(void);
 int add_timestamp(uint8_t* const buffer, const int msg_length);
+extern int read_lisa_message(zmq_pollitem_t* const pollitem, uint8_t* const buffer);
+extern int find_startbyte(zmq_pollitem_t* const pollitem, uint8_t* const buffer);
+
+
+
 
 
 

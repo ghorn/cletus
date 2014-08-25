@@ -27,27 +27,16 @@ typedef struct timespec timespec;
 
 double floating_time(const timestamp_t * const t);
 void gettime(timestamp_t * const t);
+void get_protbetty_timestamp(Protobetty__Timestamp * const t);
+
 void stack_prefault(void);
 int set_priority(sched_param* const param, const int priority);
 void calc_next_shot(timespec* const t, const int interval);
-double floating_ProtoTime(const TimestampProto * const t);
+double floating_ProtoTime(const Protobetty__Timestamp * const t);
 double calcCurrentLatency(timestamp_t * const ref);
-double calcCurrentLatencyProto(TimestampProto * const ref);
+double calcCurrentLatencyProto(Protobetty__Timestamp * const ref);
 
 
-//*******************************
-// MACROS for Console output
-//*******************************
-#define ANSI_COLOR_RED     "\x1b[31m"
-#define ANSI_COLOR_GREEN   "\x1b[32m"
-#define ANSI_COLOR_YELLOW  "\x1b[33m"
-#define ANSI_COLOR_BLUE    "\x1b[34m"
-#define ANSI_COLOR_MAGENTA "\x1b[35m"
-#define ANSI_COLOR_CYAN    "\x1b[36m"
-#define ANSI_COLOR_RESET   "\x1b[0m"
-#define LOG_INFO(X) printf("%s %s %s",ANSI_COLOR_CYAN,X,ANSI_COLOR_RESET)
-#define LOG_ERROR(X) printf("%s %s %s",ANSI_COLOR_RED,X,ANSI_COLOR_RESET)
-#define LOG_WARNING(X) printf("%s %s %s",ANSI_COLOR_YELLOW,X,ANSI_COLOR_RESET)
 
 
 

@@ -82,27 +82,27 @@ void quat_convert_to_double(const quaternion_t *const source, quaternion_double_
   dest->qz = (double)source->qz * coef;
 }
 
-void raw_to_protobuf(const xyz_int *const source, XyzProto *dest)
+void raw_to_protobuf(const xyz_int *const source, Protobetty__Xyz *dest)
 {
   dest->x = (double)source->x;
   dest->y = (double)source->y;
   dest->z = (double)source->z;
 #ifdef DEBUG
-  printf("\n X: %f ;\n Y: %f ;\n Z: %f \n",dest->x,dest->y,dest->z);
+//  printf("\n X: %f ;\n Y: %f ;\n Z: %f \n",dest->x,dest->y,dest->z);
 #endif
 }
 
-void scaled_to_protobuf(const xyz_int *const source, XyzProto *dest, double coef)
+void scaled_to_protobuf(const xyz_int *const source, Protobetty__Xyz *dest, double coef)
 {
   dest->x = (double)source->x * coef;
   dest->y = (double)source->y * coef;
   dest->z = (double)source->z * coef;
 #ifdef DEBUG
-  printf("\n X: %f ;\n Y: %f ;\n Z: %f \n",dest->x,dest->y,dest->z);
+ // printf("\n X: %f ;\n Y: %f ;\n Z: %f \n",dest->x,dest->y,dest->z);
 #endif
 }
 
-void copy_timestamp(const timestamp_t *const source, TimestampProto *dest)
+void copy_timestamp(const timestamp_t *const source, Protobetty__Timestamp *dest)
 {
    dest->tnsec = source->tnsec;
    dest->tsec = source->tsec;

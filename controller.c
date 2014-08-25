@@ -44,7 +44,7 @@
 ////         t0,tf,(tf-t0)*1e6, (t0 - floating_time(&(y->imu.imu_accel_scaled.timestamp)))*1e6);
 ////}
 
-void run_demo_controller(const SensorsProto* const y, ActuatorsProto* const u) {
+void run_demo_controller(const Protobetty__Sensors* const y, Protobetty__Actuators* const u) {
     if (y->accel->data->y != 0.0)
         u->rudd = y->accel->data->y;
     if (y->accel->data->y != 0.0)

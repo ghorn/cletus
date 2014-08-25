@@ -20,6 +20,7 @@
 #include "./misc.h"
 
 #include "./lisa_messages.h"
+#include "./print_output.h"
 
 
 
@@ -40,7 +41,7 @@ const double acc_scale_unit_coef = 0.0009766;
 const double mag_scale_unit_coef = 0.0004883;
 const double ahrs_unit_coef = 0.0000305;
 
-
+char* TAG = "RUN_SENSORS";
 
 /* ZMQ resources */
 static void *zctx = NULL;
@@ -53,6 +54,10 @@ static void *zsock_lisa_gps = NULL;
 static void *zsock_lisa_rc = NULL;
 static void *zsock_lisa_ahrs = NULL;
 static void *zsock_lisa_airspeed = NULL;
+void *zsock_print = NULL;
+
+
+
 
 
 /* Error tracking. */
@@ -60,14 +65,16 @@ int txfails = 0, rxfails = 0;
 
 static void __attribute__((noreturn)) die(int code) {
     zdestroy(zsock_log, zctx);
-    zdestroy(zsock_sensors, zctx);
+    zdestroy(zsock_sensors, NULL);
     //Receive sockets
-    zdestroy(zsock_lisa_gyro, zctx);
-    zdestroy(zsock_lisa_mag, zctx);
-    zdestroy(zsock_lisa_accel, zctx);
-    zdestroy(zsock_lisa_gps, zctx);
-    zdestroy(zsock_lisa_ahrs, zctx);
-    zdestroy(zsock_lisa_airspeed, zctx);
+    zdestroy(zsock_lisa_gyro, NULL);
+    zdestroy(zsock_lisa_mag, NULL);
+    zdestroy(zsock_lisa_accel, NULL);
+    zdestroy(zsock_lisa_gps, NULL);
+    zdestroy(zsock_lisa_ahrs, NULL);
+    zdestroy(zsock_lisa_airspeed, NULL);
+    zdestroy(zsock_print, NULL);
+
 
 
 
@@ -86,10 +93,11 @@ static void sigdie(int signum) {
 int main(int argc __attribute__((unused)),
          char **argv __attribute__((unused))) {
 
-    //  struct sched_param param;
-    //  set_priority(&param, RT_PRIORITY);
-    //  stack_prefault();
-
+    struct sched_param param;
+    set_priority(&param, RT_PRIORITY);
+    stack_prefault();
+    struct timespec t;
+    int rt_interval = 5000000; /* 5ms*/
 
 
     setbuf(stdin, NULL);
@@ -138,7 +146,9 @@ int main(int argc __attribute__((unused)),
     zsock_lisa_airspeed = setup_zmq_receiver(AIRSPEED_CHAN,&zctx,ZMQ_SUB,NULL,1,INPUT_BUFFER_SIZE);
     if (NULL == zsock_lisa_airspeed)
         die(1);
-
+    zsock_print = setup_zmq_sender(PRINT_CHAN, &zctx, ZMQ_PUB, 100, 500);
+    if (NULL == zsock_print)
+        die(1);
 
     /* Use big buffers here.  We're just publishing the data for
    * logging, so we don't mind saving some data until the logger can
@@ -255,48 +265,48 @@ int main(int argc __attribute__((unused)),
  *the pointer will set to the corresponding submessages
  */
     //Initializing Protobuf messages main sensor message
-    SensorsProto sensors = SENSORS_PROTO__INIT;
+    Protobetty__Sensors sensors = PROTOBETTY__SENSORS__INIT;
 #ifdef IMU
     //Initialize Protobuf for Gyro
-    GyroProto gyro = GYRO_PROTO__INIT;
-    TimestampProto gyro_timestamp = TIMESTAMP_PROTO__INIT;
-    XyzProto gyro_data = XYZ_PROTO__INIT;
+    Protobetty__Gyro gyro =PROTOBETTY__GYRO__INIT;
+    Protobetty__Timestamp gyro_timestamp = PROTOBETTY__TIMESTAMP__INIT;
+    Protobetty__Xyz gyro_data = PROTOBETTY__XYZ__INIT;
     gyro.data = &gyro_data;
     gyro.timestamp = &gyro_timestamp;
     //Initialize Protobuf for Accelerometer
-    AccelProto accel = ACCEL_PROTO__INIT;
-    TimestampProto accel_timestamp = TIMESTAMP_PROTO__INIT;
-    XyzProto accel_data = XYZ_PROTO__INIT;
+    Protobetty__Accel accel = PROTOBETTY__ACCEL__INIT;
+    Protobetty__Timestamp accel_timestamp = PROTOBETTY__TIMESTAMP__INIT;
+    Protobetty__Xyz accel_data = PROTOBETTY__XYZ__INIT;
     accel.data = &accel_data;
     accel.timestamp = &accel_timestamp;
     //Initialize Protobuf for Magnetometer
-    MagProto mag = MAG_PROTO__INIT;
-    TimestampProto mag_timestamp = TIMESTAMP_PROTO__INIT;
-    XyzProto mag_data = XYZ_PROTO__INIT;
+    Protobetty__Mag mag = PROTOBETTY__MAG__INIT;
+    Protobetty__Timestamp mag_timestamp = PROTOBETTY__TIMESTAMP__INIT;
+    Protobetty__Xyz mag_data = PROTOBETTY__XYZ__INIT;
     mag.data = &mag_data;
     mag.timestamp = &mag_timestamp;
 #endif
 #ifdef AIRSPEED
     //Initialize Protobuf for Airspeed
-    AirspeedProto airspeed = AIRSPEED_PROTO__INIT;
-    TimestampProto airspeed_timestamp = TIMESTAMP_PROTO__INIT;
+    Protobetty__Airspeed airspeed = PROTOBETTY__AIRSPEED__INIT;
+    Protobetty__Timestamp airspeed_timestamp = PROTOBETTY__TIMESTAMP__INIT;
     airspeed.timestamp = &airspeed_timestamp;
 #endif
 #ifdef GPS
     //Initialize Protobuf for GPS
-    GpsProto gps = GPS_PROTO__INIT;
-    TimestampProto gps_timestamp = TIMESTAMP_PROTO__INIT;
+    Protobetty__Gps gps = PROTOBETTY__GPS__INIT;
+    Protobetty__Timestamp gps_timestamp = PROTOBETTY__TIMESTAMP__INIT;
     gps.timestamp = &gps_timestamp;
-    XyzProto gps_pos = XYZ_PROTO__INIT;
+    Protobetty__Xyz gps_pos = PROTOBETTY__XYZ__INIT;
     gps.pos = &gps_pos;
-    XyzProto gps_vel = XYZ_PROTO__INIT;
+    Protobetty__Xyz gps_vel = PROTOBETTY__XYZ__INIT;
     gps.vel = &gps_vel;
 #endif
 
 
 
 
-    uint8_t zmq_buffer[MESSAGE__CONSTANTS__MAX_MESSAGE_SIZE];
+    uint8_t zmq_buffer[PROTOBETTY__MESSAGE__CONSTANTS__MAX_MESSAGE_SIZE];
     void* zmq_buffer_ptr = &zmq_buffer;
     unsigned int packed_length;
 
@@ -307,6 +317,10 @@ int main(int argc __attribute__((unused)),
 
 
     const int npolls = sizeof(polls) / sizeof(polls[0]);
+
+    clock_gettime(CLOCK_MONOTONIC ,&t);
+    /* start after one second */
+    t.tv_sec++;
 
     /* const int noutputs = npolls - ninputs; */
 
@@ -321,18 +335,20 @@ int main(int argc __attribute__((unused)),
    * mostly out of laziness. */
     for (;;) {
 
+        /* wait until next shot */
+        clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, &t, NULL);
         //Poll on activated channels for messages
         if (bail) die(bail);
         /* Poll for activity; time out after 10 milliseconds. */
         const int polled = zmq_poll(polls, npolls, 5);
         if (polled < 0) {
             if (bail) die(bail);
-            LOG_ERROR("while polling");
-            usleep(5000); // 200 Hz
+            printf("while polling");
+            calc_next_shot(&t,rt_interval);
             continue;
         } else if (polled == 0) {
             if (bail) die(bail);
-            usleep(5000); // 200 Hz
+            calc_next_shot(&t,rt_interval);
             continue;
         }
 
@@ -342,19 +358,19 @@ int main(int argc __attribute__((unused)),
         // GYRO data received
         //********************************************
         if (poll_lisa_gyro->revents & ZMQ_POLLIN) {
-            const int zr = zmq_recvm(zsock_lisa_gyro,(uint8_t*) &data_ptr->imu_raw.imu_gyro,sizeof(gyro_raw_t));
+            const int zr = zmq_recv(zsock_lisa_gyro,(uint8_t*) &data_ptr->imu_raw.imu_gyro,sizeof(gyro_raw_t),0);
             if (zr < (int) sizeof(gyro_raw_t)) {
-                LOG_ERROR("couldn't read gyro sensor!");
+                printf("couldn't read gyro sensor!");
                 rxfails++;
                 poll_lisa_gyro->revents =0;
             }
             else {
                 copy_timestamp(&(data_ptr->imu_raw.imu_gyro.timestamp),gyro.timestamp);
 #ifdef DEBUG
-                printf("Received GYRO (ID:%u) and timestamp %f sec (Latency:%fms) ",
-                       data_ptr->imu_raw.imu_gyro.id,
-                       floating_ProtoTime(gyro.timestamp),
-                       calcCurrentLatencyProto(gyro.timestamp)*1e3);
+                send_debug(zsock_print,TAG,"Received GYRO (ID:%u) and timestamp %f sec (Latency:%fms) ",
+                           data_ptr->imu_raw.imu_gyro.id,
+                           floating_ProtoTime(gyro.timestamp),
+                           calcCurrentLatencyProto(gyro.timestamp)*1e3);
 #endif
 #ifdef RAW
                 raw_to_protobuf(&(data_ptr->imu_raw.imu_gyro.data),&(protobuf_ptr->gyro->data);
@@ -370,7 +386,7 @@ int main(int argc __attribute__((unused)),
         // ACCELERATION data received
         //********************************************
         if (poll_lisa_accel->revents & ZMQ_POLLIN) {
-            const int zr = zmq_recvm(zsock_lisa_accel,(uint8_t*) &data_ptr->imu_raw.imu_accel,sizeof(accel_raw_t));
+            const int zr = zmq_recv(zsock_lisa_accel,(uint8_t*) &data_ptr->imu_raw.imu_accel,sizeof(accel_raw_t),0);
             if (zr < (int) sizeof(accel_raw_t)) {
                 err("couldn't read sensors!");
                 rxfails++;
@@ -379,10 +395,10 @@ int main(int argc __attribute__((unused)),
             else {
                 copy_timestamp(&(data_ptr->imu_raw.imu_accel.timestamp),accel.timestamp);
 #ifdef DEBUG
-                printf("Received ACCELERATION (ID:%i) and timestamp %f sec (Latency:%fms) ",
-                       data_ptr->imu_raw.imu_accel.id,
-                       floating_ProtoTime(accel.timestamp),
-                       calcCurrentLatencyProto(accel.timestamp)*1e3);
+                send_debug(zsock_print,TAG,"Received ACCELERATION (ID:%i) and timestamp %f sec (Latency:%fms) ",
+                           data_ptr->imu_raw.imu_accel.id,
+                           floating_ProtoTime(accel.timestamp),
+                           calcCurrentLatencyProto(accel.timestamp)*1e3);
 #endif
 #ifdef RAW
                 raw_to_protobuf(&(data_ptr->imu_raw.imu_accel.data),&(protobuf_ptr->accel->data);
@@ -399,7 +415,7 @@ int main(int argc __attribute__((unused)),
         // MAGNETOMETER data received
         //********************************************
         if (poll_lisa_mag->revents & ZMQ_POLLIN) {
-            const int zr = zmq_recvm(zsock_lisa_mag,(uint8_t*) &data_ptr->imu_raw.imu_mag,sizeof(mag_raw_t));
+            const int zr = zmq_recv(zsock_lisa_mag,(uint8_t*) &data_ptr->imu_raw.imu_mag,sizeof(mag_raw_t),0);
             if (zr < (int) sizeof(mag_raw_t)) {
                 err("couldn't read sensors!");
                 rxfails++;
@@ -408,10 +424,10 @@ int main(int argc __attribute__((unused)),
             else {
                 copy_timestamp(&(data_ptr->imu_raw.imu_mag.timestamp),mag.timestamp);
 #ifdef DEBUG
-                printf("Received MAGNETOMETER (ID:%i) and timestamp %f sec (Latency:%fms) ",
-                       data_ptr->imu_raw.imu_mag.id,
-                       floating_ProtoTime(mag.timestamp),
-                       calcCurrentLatencyProto(mag.timestamp)*1e3);
+                send_debug(zsock_print,TAG,"Received MAGNETOMETER (ID:%i) and timestamp %f sec (Latency:%fms) ",
+                           data_ptr->imu_raw.imu_mag.id,
+                           floating_ProtoTime(mag.timestamp),
+                           calcCurrentLatencyProto(mag.timestamp)*1e3);
 #endif
 
 #ifdef RAW
@@ -438,27 +454,27 @@ int main(int argc __attribute__((unused)),
 #if defined(AIRSPEED) && defined(GPS)
             if (poll_lisa_airspeed->revents > 0 && poll_lisa_gps->revents > 0)
             {
-                sensors.type = SENSORS_PROTO__TYPE__IMU_GPS_AIRSPEED;
+                sensors.type = PROTOBETTY__SENSORS__TYPE__IMU_GPS_AIRSPEED;
                 sensors.airspeed = &airspeed;
                 sensors.gps = &gps;
             }
             else if (poll_lisa_airspeed->revents > 0)
             {
-                sensors.type = SENSORS_PROTO__TYPE__IMU_AIRSPEED;
+                sensors.type = PROTOBETTY__SENSORS__TYPE__IMU_AIRSPEED;
                 sensors.airspeed = &airspeed;
             }
             else if (poll_lisa_gps->revents > 0)
             {
-                sensors.type = SENSORS_PROTO__TYPE__IMU_GPS;
+                sensors.type = PROTOBETTY__SENSORS__TYPE__IMU_GPS;
                 sensors.gps = &gps;
             }
             else
-                sensors.type = SENSORS_PROTO__TYPE__IMU_ONLY;
+                sensors.type = PROTOBETTY__SENSORS__TYPE__IMU_ONLY;
 #else
 #ifdef AIRSPEED
             if (poll_lisa_airspeed->revents > 0)
             {
-                sensors.type = SENSORS_PROTO__TYPE__IMU_AIRSPEED;
+                sensors.type = PROTOBETTY__SENSORS__TYPE__IMU_AIRSPEED;
                 sensors.airspeed = &airspeed;
             }
             else
@@ -467,20 +483,20 @@ int main(int argc __attribute__((unused)),
 #ifdef GPS
             if (poll_lisa_gps->revents > 0)
             {
-                sensors.type = SENSORS_PROTO__TYPE__IMU_GPS;
+                sensors.type = PROTOBETTY__SENSORS__TYPE__IMU_GPS;
                 sensors.gps = &gps;
             }
             else
-                sensors.type = SENSORS_PROTO__TYPE__IMU_ONLY;
+                sensors.type = PROTOBETTY__SENSORS__TYPE__IMU_ONLY;
 #endif
 
-            sensors.type = SENSORS_PROTO__TYPE__IMU_ONLY;
+            sensors.type = PROTOBETTY__SENSORS__TYPE__IMU_ONLY;
 #endif
 
             //get size of packed data
-            packed_length = sensors_proto__get_packed_size(&sensors);
+            packed_length = protobetty__sensors__get_packed_size(&sensors);
             //pack data to buffer
-            sensors_proto__pack(&sensors,zmq_buffer);
+            protobetty__sensors__pack(&sensors,zmq_buffer);
 
 
             const int zs = zmq_send(zsock_sensors, zmq_buffer_ptr, packed_length, 0);
@@ -488,7 +504,7 @@ int main(int argc __attribute__((unused)),
             if (zs < 0) {
                 txfails++;
             } else {
-                printf("IMU sent to controller!, size: %u\n", packed_length);
+                send_debug(zsock_print,TAG,"IMU sent to controller!, size: %u\n", packed_length);
                 poll_sensors->events = 0;
             }
             //Resetting
@@ -498,7 +514,9 @@ int main(int argc __attribute__((unused)),
             poll_lisa_accel->revents = 0;
             poll_lisa_airspeed->revents = 0;
             poll_lisa_gps->revents = 0;
-            sensors_proto__init(&sensors);
+            protobetty__sensors__init(&sensors);
+            calc_next_shot(&t,rt_interval);
+
 
         }
 
@@ -506,168 +524,6 @@ int main(int argc __attribute__((unused)),
 
 #endif
 
-
-
-
-        //              switch (get_lisa_data(&outgoing, input_buffer))
-        //                {
-        //#ifdef GPS
-        //                case GPS_INT:
-        //#ifdef DEBUG
-
-        //                  printf("Received GPS Position data (X:%i ; Y:%i ; Z:%i\n",
-        //                         outgoing.gps.pos_data.x,outgoing.gps.pos_data.y,outgoing.gps.pos_data.z);
-        //#endif
-        //                  poll_gps->events =  ZMQ_POLLOUT;
-        //                  poll_log->events = ZMQ_POLLOUT;
-        //                  break;
-        //#endif
-        //#ifdef IMU
-        //                case IMU_ACC_SCALED:
-        //                  xyz_convert_to_double(&(outgoing.imu.imu_accel.data), &(outgoing.imu.imu_accel_scaled.data),acc_scale_unit_coef );
-        //#ifdef DEBUG
-
-        //                  printf("Received Acceleration data (X:%f ; Y:%f; Z:%f\n",
-        //                         outgoing.imu.imu_accel_scaled.data.x,outgoing.imu.imu_accel_scaled.data.y,outgoing.imu.imu_accel_scaled.data.z);
-        //#endif
-        //                  poll_imu->events =  ZMQ_POLLOUT;
-        //                  poll_log->events = ZMQ_POLLOUT;
-        //                  break;
-        //                case IMU_GYRO_SCALED:
-        //                  xyz_convert_to_double(&(outgoing.imu.imu_gyro.data), &(outgoing.imu.imu_gyro_scaled.data),gyro_scale_unit_coef );
-        //#ifdef DEBUG
-        //                  printf("Received Gyro data (X:%f ; Y:%f ; Z:%f\n",
-        //                         outgoing.imu.imu_gyro_scaled.data.x,outgoing.imu.imu_gyro_scaled.data.y,outgoing.imu.imu_gyro_scaled.data.z);
-        //#endif
-        //                  poll_imu->events =  ZMQ_POLLOUT;
-        //                  poll_log->events = ZMQ_POLLOUT;
-        //                  break;
-        //                case IMU_MAG_SCALED:
-        //                  xyz_convert_to_double(&(outgoing.imu.imu_mag.data), &(outgoing.imu.imu_mag_scaled.data),mag_scale_unit_coef );
-        //#ifdef DEBUG
-        //                  printf("Received Mag data (X:%f ; Y:%f ; Z:%f\n",
-        //                         outgoing.imu.imu_mag_scaled.data.x,outgoing.imu.imu_mag_scaled.data.y,outgoing.imu.imu_mag_scaled.data.z);
-        //#endif
-        //                  poll_imu->events =  ZMQ_POLLOUT;
-        //                  poll_log->events = ZMQ_POLLOUT;
-        //                  break;
-        //#endif
-        //#ifdef AIRSPEED
-        //                case AIRSPEED_ETS:
-        //#ifdef DEBUG
-        //                  printf("Received Airspeed data (X:%f ; Y:%f ; Z:%f\n",
-        //                         outgoing.imu.imu_gyro_scaled.data.x,outgoing.imu.imu_gyro_scaled.data.y,outgoing.imu.imu_gyro_scaled.data.z);
-        //#endif
-        //                  poll_airspeed->events =  ZMQ_POLLOUT;
-        //                  poll_log->events = ZMQ_POLLOUT;
-        //                  break;
-        //#endif
-        //#ifdef AHRS
-        //                case AHRS_QUAT_INT:
-        //                  quat_convert_to_double(&(outgoing.ahrs.body), &(outgoing.ahrs.body_converted),ahrs_unit_coef );
-        //                  quat_convert_to_double(&(outgoing.ahrs.imu), &(outgoing.ahrs.imu_converted),ahrs_unit_coef );
-        //#ifdef DEBUG
-        //                  printf("Received AHRS body data (I:%f X:%f ; Y:%f ; Z:%f\n",
-        //                         outgoing.ahrs.body_converted.qi,outgoing.ahrs.body_converted.qx,outgoing.ahrs.body_converted.qy,outgoing.ahrs.body_converted.qz);
-        //                  printf("Received AHRS IMU data (I:%f X:%f ; Y:%f ; Z:%f\n",
-        //                         outgoing.ahrs.imu_converted.qi,outgoing.ahrs.imu_converted.qx,outgoing.ahrs.imu_converted.qy,outgoing.ahrs.imu_converted.qz);
-        //#endif
-        //                  poll_ahrs->events =  ZMQ_POLLOUT;
-        //                  poll_log->events = ZMQ_POLLOUT;
-        //                  break;
-        //#endif
-        //#ifdef RC
-        //                case ROTORCRAFT_RADIO_CONTROL:
-        //#ifdef DEBUG
-        //                  printf("RC Data: Mode: %i Status: %i \n", outgoing.rc.mode,outgoing.rc.status);
-        //#endif
-        //#endif
-        //                default:
-        //                  break;
-        //                }
-
-
-        //              if (bail) die(bail);
-        //              /* Poll for activity; time out after 10 milliseconds. */
-        //              const int polled = zmq_poll(polls, npolls, 10);
-        //              if (polled < 0) {
-        //                  if (bail) die(bail);
-        //                  zerr("while polling");
-        //                  usleep(5000); // 200 Hz
-        //                  continue;
-        //                } else if (polled == 0) {
-        //                  if (bail) die(bail);
-        //                  usleep(5000); // 200 Hz
-        //                  continue;
-        //                }
-
-        //              if (bail) die(bail);
-
-        //#ifdef GPS
-        //              if (bail) die(bail);
-        //              if (poll_gps->revents & ZMQ_POLLOUT) {
-        //                  const void *bufs[] = {&outgoing.gps};
-        //                  const uint32_t lens[] = {sizeof(gps_t)};
-        //                  const int zs = zmq_sendm(zsock_gps, bufs, lens,
-        //                                           sizeof(lens) / sizeof(lens[0]));
-        //                  if (zs < 0) {
-        //                      txfails++;
-        //                    } else {
-        //                      printf("GPS sent to controller!, size: %d\n", (int)sizeof(gps_t));
-        //                      poll_gps->events = 0;
-        //                    }
-        //                  poll_gps->revents = 0;
-        //                }
-        //#endif
-        //#ifdef IMU
-        //              if (bail) die(bail);
-        //              if (poll_imu->revents & ZMQ_POLLOUT) {
-        //                  const void *bufs[] = {&outgoing.imu};
-        //                  const uint32_t lens[] = {sizeof(imu_t)};
-        //                  const int zs = zmq_sendm(zsock_imu, bufs, lens,
-        //                                           sizeof(lens) / sizeof(lens[0]));
-        //                  if (zs < 0) {
-        //                      txfails++;
-        //                    } else {
-        //                      printf("IMU sent to controller!, size: %d\n", (int)sizeof(imu_t));
-        //                      poll_imu->events = 0;
-        //                    }
-        //                  poll_imu->revents = 0;
-        //                }
-        //#endif
-        //#ifdef AHRS
-        //              if (bail) die(bail);
-        //              if (poll_ahrs->revents & ZMQ_POLLOUT) {
-        //                  const void *bufs[] = {&outgoing.ahrs};
-        //                  const uint32_t lens[] = {sizeof(ahrs_t)};
-        //                  const int zs = zmq_sendm(zsock_imu, bufs, lens,
-        //                                           sizeof(lens) / sizeof(lens[0]));
-        //                  if (zs < 0) {
-        //                      txfails++;
-        //                    } else {
-        //                      printf("AHRS sent to controller!, size: %d\n", (int)sizeof(ahrs_t));
-        //                      poll_ahrs->events = 0;
-        //                    }
-        //                  poll_ahrs->revents = 0;
-        //                }
-        //#endif
-        //              if (bail) die(bail);
-        //              if ((poll_log->revents > 3) & ZMQ_POLLOUT) {
-        //                  const uint8_t type = LOG_MESSAGE_SENSORS;
-        //                  const void *bufs[] = {&type, &outgoing};
-        //                  const uint32_t lens[] = {sizeof(type), sizeof(outgoing)};
-        //                  const int zs = zmq_sendm(zsock_log, bufs, lens,
-        //                                           sizeof(gyro_timestamplens) / sizeof(lens[0]));
-        //                  if (zs < 0) {
-        //                      txfails++;
-        //                    } else {
-        //                      printf("Sent to logger!\n");
-        //                      /* Clear the events flag so we won't try to send until we
-        //                 * have more data. */
-        //                      poll_log->events = 0;
-        //                    }
-        //                  poll_log->revents = 0;
-        //                }
     }
 
     /* Shouldn't get here. */

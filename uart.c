@@ -1,4 +1,4 @@
-#include <stdlib.h>
+﻿#include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
 #include <fcntl.h>
@@ -16,31 +16,32 @@ UART_errCode  serial_port_open_raw(const char* device_ptr, speed_t speed_param);
 void serial_port_free(void);
 void serial_port_flush(void);
 UART_errCode serial_port_flush_output(void);
+static int wait_for_data(zmq_pollitem_t* const pollitem, const int timeout_ms);
+
 
 
 
 static char FILENAME[] = "uart_communication.c";
+static char* TAG = "UART";
 
 //extern serial_port *serial_stream;
 
-speed_t speed = B921600;
+speed_t speed = B115200;
 //Variables for serial port
 const char device[]="/dev/ttyO4";
 const char device_enabled_check[] = "ttyO4_armhf.com"; //For Angstrom: enable-uart5
 const char device_path[] = "/sys/devices/bone_capemgr.9/slots"; //For Angstrom: /sys/devices/bone_capemgr.8/slots
 
 
-int add_timestamp(uint8_t*const buffer,const int msg_length){
-
-
+int add_timestamp(uint8_t*const buffer,const int msg_length)
+{
     timestamp_t timestamp;
     gettime(&timestamp);
 #if DEBUG  > 1
     printf("Added timestamp: %f\n", floating_time(&timestamp));
 #endif
-    int timestamp_position = msg_length - BYTES_HEADER - BYTES_CHECKSUM;
+    int timestamp_position = msg_length - BYTES_CHECKSUM;
     memcpy(&buffer[timestamp_position],&timestamp,sizeof(timestamp));
-
     return timestamp_position + sizeof(timestamp);
 }
 
@@ -75,15 +76,16 @@ UART_errCode write_uart(uint8_t output[],long unsigned int message_length)
     return UART_ERR_NONE;
 }
 
-int check_checksum(uint8_t length, uint8_t *message)
+int check_checksum(uint8_t *message)
 {
-    uint8_t checksum_1 = length;
-    uint8_t checksum_2 = checksum_1;
+    uint8_t length = message[0];
+    uint8_t checksum_1 = 0;
+    uint8_t checksum_2 = 0;
 
-    int INDEX_CH1 = length-2-2;
-    int INDEX_CH2 = length-1-2;
+    int INDEX_CH1 = length-2-1; //2 Checksum bytes - 1 Startbyte
+    int INDEX_CH2 = length-1-1; //1 Checksum bytes - 1 Startbyte
 
-    for(int i=0;i<length-2-2;i++) //read until message_length - checksum_1 - checksum_2 - start &length byte
+    for(int i=0;i<length-2-1;i++) //read until message_length - checksum_1 - checksum_2 - startbyte
     {
         checksum_1 += message[i];
         checksum_2 += checksum_1;
@@ -93,7 +95,7 @@ int check_checksum(uint8_t length, uint8_t *message)
     {
 #ifdef DEBUG
         printf(" Checksum error: message raw check: ");
-        for(int i=0;i<length-2;i++){
+        for(int i=0;i<length-1;i++){
             printf("%d ",message[i]);
         }
         printf("\n");
@@ -372,5 +374,64 @@ void UART_err_handler( UART_errCode err_p,void (*write_error_ptr)(char *,char *,
         break;
     default: break;
     }
+}
+
+int find_startbyte(zmq_pollitem_t* const pollitem, uint8_t* const buffer)
+{
+    if (wait_for_data(pollitem, 100) > 0)
+    {
+        ioctl(serial_stream->fd, FIONREAD); //set to number of bytes in buffer
+        read_uart(buffer,1);
+        if (buffer[0] == LISA_STARTBYTE)
+            return 1;
+    }
+    return 0;
+}
+
+
+int read_lisa_message(zmq_pollitem_t* const pollitem, uint8_t* const buffer)
+{
+    if (wait_for_data(pollitem, 100) > 0)
+    {
+        ioctl(serial_stream->fd, FIONREAD); //set to number of bytes in buffer
+        read_uart(buffer,1);
+        const int message_length = buffer[0];
+        if (message_length < LISA_MAX_MSG_LENGTH)
+        {
+            int bytes_read = 0;
+            while (bytes_read < message_length)
+            {
+                if (wait_for_data(pollitem, 100) > 0)
+                {
+                    ioctl(serial_stream->fd, FIONREAD, &bytes_read); //set to number of bytes in buffer
+                }
+                else
+                    return 0;
+            }
+            read_uart(buffer,message_length);
+            return message_length;
+        }
+        else
+            send_warning(zsock_print,TAG,
+                         "Message length %i is larger than MAX. Seems like we are missing bytes.",message_length);
+    }
+    return 0;
+}
+
+
+
+static int wait_for_data(zmq_pollitem_t* const pollitem, const int timeout_ms)
+{
+    const int polled = zmq_poll(pollitem,1, timeout_ms);
+    if (polled > 0)
+    {
+        pollitem->revents=0;
+        return polled;
+    }
+    else if (polled == 0)
+        send_warning(zsock_print,TAG,"No data received from UART may be connection Errors.");
+    else if (polled < 0)
+        send_error(zsock_print,TAG,"ZMQ poll returned error.");
+    return 0;
 }
 

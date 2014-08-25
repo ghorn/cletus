@@ -1,3 +1,4 @@
+package Protobetty;
 enum Mode3 {
   Mode0 = 0;
   Mode1 = 1;
@@ -13,7 +14,7 @@ enum UpDown {
   Down = 1;
 }
 
-message Rc_proto {
+message Rc {
   required double rcThrottle = 1;
   required double rcYaw = 2;
   required double rcPitch = 3;
@@ -24,40 +25,40 @@ message Rc_proto {
   required Mode3  rcFmode = 8;
 }
 
-message Xyz_proto {
+message Xyz {
   required double x = 1;
   required double y = 2;
   required double z = 3;
 }
 
-message Timestamp_proto {
+message Timestamp {
   required uint64 tsec = 1;
   required uint64 tnsec = 2;
 }
 
-message Gps_proto{
-    required Timestamp_proto timestamp = 1;
-    required Xyz_proto pos = 2;
-    required Xyz_proto vel = 3;
+message Gps{
+    required Timestamp timestamp = 1;
+    required Xyz pos = 2;
+    required Xyz vel = 3;
 }
 
-message Gyro_proto{
-    required Timestamp_proto timestamp = 1;
-    required Xyz_proto data = 2;
+message Gyro{
+    required Timestamp timestamp = 1;
+    required Xyz data = 2;
 }
 
-message Accel_proto{
-    required Timestamp_proto timestamp = 1;
-    required Xyz_proto data = 2;
+message Accel{
+    required Timestamp timestamp = 1;
+    required Xyz data = 2;
 }
 
-message Mag_proto{
-    required Timestamp_proto timestamp = 1;
-    required Xyz_proto data = 2;
+message Mag{
+    required Timestamp timestamp = 1;
+    required Xyz data = 2;
 }
 
-message Airspeed_proto{
-    required Timestamp_proto timestamp = 1;
+message Airspeed{
+    required Timestamp timestamp = 1;
     required double scaled = 2;
     optional uint32 raw = 3;
     optional uint32 offset = 4;
@@ -65,7 +66,7 @@ message Airspeed_proto{
 }
 
 
-message Sensors_proto {
+message Sensors {
 enum Type {
   IMU_ONLY = 1;
   IMU_AIRSPEED = 2;
@@ -77,48 +78,64 @@ enum Type {
 required Type type = 1;
 
 // One of the following will be filled in.
-  required Gyro_proto gyro = 2;
-  required Accel_proto accel = 3;
-  required Mag_proto mag =4;
-  optional Airspeed_proto airspeed =5;
-  optional Gps_proto gps =6 ;
+  required Gyro gyro = 2;
+  required Accel accel = 3;
+  required Mag mag =4;
+  optional Airspeed airspeed =5;
+  optional Gps gps =6 ;
 }
 
-message Actuators_proto {
-  required Timestamp_proto start = 1;
-  optional Timestamp_proto stop = 2;
+message Actuators {
+  required Timestamp start = 1;
+  optional Timestamp stop = 2;
   required double flaps = 3;
   required double ail = 4;
   required double rudd = 5;
   required double elev = 6;
 }
 
-message Dcm_proto {
-  required Xyz_proto r0 = 1;
-  required Xyz_proto r1 = 2;
-  required Xyz_proto r2 = 3;
+message Dcm {
+  required Xyz r0 = 1;
+  required Xyz r1 = 2;
+  required Xyz r2 = 3;
 }
 
-message AcState_proto {
-  required Xyz_proto r_n2b_n = 1;
-  required Xyz_proto v_bn_b = 2;
-  required Dcm_proto dcm_n2b = 3;
-  required Xyz_proto w_bn_b = 4;
+message AcState {
+  required Xyz r_n2b_n = 1;
+  required Xyz v_bn_b = 2;
+  required Dcm dcm_n2b = 3;
+  required Xyz w_bn_b = 4;
 }
 
-message SimTelem_proto {
-  required AcState_proto state = 1;
-  required Actuators_proto actuators = 2;
+message SimTelem {
+  required AcState state = 1;
+  required Actuators actuators = 2;
   repeated string messages = 3;
   required double w0 = 4;
 }
 
 message AcPose {
-  required Xyz_proto r_n2b_n = 1;
-  required Dcm_proto dcm_n2b = 3;
+  required Xyz r_n2b_n = 1;
+  required Dcm dcm_n2b = 3;
 }
 
 message OptTelem {
   repeated AcPose poses = 1;
   repeated string messages = 2;
 }
+
+message Printf {
+enum Type {
+  DEBUG = 1;
+  INFO = 2;
+  WARNING = 3;
+  ERROR = 4;
+  }
+
+// Identifies which field is filled in.
+  required Type type = 1;
+// One of the following will be filled in.
+  required string message = 2;
+  optional Timestamp timestamp=3;
+  required string tag=4 [default=""];
+ }

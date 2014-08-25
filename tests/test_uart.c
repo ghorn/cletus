@@ -25,6 +25,7 @@
 /* ZMQ resources */
 static void *zctx = NULL;
 static void *zsock_data = NULL;
+void *zsock_print = NULL;
 
 
 /* Error tracking. */
