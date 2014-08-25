@@ -19,5 +19,8 @@ void run_controller(const lisa_messages_t * const y, actuators_t * const u);
 
 void run_demo_controller(const Protobetty__Sensors* const y, Protobetty__Actuators* const u);
 
+void run_p_controller(const Protobetty__Sensors* const y, Protobetty__Actuators* const u);
+
+
 
 #endif // __CONTROLLER_H__

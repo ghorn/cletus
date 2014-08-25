@@ -59,3 +59,10 @@ void run_demo_controller(const Protobetty__Sensors* const y, Protobetty__Actuato
     u->start->tnsec = timestamp.tnsec;
 
 }
+
+
+void run_p_controller(const Protobetty__Sensors* const y, Protobetty__Actuators* const u) {
+    //TODO Bens controller implemtieren
+    printf("data %f %f", y->accel->data->x, u->elev);
+}
+
