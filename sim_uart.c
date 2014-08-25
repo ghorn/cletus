@@ -140,17 +140,14 @@ int main(int argc __attribute__((unused)),
     for (;;) {
         if (bail) die(bail);
 
-        accel_dummy.id = sequenceNumber;
         accel_dummy.data.x = rand();
         accel_dummy.data.y = rand();
         accel_dummy.data.z = rand();
 
-        mag_dummy.id = sequenceNumber;
         mag_dummy.data.x = rand();
         mag_dummy.data.y = rand();
         mag_dummy.data.z = rand();
 
-        gyro_dummy.id = sequenceNumber;
         gyro_dummy.data.x = rand();
         gyro_dummy.data.y = rand();
         gyro_dummy.data.z = rand();
@@ -164,14 +161,14 @@ int main(int argc __attribute__((unused)),
 
 
         memcpy(&msg_data[0], &accel_dummy,sizeof(accel_raw_t));
-        int returned = zmq_send(zsock_accel,&msg_data[0],sizeof(accel_raw_t),ZMQ_NOBLOCK);
+        int returned = zmq_send(zsock_lisa,&msg_data[0],sizeof(accel_raw_t),ZMQ_NOBLOCK);
 
         memcpy(&msg_data[0], &mag_dummy, sizeof(mag_raw_t));
-        returned = zmq_send(zsock_mag,&msg_data[0],sizeof(mag_raw_t),ZMQ_NOBLOCK);
+        returned = zmq_send(zsock_lisa,&msg_data[0],sizeof(mag_raw_t),ZMQ_NOBLOCK);
 
 
         memcpy(&msg_data[0], &gyro_dummy,sizeof(gyro_raw_t));
-        returned =  zmq_send(zsock_gyro,&msg_data[0],sizeof(gyro_raw_t),ZMQ_NOBLOCK);
+        returned =  zmq_send(zsock_lisa,&msg_data[0],sizeof(gyro_raw_t),ZMQ_NOBLOCK);
         send_debug(zsock_print,TAG,"Sending GYRO, MAG, ACCEL with ID: %u [Bytes:%u] ",sequenceNumber, returned);
 
 
