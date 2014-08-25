@@ -79,13 +79,13 @@ UART_errCode write_uart(uint8_t output[],long unsigned int message_length)
 int check_checksum(uint8_t *message)
 {
     uint8_t length = message[0];
-    uint8_t checksum_1 = length;
-    uint8_t checksum_2 = checksum_1;
+    uint8_t checksum_1 = 0;
+    uint8_t checksum_2 = 0;
 
-    int INDEX_CH1 = length-2;
-    int INDEX_CH2 = length-1;
+    int INDEX_CH1 = length-2-1; //2 Checksum bytes - 1 Startbyte
+    int INDEX_CH2 = length-1-1; //1 Checksum bytes - 1 Startbyte
 
-    for(int i=0;i<length-2;i++) //read until message_length - checksum_1 - checksum_2
+    for(int i=0;i<length-2-1;i++) //read until message_length - checksum_1 - checksum_2 - startbyte
     {
         checksum_1 += message[i];
         checksum_2 += checksum_1;
@@ -95,7 +95,7 @@ int check_checksum(uint8_t *message)
     {
 #ifdef DEBUG
         printf(" Checksum error: message raw check: ");
-        for(int i=0;i<length-2;i++){
+        for(int i=0;i<length-1;i++){
             printf("%d ",message[i]);
         }
         printf("\n");
@@ -396,18 +396,24 @@ int read_lisa_message(zmq_pollitem_t* const pollitem, uint8_t* const buffer)
         ioctl(serial_stream->fd, FIONREAD); //set to number of bytes in buffer
         read_uart(buffer,1);
         const int message_length = buffer[0];
-        int bytes_read = 0;
-        while (bytes_read < message_length)
+        if (message_length < LISA_MAX_MSG_LENGTH)
         {
-            if (wait_for_data(pollitem, 100) > 0)
+            int bytes_read = 0;
+            while (bytes_read < message_length)
             {
-               ioctl(serial_stream->fd, FIONREAD, &bytes_read); //set to number of bytes in buffer
+                if (wait_for_data(pollitem, 100) > 0)
+                {
+                    ioctl(serial_stream->fd, FIONREAD, &bytes_read); //set to number of bytes in buffer
+                }
+                else
+                    return 0;
             }
-            else
-                return 0;
+            read_uart(buffer,message_length);
+            return message_length;
         }
-        read_uart(buffer,message_length);
-        return message_length;
+        else
+            send_warning(zsock_print,TAG,
+                         "Message length %i is larger than MAX. Seems like we are missing bytes.",message_length);
     }
     return 0;
 }
