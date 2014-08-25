@@ -70,7 +70,7 @@ int main(int argc __attribute__((unused)),
 
 
 
-    const int SLEEP_TIME_us = 10;
+    const int SLEEP_TIME_us = 5000;
 
     /* Confignals. */
     if (signal(SIGINT, &sigdie) == SIG_IGN)
