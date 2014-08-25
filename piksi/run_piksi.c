@@ -176,7 +176,7 @@ int main(){
   fd = open(portname, O_RDWR | O_NOCTTY | O_SYNC);
   if (fd < 0)
   {
-    printf("error %d opening %s: %s", errno, portname, strerror (errno));
+    printf("error %d opening %s: %s\n", errno, portname, strerror (errno));
     return -1;
   }
     

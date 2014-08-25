@@ -7,7 +7,7 @@ CXX_SRC = \
 #	main.cpp \
 #	parsing.cpp
 
-LIBS = -Llibswiftnav/mybuild/src -lswiftnav-static
+LIBS = -Llibswiftnav/build/src -lswiftnav-static
 
 Q ?= @
 
