@@ -35,10 +35,10 @@
 /* ZMQ resources */
 static void *zctx = NULL;
 static void *zsock_uart = NULL;
-static void *zsock_gyro = NULL;
-static void *zsock_mag = NULL;
-static void *zsock_accel = NULL;
-static void *zsock_airspeed = NULL;
+//static void *zsock_gyro = NULL;
+//static void *zsock_mag = NULL;
+//static void *zsock_accel = NULL;
+//static void *zsock_airspeed = NULL;
 static void *zsock_lisa = NULL;
 
 static char* TAG = "RUN_UART";
@@ -99,18 +99,18 @@ int main(int argc __attribute__((unused)),
     zsock_log = setup_zmq_sender(LOG_CHAN, &zctx, ZMQ_PUB, 1000, 100000);
     if (NULL == zsock_log)
         die(1);
-    zsock_accel = setup_zmq_sender(IMU_ACCEL_CHAN, &zctx, ZMQ_PUB, 5, 500);
-    if (NULL == zsock_lisa)
-        die(1);
-    zsock_gyro = setup_zmq_sender(IMU_GYRO_CHAN, &zctx, ZMQ_PUB, 5, 500);
-    if (NULL == zsock_lisa)
-        die(1);
-    zsock_mag = setup_zmq_sender(IMU_MAG_CHAN, &zctx, ZMQ_PUB, 5, 500);
-    if (NULL == zsock_lisa)
-        die(1);
-    zsock_airspeed = setup_zmq_sender(AIRSPEED_CHAN, &zctx, ZMQ_PUB, 5, 500);
-    if (NULL == zsock_lisa)
-        die(1);
+//    zsock_accel = setup_zmq_sender(IMU_ACCEL_CHAN, &zctx, ZMQ_PUB, 5, 500);
+//    if (NULL == zsock_lisa)
+//        die(1);
+//    zsock_gyro = setup_zmq_sender(IMU_GYRO_CHAN, &zctx, ZMQ_PUB, 5, 500);
+//    if (NULL == zsock_lisa)
+//        die(1);
+//    zsock_mag = setup_zmq_sender(IMU_MAG_CHAN, &zctx, ZMQ_PUB, 5, 500);
+//    if (NULL == zsock_lisa)
+//        die(1);
+//    zsock_airspeed = setup_zmq_sender(AIRSPEED_CHAN, &zctx, ZMQ_PUB, 5, 500);
+//    if (NULL == zsock_lisa)
+//        die(1);
     zsock_print = setup_zmq_sender(PRINT_CHAN, &zctx, ZMQ_PUSH, 5, 500);
     if (NULL == zsock_print)
         die(1);
@@ -178,20 +178,20 @@ int main(int argc __attribute__((unused)),
                         case IMU_ACCEL:
                         case IMU_ACCEL_RAW:
                         case IMU_ACCEL_SCALED:
-                            zmq_send(zsock_accel,&msg_buffer[LISA_INDEX_MSG_ID],msg_length,0);
+                            zmq_send(zsock_lisa,&msg_buffer[LISA_INDEX_MSG_ID],msg_length,0);
                             break;
                         case IMU_GYRO:
                         case IMU_GYRO_RAW:
                         case IMU_GYRO_SCALED:
-                            zmq_send(zsock_gyro,&msg_buffer[LISA_INDEX_MSG_ID],msg_length,0);
+                            zmq_send(zsock_lisa,&msg_buffer[LISA_INDEX_MSG_ID],msg_length,0);
                             break;
                         case IMU_MAG:
                         case IMU_MAG_RAW:
                         case IMU_MAG_SCALED:
-                            zmq_send(zsock_mag,&msg_buffer[LISA_INDEX_MSG_ID],msg_length,0);
+                            zmq_send(zsock_lisa,&msg_buffer[LISA_INDEX_MSG_ID],msg_length,0);
                             break;
                         case AIRSPEED_ETS:
-                            zmq_send(zsock_airspeed,&msg_buffer[LISA_INDEX_MSG_ID],msg_length,0);
+                            zmq_send(zsock_lisa,&msg_buffer[LISA_INDEX_MSG_ID],msg_length,0);
                             break;
                         default:
                             zmq_send(zsock_lisa,&msg_buffer[LISA_INDEX_MSG_ID],msg_length,0);
