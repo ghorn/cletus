@@ -3,6 +3,7 @@
 #include <string.h>
 #include <fcntl.h>
 #include <inttypes.h>
+#include <poll.h>
 
 
 #include "./misc.h"
@@ -426,16 +427,30 @@ int read_lisa_message(zmq_pollitem_t* const pollitem, uint8_t* const buffer)
 
 static int wait_for_data(zmq_pollitem_t* const pollitem, const int timeout_ms)
 {
-    const int polled = zmq_poll(pollitem,1, timeout_ms);
-    if (polled > 0)
-    {
-        pollitem->revents=0;
-        return polled;
+//    const int polled = zmq_poll(pollitem,1, timeout_ms);
+//    if (polled > 0)
+//    {
+//        pollitem->revents=0;
+//        return polled;
+//    }
+//    else if (polled == 0)
+//        send_warning(zsock_print,TAG,"No data received from UART may be connection Errors.");
+//    else if (polled < 0)
+//        send_error(zsock_print,TAG,"ZMQ poll returned error.");
+//    return 0;
+    pollitem->events=0;
+    struct pollfd fds[1];
+    int timeout = timeout_ms; //infinite timeout
+    int result;
+    fds[0].fd=serial_stream->fd;
+    fds[0].events=POLLIN;
+    result=poll(fds,1,timeout); //block until there is data in the serial stream
+
+    if((result & (1 << 0)) == 0){
+        return -1;
     }
-    else if (polled == 0)
-        send_warning(zsock_print,TAG,"No data received from UART may be connection Errors.");
-    else if (polled < 0)
-        send_error(zsock_print,TAG,"ZMQ poll returned error.");
     return 0;
+
 }
+
 
