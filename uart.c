@@ -284,7 +284,7 @@ UART_errCode  serial_port_open_raw(const char* device_ptr, speed_t speed_param) 
 
              fcntl(serial_stream->fd, F_SETFL, FNDELAY);
              fcntl(serial_stream->fd, F_SETOWN, getpid());
-             fcntl(serial_stream->fd, F_SETFL, FNDELAY|FASYNC);
+             fcntl(serial_stream->fd, F_SETFL, FASYNC);
 
 
              serial_stream->cur_termios = serial_stream->orig_termios;
