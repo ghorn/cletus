@@ -404,7 +404,7 @@ void signal_handler_IO (int status)
             irq_readbytes = 0;
             ioctl(serial_stream->fd, FIONREAD,&irq_readbytes); //set to number of bytes in buffer
             read_uart(irq_msg_buffer,1);
-            if (irq_msg_buffer[0] == STARTBYTE_SEARCH)
+            if (irq_msg_buffer[0] == LISA_STARTBYTE)
                 uart_stage = MESSAGE_LENGTH;
             break;
         case MESSAGE_LENGTH:
