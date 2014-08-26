@@ -54,47 +54,6 @@ typedef struct __attribute__((packed)){
 } message_footer_t;
 
 //SENSORS STRUCTS
-typedef struct __attribute__((packed))
-{
-    uint8_t id;
-    xyz_int data;
-    timestamp_t timestamp;
-}gyro_raw_t;
-
-typedef struct __attribute__((packed))
-{
-    uint8_t id;
-    xyz_int data;
-    timestamp_t timestamp;
-}mag_raw_t;
-
-typedef struct __attribute__((packed))
-{
-    uint8_t id;
-    xyz_int data;
-    timestamp_t timestamp;
-}accel_raw_t;
-
-typedef struct __attribute__((packed))
-{
-    uint8_t id;
-    xyz_double data;
-    timestamp_t timestamp;
-}gyro_scaled_t;
-
-typedef struct __attribute__((packed))
-{
-    uint8_t id;
-    xyz_double data;
-    timestamp_t timestamp;
-}mag_scaled_t;
-
-typedef struct __attribute__((packed))
-{
-    uint8_t id;
-    xyz_double data;
-    timestamp_t timestamp;
-}accel_scaled_t;
 
 typedef struct __attribute__((packed))
 {
@@ -105,18 +64,12 @@ typedef struct __attribute__((packed))
 }gps_t;
 
 
-typedef struct __attribute__((packed))
-{
-    accel_scaled_t imu_accel_scaled;
-    gyro_scaled_t imu_gyro_scaled;
-    mag_scaled_t imu_mag_scaled;
-}imu_scaled_t;
 
 typedef struct __attribute__((packed))
 {
-    accel_raw_t imu_accel;
-    gyro_raw_t imu_gyro;
-    mag_raw_t imu_mag;
+    uint8_t id;
+    xyz_int data;
+    timestamp_t timestamp;
 }imu_raw_t;
 
 typedef struct __attribute__((packed)){
@@ -144,7 +97,6 @@ typedef struct __attribute__((packed)){
 } rc_t;
 
 typedef struct __attribute__((packed)) {
-    imu_scaled_t imu_scaled;
     imu_raw_t imu_raw;
     gps_t gps;
     ahrs_int_t ahrs_int;

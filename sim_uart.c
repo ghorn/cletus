@@ -114,9 +114,9 @@ int main(int argc __attribute__((unused)),
 
 
     //Allocate messages
-    accel_raw_t accel_dummy;
-    mag_raw_t mag_dummy;
-    gyro_raw_t gyro_dummy;
+    imu_raw_t accel_dummy;
+    imu_raw_t mag_dummy;
+    imu_raw_t gyro_dummy;
     //Assigning IDs
     accel_dummy.id = IMU_ACCEL_SCALED;
     mag_dummy.id = IMU_MAG_SCALED;
@@ -160,15 +160,15 @@ int main(int argc __attribute__((unused)),
         mag_dummy.timestamp = timestamp;
 
 
-        memcpy(&msg_data[0], &accel_dummy,sizeof(accel_raw_t));
-        int returned = zmq_send(zsock_lisa,&msg_data[0],sizeof(accel_raw_t),ZMQ_NOBLOCK);
+        memcpy(&msg_data[0], &accel_dummy,sizeof(imu_raw_t));
+        int returned = zmq_send(zsock_lisa,&msg_data[0],sizeof(imu_raw_t),ZMQ_NOBLOCK);
 
-        memcpy(&msg_data[0], &mag_dummy, sizeof(mag_raw_t));
-        returned = zmq_send(zsock_lisa,&msg_data[0],sizeof(mag_raw_t),ZMQ_NOBLOCK);
+        memcpy(&msg_data[0], &mag_dummy, sizeof(imu_raw_t));
+        returned = zmq_send(zsock_lisa,&msg_data[0],sizeof(imu_raw_t),ZMQ_NOBLOCK);
 
 
-        memcpy(&msg_data[0], &gyro_dummy,sizeof(gyro_raw_t));
-        returned =  zmq_send(zsock_lisa,&msg_data[0],sizeof(gyro_raw_t),ZMQ_NOBLOCK);
+        memcpy(&msg_data[0], &gyro_dummy,sizeof(imu_raw_t));
+        returned =  zmq_send(zsock_lisa,&msg_data[0],sizeof(imu_raw_t),ZMQ_NOBLOCK);
         send_debug(zsock_print,TAG,"Sending GYRO, MAG, ACCEL with ID: %u [Bytes:%u] ",sequenceNumber, returned);
 
 
