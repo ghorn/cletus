@@ -104,11 +104,11 @@ extern UART_errCode write_uart(uint8_t output[],long unsigned int message_length
 int read_uart(uint8_t* const buffer,int length);
 extern UART_errCode serial_port_close(void);
 int serial_port_read_temp(uint8_t buffer[],int length) ;
-int check_checksum(uint8_t* message);
+int check_checksum(const uint8_t * const message);
 UART_errCode serial_port_flush_input(void);
 int add_timestamp(uint8_t* const buffer, const int msg_length);
 int read_lisa_message(zmq_pollitem_t* const pollitem, uint8_t* const buffer);
-
+int set_global_variables(zmq_pollitem_t* const pollitem, uint8_t* const msg_buffer);
 
 
 
