@@ -9,6 +9,7 @@ C_SRC = run_uart.c \
         run_actuators.c \
         run_sensors.c \
 	run_print_output.c \
+	lisa_communication/circular_buffer.c\
         sensors.c \
         uart.c \
         controller.c \

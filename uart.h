@@ -8,6 +8,7 @@
 #include <inttypes.h>
 #include <sys/ioctl.h>
 #include <sys/signal.h>
+#include "./lisa_communication/circular_buffer.h"
 
 
 
@@ -110,7 +111,10 @@ int add_timestamp(uint8_t* const buffer, const int msg_length);
 int read_lisa_message(zmq_pollitem_t* const pollitem, uint8_t* const buffer);
 int set_global_variables(zmq_pollitem_t* const pollitem, uint8_t* const msg_buffer);
 
+void init_circular_buffer(int buffer_size);
 
+
+extern CircularBuffer cb;
 
 
 

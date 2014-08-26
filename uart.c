@@ -25,6 +25,8 @@ static int irq_readbytes;
 static uint8_t irq_msg_buffer[256];
 static uint8_t* zmq_buffer;
 static zmq_pollitem_t* poll_lisa;
+static ElemType buffer_element;
+CircularBuffer cb;
 
 static int uart_stage;
 static char FILENAME[] = "uart_communication.c";
@@ -405,19 +407,20 @@ void signal_handler_IO (int status)
             ioctl(serial_stream->fd, FIONREAD,&irq_readbytes); //set to number of bytes in buffer
             read_uart(irq_msg_buffer,1);
             if (irq_msg_buffer[0] == LISA_STARTBYTE)
+            {
                 uart_stage = MESSAGE_LENGTH;
+            }
             break;
         case MESSAGE_LENGTH:
             ioctl(serial_stream->fd, FIONREAD,&irq_readbytes); //set to number of bytes in buffer
-            read_uart(irq_msg_buffer,1);
-            irq_msg_length = irq_msg_buffer[0];
+            read_uart(&(buffer_element.message[0]),1);
             uart_stage = MESSAGE_READING;
             break;
         case MESSAGE_READING:
             ioctl(serial_stream->fd, FIONREAD, &irq_readbytes); //set to number of bytes in buffer
             if (!(irq_readbytes < irq_msg_length))
             {
-                read_uart(&irq_msg_buffer[1],irq_msg_length-2);
+                read_uart(&(buffer_element.message[1]),irq_msg_length-2);
 #ifdef DEBUG
                 printf("Received message ");
                 for (int i = 0; i < irq_msg_length; i++)
@@ -426,7 +429,7 @@ void signal_handler_IO (int status)
                 }
                 printf("\n");
 #endif
-                memcpy(zmq_buffer,irq_msg_buffer,irq_msg_length);
+                cbWrite(&cb,&buffer_element);
                 poll_lisa->events = ZMQ_POLLOUT;
                 uart_stage = STARTBYTE_SEARCH;
             }
@@ -436,5 +439,7 @@ void signal_handler_IO (int status)
         }
     }
 }
+
+
 
 
