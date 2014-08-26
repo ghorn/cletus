@@ -1,5 +1,5 @@
 # What's the executable called?
-PROJ =  run_uart run_sensors run_controller run_actuators run_function_test tests/test_uart tests/test_lisa_message tests/log_lisa sim_uart run_print_output
+PROJ =  run_uart run_sensors run_controller run_actuators run_function_test tests/test_uart tests/test_lisa_message tests/log_lisa sim_uart run_print_output run_logger
 
 
 
@@ -21,7 +21,8 @@ C_SRC = run_uart.c \
         tests/test_uart.c   \
         tests/test_lisa_message.c \
 	tests/log_lisa.c \
-	sim_uart.c
+	sim_uart.c \
+	run_logger.c
 
 
 
