@@ -28,7 +28,7 @@
 
 
 #define MAX_MSG_SIZE 512
-int safe_to_file(const char* const memory,uint64_t nitems);
+long safe_to_file(const char* const memory,uint64_t nitems);
 
 
 /* ZMQ resources */
@@ -36,8 +36,9 @@ static void *zctx = NULL;
 static void *zsock_sensors = NULL;
 static void *zsock_actuators = NULL;
 void *zsock_print = NULL;
-char *ptr;
+char *ptr_temp_memory;
 static uint64_t counter = 0;
+static uint64_t NUMBER_OF_LOGS = 0;
 char* TAG = "RUN_LOGGER";
 
 
@@ -45,14 +46,15 @@ char* TAG = "RUN_LOGGER";
 int txfails = 0, rxfails = 0;
 
 static void __attribute__((noreturn)) die(int code) {
+
+    send_info(zsock_print,TAG,"Starting Logging now....");
+    safe_to_file(ptr_temp_memory, counter);
+    send_info(zsock_print,TAG,"Finished Logging");
+
+    free_workbuf(ptr_temp_memory, NUMBER_OF_LOGS*PROTOBETTY__MESSAGE__CONSTANTS__MAX_MESSAGE_SIZE);
     zdestroy(zsock_print, NULL);
     zdestroy(zsock_actuators, NULL);
     zdestroy(zsock_sensors, zctx);
-    send_info(zsock_print,TAG,"Start Logging now....");
-    safe_to_file(ptr, counter);
-    send_info(zsock_print,TAG,"Finished Logging");
-
-
     printf("%d TX fails; %d RX fails.\n", txfails, rxfails);
     printf("Moriturus te saluto!\n");
     exit(code);
@@ -75,7 +77,7 @@ int main(int argc __attribute__((unused)),
     struct timespec t;
     const int rt_interval = 1000000000;
 
-    long number_of_logs = 1000000;
+    NUMBER_OF_LOGS = 1000000;
 
 
 
@@ -120,7 +122,7 @@ int main(int argc __attribute__((unused)),
 
 
 
-    ptr = alloc_workbuf(number_of_logs*PROTOBETTY__MESSAGE__CONSTANTS__MAX_MESSAGE_SIZE);
+    ptr_temp_memory = alloc_workbuf(NUMBER_OF_LOGS*PROTOBETTY__MESSAGE__CONSTANTS__MAX_MESSAGE_SIZE);
 
 
 
@@ -162,7 +164,7 @@ int main(int argc __attribute__((unused)),
         if (bail) die(bail);
         if (poll_sensors->revents & ZMQ_POLLIN) {
             const int zmq_received = zmq_recvm(zsock_sensors,
-                                               (uint8_t*) &ptr[counter*PROTOBETTY__MESSAGE__CONSTANTS__MAX_MESSAGE_SIZE],
+                                               (uint8_t*) &ptr_temp_memory[counter*PROTOBETTY__MESSAGE__CONSTANTS__MAX_MESSAGE_SIZE],
                     PROTOBETTY__MESSAGE__CONSTANTS__MAX_MESSAGE_SIZE);
             if (zmq_received > 0)
                 counter++;
@@ -179,32 +181,55 @@ int main(int argc __attribute__((unused)),
     return 0;
 }
 
-int safe_to_file(const char* const memory,uint64_t nitems)
+long safe_to_file(const char* const memory,uint64_t nitems)
 {
     FILE *ptr_myfile;
-
-    ptr_myfile=fopen("log.bin","wb");
+    //Open file
+    timestamp_t timestamp;
+    gettime(&timestamp);
+    char filename[50];
+    snprintf(filename, sizeof(filename),"%lu_logdata.bin",timestamp.tsec);
+    ptr_myfile=fopen(filename,"wb");
     if (!ptr_myfile)
     {
         printf("Unable to open file!");
-        return 0;
+        return -1;
     }
+    //Allocate memory for received sensor data
     Protobetty__LogSensors log = PROTOBETTY__LOG_SENSORS__INIT;
     Protobetty__Sensors *sensors[nitems];
+    //Put sensor data into log message
     for (uint64_t i = 0; i < nitems; i++)
     {
         sensors[i] = protobetty__sensors__unpack(NULL,
                                                  PROTOBETTY__MESSAGE__CONSTANTS__MAX_MESSAGE_SIZE,
                                                  (uint8_t*)&memory[i*PROTOBETTY__MESSAGE__CONSTANTS__MAX_MESSAGE_SIZE]);
         send_info(zsock_print,TAG,"Item %llu of %llu", i, nitems);
-    }
+        printf("Item %lu of %lu", i, nitems);
 
+    }
+    //Set number of items in log message
     log.n_data = nitems;
+    //set data
     log.data = sensors;
-    const int packed_size = protobetty__log_sensors__get_packed_size(&log);
-    uint8_t* buffer = malloc(packed_size);
+    // back it to buffer
+    const uint64_t packed_size = protobetty__log_sensors__get_packed_size(&log);
+    uint8_t* buffer = alloc_workbuf(packed_size);
     protobetty__log_sensors__pack(&log,buffer);
-    fwrite(buffer, packed_size, 1, ptr_myfile);
+    //write bytewise data to file
+    send_debug(zsock_print, TAG, "Writing data to file ...\n");
+    printf("Writing data to file ...");
+
+    for (uint64_t i = 0; i < packed_size; i++)
+    {
+        fwrite(&buffer[i], sizeof(uint8_t), 1, ptr_myfile);
+        printf(".");
+    }
+    send_debug(zsock_print, TAG, "Finsihed writing. Closing File.");
+    printf("Finsihed writing. Closing File.\n");
+    free_workbuf(buffer,packed_size);
+
+    fclose(ptr_myfile);
 
     return packed_size;
 

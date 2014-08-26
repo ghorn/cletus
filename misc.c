@@ -83,7 +83,7 @@ void calc_next_shot(timespec* const t,const int interval)
     }
 }
 
-char * alloc_workbuf(int size)
+void * alloc_workbuf(int size)
 {
     char *ptr;
 
@@ -102,7 +102,7 @@ char * alloc_workbuf(int size)
     return ptr;
 }
 
-void  free_workbuf(char *ptr, int size)
+void  free_workbuf(void *ptr, int size)
 {
     /* unlock the address range */
     munlock(ptr, size);

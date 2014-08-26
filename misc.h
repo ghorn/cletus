@@ -35,8 +35,8 @@ void calc_next_shot(timespec* const t, const int interval);
 double floating_ProtoTime(const Protobetty__Timestamp * const t);
 double calcCurrentLatency(timestamp_t * const ref);
 double calcCurrentLatencyProto(Protobetty__Timestamp * const ref);
-char * alloc_workbuf(int size);
-void  free_workbuf(char *ptr, int size);
+void *alloc_workbuf(int size);
+void  free_workbuf(void *ptr, int size);
 
 
 
