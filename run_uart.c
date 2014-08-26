@@ -41,7 +41,7 @@ static void *zsock_uart = NULL;
 //static void *zsock_airspeed = NULL;
 static void *zsock_lisa = NULL;
 
-static char* TAG = "RUN_UART";
+//static char* TAG = "RUN_UART";
 
 void *zsock_print = NULL;
 static void *zsock_log = NULL;
@@ -116,32 +116,32 @@ int main(int argc __attribute__((unused)),
         die(1);
 
 
-    zmq_pollitem_t polls[] = {
+//    zmq_pollitem_t polls[] = {
 
-        {
-            .socket=NULL,
-            .fd=serial_stream->fd,
-            .events= ZMQ_POLLIN,
-            .revents=0
-        },
-        {
-            .socket=zsock_lisa,
-            .fd=-1,
-            .events=0,
-            .revents=0
-        },
-        {
-            .socket = zsock_log,
-            .fd = -1,
-            .events = 0,
-            .revents = 0
-        }
-    };
+//        {
+//            .socket=NULL,
+//            .fd=serial_stream->fd,
+//            .events= ZMQ_POLLIN,
+//            .revents=0
+//        },
+//        {
+//            .socket=zsock_lisa,
+//            .fd=-1,
+//            .events=0,
+//            .revents=0
+//        },
+//        {
+//            .socket = zsock_log,
+//            .fd = -1,
+//            .events = 0,
+//            .revents = 0
+//        }
+//    };
 
     //poll for lisa messages on uart
-    zmq_pollitem_t* poll_lisa = &polls[0];
-    int msg_length;
-    uint8_t msg_buffer[INPUT_BUFFER_SIZE];
+//    zmq_pollitem_t* poll_lisa = &polls[0];
+//    int msg_length;
+//    uint8_t msg_buffer[INPUT_BUFFER_SIZE];
 
 
     /* Here's the main loop -- we only do stuff when input or output
@@ -156,56 +156,57 @@ int main(int argc __attribute__((unused)),
     for (;;) {
         if (bail) die(bail);
 
-        msg_length = read_lisa_message(poll_lisa, msg_buffer);
-        if (msg_length > 0)
-        {
-            //Check 1: Sender ID must be correct.
-            if (msg_buffer[LISA_INDEX_SENDER_ID] == SENDER_ID)
-            {
-                //Check 2: Checksum must be correct
-                if (check_checksum(msg_buffer) == UART_ERR_NONE)
-                {
+        sleep(1);
+//        msg_length = read_lisa_message(poll_lisa, msg_buffer);
+//        if (msg_length > 0)
+//        {
+//            //Check 1: Sender ID must be correct.
+//            if (msg_buffer[LISA_INDEX_SENDER_ID] == SENDER_ID)
+//            {
+//                //Check 2: Checksum must be correct
+//                if (check_checksum(msg_buffer) == UART_ERR_NONE)
+//                {
 
-                    msg_length = add_timestamp(msg_buffer, msg_length);
-                    msg_length -= BYTES_HEADER;
-#ifdef DEBUG
-                    send_debug(zsock_print,TAG,"Passed Checksum test. Sending Message [%i bytes] with ID %i\n",
-                               msg_length, msg_buffer[LISA_INDEX_MSG_ID]);
-#endif
-                    switch (msg_buffer[LISA_INDEX_MSG_ID]) {
-                    case IMU_ACCEL:
-                    case IMU_ACCEL_RAW:
-                    case IMU_ACCEL_SCALED:
-                        zmq_send(zsock_lisa,&msg_buffer[LISA_INDEX_MSG_ID],msg_length,0);
-                        break;
-                    case IMU_GYRO:
-                    case IMU_GYRO_RAW:
-                    case IMU_GYRO_SCALED:
-                        zmq_send(zsock_lisa,&msg_buffer[LISA_INDEX_MSG_ID],msg_length,0);
-                        break;
-                    case IMU_MAG:
-                    case IMU_MAG_RAW:
-                    case IMU_MAG_SCALED:
-                        zmq_send(zsock_lisa,&msg_buffer[LISA_INDEX_MSG_ID],msg_length,0);
-                        break;
-                    case AIRSPEED_ETS:
-                        zmq_send(zsock_lisa,&msg_buffer[LISA_INDEX_MSG_ID],msg_length,0);
-                        break;
-                    default:
-                        zmq_send(zsock_lisa,&msg_buffer[LISA_INDEX_MSG_ID],msg_length,0);
-                        break;
-                    }
-                    poll_lisa->events = ZMQ_POLLIN;
-                }
-                else{
-                    send_error(zsock_print,TAG,"ERROR Cheksum test failed for id %i\n",msg_buffer[LISA_INDEX_MSG_ID]);
-                }
-            }
-            else{
-                send_error(zsock_print,TAG,"ERROR wrong SENDER ID %i\n",msg_buffer[LISA_INDEX_SENDER_ID]);
-                serial_port_flush_input();
-            }
-        }
+//                    msg_length = add_timestamp(msg_buffer, msg_length);
+//                    msg_length -= BYTES_HEADER;
+//#ifdef DEBUG
+//                    send_debug(zsock_print,TAG,"Passed Checksum test. Sending Message [%i bytes] with ID %i\n",
+//                               msg_length, msg_buffer[LISA_INDEX_MSG_ID]);
+//#endif
+//                    switch (msg_buffer[LISA_INDEX_MSG_ID]) {
+//                    case IMU_ACCEL:
+//                    case IMU_ACCEL_RAW:
+//                    case IMU_ACCEL_SCALED:
+//                        zmq_send(zsock_lisa,&msg_buffer[LISA_INDEX_MSG_ID],msg_length,0);
+//                        break;
+//                    case IMU_GYRO:
+//                    case IMU_GYRO_RAW:
+//                    case IMU_GYRO_SCALED:
+//                        zmq_send(zsock_lisa,&msg_buffer[LISA_INDEX_MSG_ID],msg_length,0);
+//                        break;
+//                    case IMU_MAG:
+//                    case IMU_MAG_RAW:
+//                    case IMU_MAG_SCALED:
+//                        zmq_send(zsock_lisa,&msg_buffer[LISA_INDEX_MSG_ID],msg_length,0);
+//                        break;
+//                    case AIRSPEED_ETS:
+//                        zmq_send(zsock_lisa,&msg_buffer[LISA_INDEX_MSG_ID],msg_length,0);
+//                        break;
+//                    default:
+//                        zmq_send(zsock_lisa,&msg_buffer[LISA_INDEX_MSG_ID],msg_length,0);
+//                        break;
+//                    }
+//                    poll_lisa->events = ZMQ_POLLIN;
+//                }
+//                else{
+//                    send_error(zsock_print,TAG,"ERROR Cheksum test failed for id %i\n",msg_buffer[LISA_INDEX_MSG_ID]);
+//                }
+//            }
+//            else{
+//                send_error(zsock_print,TAG,"ERROR wrong SENDER ID %i\n",msg_buffer[LISA_INDEX_SENDER_ID]);
+//                serial_port_flush_input();
+//            }
+//        }
 
     }
 

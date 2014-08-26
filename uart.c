@@ -24,7 +24,7 @@ void signal_handler_IO (int status);
 
 
 
-
+static int uart_stage;
 static char FILENAME[] = "uart_communication.c";
 static char* TAG = "UART";
 
@@ -53,7 +53,7 @@ int add_timestamp(uint8_t*const buffer,const int msg_length)
 int read_uart(uint8_t* const buffer,int length)
 {
 #ifdef DEBUG
-//    printf("Entering serial_port_read\n");
+    //    printf("Entering serial_port_read\n");
 #endif
     int n = read(serial_stream->fd, buffer, length);
 
@@ -275,61 +275,61 @@ UART_errCode  serial_port_open_raw(const char* device_ptr, speed_t speed_param) 
     printf("Entering serial_port_open_raw\n");
 #endif
     if((serial_stream->fd = open(device_ptr, O_RDWR | O_NOCTTY | O_NDELAY)) < 0)
-              return UART_ERR_SERIAL_PORT_OPEN;
+        return UART_ERR_SERIAL_PORT_OPEN;
 
-             serial_stream->saio.sa_handler = signal_handler_IO;
-             serial_stream->saio.sa_flags = 0;
-             serial_stream->saio.sa_restorer = NULL;
-             sigaction(SIGIO,&(serial_stream->saio),NULL);
+    serial_stream->saio.sa_handler = signal_handler_IO;
+    serial_stream->saio.sa_flags = 0;
+    serial_stream->saio.sa_restorer = NULL;
+    sigaction(SIGIO,&(serial_stream->saio),NULL);
 
-             fcntl(serial_stream->fd, F_SETFL, FNDELAY);
-             fcntl(serial_stream->fd, F_SETOWN, getpid());
-             fcntl(serial_stream->fd, F_SETFL, FASYNC);
-
-
-             serial_stream->cur_termios = serial_stream->orig_termios;
-             tcgetattr(serial_stream->fd,&(serial_stream->cur_termios));
-             cfsetispeed(&(serial_stream->cur_termios),speed_param);
-             cfsetospeed(&(serial_stream->cur_termios),speed_param);
-             serial_stream->cur_termios.c_cflag &= ~PARENB;
-             serial_stream->cur_termios.c_cflag &= ~CSTOPB;
-             serial_stream->cur_termios.c_cflag &= ~CSIZE;
-             serial_stream->cur_termios.c_cflag |= CS8;
-             serial_stream->cur_termios.c_cflag |= (CLOCAL | CREAD);
-             serial_stream->cur_termios.c_lflag &= ~(ICANON | ECHO | ECHOE | ISIG);
-             serial_stream->cur_termios.c_iflag &= ~(IXON | IXOFF | IXANY);
-             serial_stream->cur_termios.c_oflag &= ~OPOST;
-             tcsetattr(serial_stream->fd,TCSANOW,&(serial_stream->cur_termios));
-             printf("UART1 configured....\n");
+    fcntl(serial_stream->fd, F_SETFL, FNDELAY);
+    fcntl(serial_stream->fd, F_SETOWN, getpid());
+    fcntl(serial_stream->fd, F_SETFL, FASYNC);
 
 
-//    if ((serial_stream->fd = open(device_ptr, O_RDWR | O_NONBLOCK | O_NOCTTY)) < 0) {
-//        return UART_ERR_SERIAL_PORT_OPEN;
-//    }
-//    if (tcgetattr(serial_stream->fd, &serial_stream->orig_termios) < 0) {
-//        close(serial_stream->fd);
-//        return UART_ERR_SERIAL_PORT_OPEN;
-//    }
-//    serial_stream->cur_termios = serial_stream->orig_termios;
-//    /* input modes  */
-//    serial_stream->cur_termios.c_iflag &= ~(IGNBRK|BRKINT|PARMRK|INPCK|ISTRIP|INLCR|IGNCR
-//                                            |ICRNL |IUCLC|IXON|IXANY|IXOFF|IMAXBEL);
-//    serial_stream->cur_termios.c_iflag |= IGNPAR;
-//    /* control modes*/
-//    serial_stream->cur_termios.c_cflag &= ~(CSIZE|PARENB|CRTSCTS|PARODD|HUPCL|CSTOPB);
-//    serial_stream->cur_termios.c_cflag |= CREAD|CS8|CLOCAL;
-//    /* local modes  */
-//    serial_stream->cur_termios.c_lflag &= ~(ISIG|ICANON|IEXTEN|ECHO|FLUSHO|PENDIN);
-//    serial_stream->cur_termios.c_lflag |= NOFLSH;
-//    if (cfsetispeed(&serial_stream->cur_termios, speed_param)) {
-//        close(serial_stream->fd);
-//        return UART_ERR_SERIAL_PORT_OPEN;
-//    }
-//    if (tcsetattr(serial_stream->fd, TCSADRAIN, &serial_stream->cur_termios)) {
-//        close(serial_stream->fd);
-//        return UART_ERR_SERIAL_PORT_OPEN;
-//    }
-//    serial_port_flush();
+    serial_stream->cur_termios = serial_stream->orig_termios;
+    tcgetattr(serial_stream->fd,&(serial_stream->cur_termios));
+    cfsetispeed(&(serial_stream->cur_termios),speed_param);
+    cfsetospeed(&(serial_stream->cur_termios),speed_param);
+    serial_stream->cur_termios.c_cflag &= ~PARENB;
+    serial_stream->cur_termios.c_cflag &= ~CSTOPB;
+    serial_stream->cur_termios.c_cflag &= ~CSIZE;
+    serial_stream->cur_termios.c_cflag |= CS8;
+    serial_stream->cur_termios.c_cflag |= (CLOCAL | CREAD);
+    serial_stream->cur_termios.c_lflag &= ~(ICANON | ECHO | ECHOE | ISIG);
+    serial_stream->cur_termios.c_iflag &= ~(IXON | IXOFF | IXANY);
+    serial_stream->cur_termios.c_oflag &= ~OPOST;
+    tcsetattr(serial_stream->fd,TCSANOW,&(serial_stream->cur_termios));
+    printf("UART1 configured....\n");
+
+
+    //    if ((serial_stream->fd = open(device_ptr, O_RDWR | O_NONBLOCK | O_NOCTTY)) < 0) {
+    //        return UART_ERR_SERIAL_PORT_OPEN;
+    //    }
+    //    if (tcgetattr(serial_stream->fd, &serial_stream->orig_termios) < 0) {
+    //        close(serial_stream->fd);
+    //        return UART_ERR_SERIAL_PORT_OPEN;
+    //    }
+    //    serial_stream->cur_termios = serial_stream->orig_termios;
+    //    /* input modes  */
+    //    serial_stream->cur_termios.c_iflag &= ~(IGNBRK|BRKINT|PARMRK|INPCK|ISTRIP|INLCR|IGNCR
+    //                                            |ICRNL |IUCLC|IXON|IXANY|IXOFF|IMAXBEL);
+    //    serial_stream->cur_termios.c_iflag |= IGNPAR;
+    //    /* control modes*/
+    //    serial_stream->cur_termios.c_cflag &= ~(CSIZE|PARENB|CRTSCTS|PARODD|HUPCL|CSTOPB);
+    //    serial_stream->cur_termios.c_cflag |= CREAD|CS8|CLOCAL;
+    //    /* local modes  */
+    //    serial_stream->cur_termios.c_lflag &= ~(ISIG|ICANON|IEXTEN|ECHO|FLUSHO|PENDIN);
+    //    serial_stream->cur_termios.c_lflag |= NOFLSH;
+    //    if (cfsetispeed(&serial_stream->cur_termios, speed_param)) {
+    //        close(serial_stream->fd);
+    //        return UART_ERR_SERIAL_PORT_OPEN;
+    //    }
+    //    if (tcsetattr(serial_stream->fd, TCSADRAIN, &serial_stream->cur_termios)) {
+    //        close(serial_stream->fd);
+    //        return UART_ERR_SERIAL_PORT_OPEN;
+    //    }
+    //    serial_port_flush();
     return UART_ERR_NONE;
 }
 
@@ -425,30 +425,30 @@ int read_lisa_message(zmq_pollitem_t* const pollitem, uint8_t* const buffer)
 {
     if (find_startbyte(pollitem,buffer)>0)
     {
-    if (wait_for_data(pollitem, 1000) > 0)
-    {
-        ioctl(serial_stream->fd, FIONREAD); //set to number of bytes in buffer
-        read_uart(buffer,1);
-        const int message_length = buffer[0];
-        if (message_length < LISA_MAX_MSG_LENGTH)
+        if (wait_for_data(pollitem, 1000) > 0)
         {
-            int bytes_read = 0;
-            while (bytes_read < message_length)
+            ioctl(serial_stream->fd, FIONREAD); //set to number of bytes in buffer
+            read_uart(buffer,1);
+            const int message_length = buffer[0];
+            if (message_length < LISA_MAX_MSG_LENGTH)
             {
-                if (wait_for_data(pollitem, 1000) > 0)
+                int bytes_read = 0;
+                while (bytes_read < message_length)
                 {
-                    ioctl(serial_stream->fd, FIONREAD, &bytes_read); //set to number of bytes in buffer
+                    if (wait_for_data(pollitem, 1000) > 0)
+                    {
+                        ioctl(serial_stream->fd, FIONREAD, &bytes_read); //set to number of bytes in buffer
+                    }
+                    else
+                        return 0;
                 }
-                else
-                    return 0;
+                read_uart(&buffer[1],message_length);
+                return message_length;
             }
-            read_uart(&buffer[1],message_length);
-            return message_length;
+            else
+                send_warning(zsock_print,TAG,
+                             "Message length %i is larger than MAX. Seems like we are missing bytes.",message_length);
         }
-        else
-            send_warning(zsock_print,TAG,
-                         "Message length %i is larger than MAX. Seems like we are missing bytes.",message_length);
-    }
     }
     return 0;
 }
@@ -457,17 +457,17 @@ int read_lisa_message(zmq_pollitem_t* const pollitem, uint8_t* const buffer)
 
 static int wait_for_data(zmq_pollitem_t* const pollitem, const int timeout_ms)
 {
-pollitem->events=0;
- //   const int polled = zmq_poll(pollitem,1, timeout_ms);
- //   if (polled > 0)
- //   {
-  //      pollitem->revents=0;
-  //      return polled;
-  //  }    else if (polled == 0)
-  //      send_warning(zsock_print,TAG,"No data received from UART may be connection Errors.");
-  //  else if (polled < 0)
- //       send_error(zsock_print,TAG,"ZMQ poll returned error.");
-//    return 0;
+    pollitem->events=0;
+    //   const int polled = zmq_poll(pollitem,1, timeout_ms);
+    //   if (polled > 0)
+    //   {
+    //      pollitem->revents=0;
+    //      return polled;
+    //  }    else if (polled == 0)
+    //      send_warning(zsock_print,TAG,"No data received from UART may be connection Errors.");
+    //  else if (polled < 0)
+    //       send_error(zsock_print,TAG,"ZMQ poll returned error.");
+    //    return 0;
     pollitem->events=0;
     struct pollfd fds[1];
     int timeout = timeout_ms; //infinite timeout
@@ -482,10 +482,44 @@ pollitem->events=0;
     return result;
 
 }
-
+static uint8_t length;
+static int readbytes;
+static uint8_t buffer[256];
 void signal_handler_IO (int status)
+{
+    if (status == SIGIO)
     {
-         printf("received data from UART with status %i.\n",status);
+        switch (uart_stage) {
+        case STARTBYTE_SEARCH:
+            readbytes = 0;
+            ioctl(serial_stream->fd, FIONREAD,&readbytes); //set to number of bytes in buffer
+            read_uart(buffer,1);
+            if (buffer[0] == STARTBYTE_SEARCH)
+                uart_stage = MESSAGE_LENGTH;
+            break;
+        case MESSAGE_LENGTH:
+            ioctl(serial_stream->fd, FIONREAD,&readbytes); //set to number of bytes in buffer
+            read_uart(buffer,1);
+            length = buffer[0];
+            uart_stage = MESSAGE_READING;
+            break;
+        case MESSAGE_READING:
+            ioctl(serial_stream->fd, FIONREAD, &readbytes); //set to number of bytes in buffer
+            if (readbytes == length){
+                read_uart(&buffer[1],length-2);
+                printf("Received message ");
+                for (int i = 0; i < length; i++)
+                {
+                    printf(" %i ", buffer[i]);
+                }
+                printf("\n");
+                uart_stage = STARTBYTE_SEARCH;
+            }
+            break;
+        default:
+            break;
+        }
     }
+}
 
 

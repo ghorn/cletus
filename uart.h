@@ -52,7 +52,12 @@ enum uart_errCode {
 };
 typedef enum uart_errCode UART_errCode;
 
-
+enum uart_stages
+{
+    STARTBYTE_SEARCH,
+    MESSAGE_LENGTH,
+    MESSAGE_READING
+};
 
 
 typedef struct{
