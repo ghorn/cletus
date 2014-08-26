@@ -107,7 +107,6 @@ int check_checksum(const uint8_t * const message)
         }
         printf("\n");
 #endif
-        serial_port_flush_input();
         return UART_ERR_READ_CHECKSUM;
 
     }
@@ -430,8 +429,8 @@ void signal_handler_IO (int status)
                 }
                 printf("\n");
 #endif
-                cbWrite(&cb,&buffer_element);
-                poll_lisa->events = ZMQ_POLLOUT;
+                if (cb.elems != NULL)
+                    cbWrite(&cb,&buffer_element);
                 uart_stage = STARTBYTE_SEARCH;
             }
             break;
