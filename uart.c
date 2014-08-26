@@ -19,6 +19,8 @@ void serial_port_flush(void);
 UART_errCode serial_port_flush_output(void);
 static int wait_for_data(zmq_pollitem_t* const pollitem, const int timeout_ms);
 static int find_startbyte(zmq_pollitem_t* const pollitem, uint8_t* const buffer);
+void signal_handler_IO (int status);
+
 
 
 
@@ -272,34 +274,62 @@ UART_errCode  serial_port_open_raw(const char* device_ptr, speed_t speed_param) 
 #ifdef DEBUG
     printf("Entering serial_port_open_raw\n");
 #endif
+    if((serial_stream->fd = open(device_ptr, O_RDWR | O_NOCTTY | O_NDELAY)) < 0)
+              return UART_ERR_SERIAL_PORT_OPEN;
 
-    if ((serial_stream->fd = open(device_ptr, O_RDWR | O_NONBLOCK | O_NOCTTY)) < 0) {
-        return UART_ERR_SERIAL_PORT_OPEN;
-    }
-    if (tcgetattr(serial_stream->fd, &serial_stream->orig_termios) < 0) {
-        close(serial_stream->fd);
-        return UART_ERR_SERIAL_PORT_OPEN;
-    }
-    serial_stream->cur_termios = serial_stream->orig_termios;
-    /* input modes  */
-    serial_stream->cur_termios.c_iflag &= ~(IGNBRK|BRKINT|PARMRK|INPCK|ISTRIP|INLCR|IGNCR
-                                            |ICRNL |IUCLC|IXON|IXANY|IXOFF|IMAXBEL);
-    serial_stream->cur_termios.c_iflag |= IGNPAR;
-    /* control modes*/
-    serial_stream->cur_termios.c_cflag &= ~(CSIZE|PARENB|CRTSCTS|PARODD|HUPCL|CSTOPB);
-    serial_stream->cur_termios.c_cflag |= CREAD|CS8|CLOCAL;
-    /* local modes  */
-    serial_stream->cur_termios.c_lflag &= ~(ISIG|ICANON|IEXTEN|ECHO|FLUSHO|PENDIN);
-    serial_stream->cur_termios.c_lflag |= NOFLSH;
-    if (cfsetispeed(&serial_stream->cur_termios, speed_param)) {
-        close(serial_stream->fd);
-        return UART_ERR_SERIAL_PORT_OPEN;
-    }
-    if (tcsetattr(serial_stream->fd, TCSADRAIN, &serial_stream->cur_termios)) {
-        close(serial_stream->fd);
-        return UART_ERR_SERIAL_PORT_OPEN;
-    }
-    serial_port_flush();
+             serial_stream->saio.sa_handler = signal_handler_IO;
+             serial_stream->saio.sa_flags = 0;
+             serial_stream->saio.sa_restorer = NULL;
+             sigaction(SIGIO,&(serial_stream->saio),NULL);
+
+             fcntl(serial_stream->fd, F_SETFL, FNDELAY);
+             fcntl(serial_stream->fd, F_SETOWN, getpid());
+             fcntl(serial_stream->fd, F_SETFL, FNDELAY|FASYNC);
+
+
+             serial_stream->cur_termios = serial_stream->orig_termios;
+             tcgetattr(serial_stream->fd,&(serial_stream->cur_termios));
+             cfsetispeed(&(serial_stream->cur_termios),speed_param);
+             cfsetospeed(&(serial_stream->cur_termios),speed_param);
+             serial_stream->cur_termios.c_cflag &= ~PARENB;
+             serial_stream->cur_termios.c_cflag &= ~CSTOPB;
+             serial_stream->cur_termios.c_cflag &= ~CSIZE;
+             serial_stream->cur_termios.c_cflag |= CS8;
+             serial_stream->cur_termios.c_cflag |= (CLOCAL | CREAD);
+             serial_stream->cur_termios.c_lflag &= ~(ICANON | ECHO | ECHOE | ISIG);
+             serial_stream->cur_termios.c_iflag &= ~(IXON | IXOFF | IXANY);
+             serial_stream->cur_termios.c_oflag &= ~OPOST;
+             tcsetattr(serial_stream->fd,TCSANOW,&(serial_stream->cur_termios));
+             printf("UART1 configured....\n");
+
+
+//    if ((serial_stream->fd = open(device_ptr, O_RDWR | O_NONBLOCK | O_NOCTTY)) < 0) {
+//        return UART_ERR_SERIAL_PORT_OPEN;
+//    }
+//    if (tcgetattr(serial_stream->fd, &serial_stream->orig_termios) < 0) {
+//        close(serial_stream->fd);
+//        return UART_ERR_SERIAL_PORT_OPEN;
+//    }
+//    serial_stream->cur_termios = serial_stream->orig_termios;
+//    /* input modes  */
+//    serial_stream->cur_termios.c_iflag &= ~(IGNBRK|BRKINT|PARMRK|INPCK|ISTRIP|INLCR|IGNCR
+//                                            |ICRNL |IUCLC|IXON|IXANY|IXOFF|IMAXBEL);
+//    serial_stream->cur_termios.c_iflag |= IGNPAR;
+//    /* control modes*/
+//    serial_stream->cur_termios.c_cflag &= ~(CSIZE|PARENB|CRTSCTS|PARODD|HUPCL|CSTOPB);
+//    serial_stream->cur_termios.c_cflag |= CREAD|CS8|CLOCAL;
+//    /* local modes  */
+//    serial_stream->cur_termios.c_lflag &= ~(ISIG|ICANON|IEXTEN|ECHO|FLUSHO|PENDIN);
+//    serial_stream->cur_termios.c_lflag |= NOFLSH;
+//    if (cfsetispeed(&serial_stream->cur_termios, speed_param)) {
+//        close(serial_stream->fd);
+//        return UART_ERR_SERIAL_PORT_OPEN;
+//    }
+//    if (tcsetattr(serial_stream->fd, TCSADRAIN, &serial_stream->cur_termios)) {
+//        close(serial_stream->fd);
+//        return UART_ERR_SERIAL_PORT_OPEN;
+//    }
+//    serial_port_flush();
     return UART_ERR_NONE;
 }
 
@@ -452,5 +482,10 @@ static int wait_for_data(zmq_pollitem_t* const pollitem, const int timeout_ms)
     return 0;
 
 }
+
+void signal_handler_IO (int status)
+    {
+         printf("received data from UART with status %i.\n",status);
+    }
 
 
