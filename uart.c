@@ -418,12 +418,14 @@ void signal_handler_IO (int status)
             if (!(irq_readbytes < irq_msg_length))
             {
                 read_uart(&irq_msg_buffer[1],irq_msg_length-2);
+#ifdef DEBUG
                 printf("Received message ");
                 for (int i = 0; i < irq_msg_length; i++)
                 {
                     printf(" %i ", irq_msg_buffer[i]);
                 }
                 printf("\n");
+#endif
                 memcpy(zmq_buffer,irq_msg_buffer,irq_msg_length);
                 poll_lisa->events = ZMQ_POLLOUT;
                 uart_stage = STARTBYTE_SEARCH;
