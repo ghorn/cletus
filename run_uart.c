@@ -193,7 +193,6 @@ int main(int argc __attribute__((unused)),
                 }
                 else{
                     send_error(zsock_print,TAG,"ERROR wrong SENDER ID %i\n",msg_buffer[LISA_INDEX_SENDER_ID]);
-                    serial_port_flush_input();
                 }
             }
             poll_lisa->revents = 0;
