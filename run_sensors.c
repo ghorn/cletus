@@ -76,6 +76,7 @@ static void __attribute__((noreturn)) die(int code) {
     zdestroy(zsock_print, NULL);
 
 
+    serial_port_close();
 
 
     printf("%d TX fails; %d RX fails.\n", txfails, rxfails);
@@ -93,14 +94,8 @@ static void sigdie(int signum) {
 int main(int argc __attribute__((unused)),
          char **argv __attribute__((unused))) {
 
-    struct sched_param param;
-    set_priority(&param, RT_PRIORITY);
-    stack_prefault();
-    struct timespec t;
-    int rt_interval = 100000000; /* 5ms*/
 
 
-    setbuf(stdin, NULL);
     /* Confignals. */
     if (signal(SIGINT, &sigdie) == SIG_IGN)
         signal(SIGINT, SIG_IGN);
@@ -110,6 +105,22 @@ int main(int argc __attribute__((unused)),
         signal(SIGHUP, SIG_IGN);
     if (signal(SIGABRT, &sigdie) == SIG_IGN)
         signal(SIGABRT, SIG_IGN);
+
+
+
+    struct sched_param param;
+    set_priority(&param, RT_PRIORITY);
+    stack_prefault();
+    struct timespec t;
+    int rt_interval = 100000000; /* 5ms*/
+
+    //Init circular buffer
+    cbInit(&cb, 64);
+    //Init serial port
+    int err = serial_port_setup();
+    if (err != UART_ERR_NONE)
+        printf("Error setting up UART \n");
+
 
     /* ZMQ setup first. */
 
