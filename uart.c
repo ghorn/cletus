@@ -413,7 +413,8 @@ void signal_handler_IO (int status)
             break;
         case MESSAGE_LENGTH:
             ioctl(serial_stream->fd, FIONREAD,&irq_readbytes); //set to number of bytes in buffer
-            read_uart(&(buffer_element.message[0]),1);
+            read_uart(buffer_element.message,1);
+            irq_msg_length = buffer_element.message[0];
             uart_stage = MESSAGE_READING;
             break;
         case MESSAGE_READING:
@@ -425,7 +426,7 @@ void signal_handler_IO (int status)
                 printf("Received message ");
                 for (int i = 0; i < irq_msg_length; i++)
                 {
-                    printf(" %i ", irq_msg_buffer[i]);
+                    printf(" %i ", buffer_element.message[i]);
                 }
                 printf("\n");
 #endif
