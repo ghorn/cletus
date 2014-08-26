@@ -1,10 +1,12 @@
 #ifndef CIRCULAR_BUFFER_H_ 
 #define CIRCULAR_BUFFER_H_
 
+#include <inttypes.h>
+
 // source: wikipedia
 
 // Opaque buffer element type.  This would be defined by the application.
-typedef struct { char value[256];} ElemType;
+typedef struct { uint8_t message[50];} ElemType;
  
 /* Circular buffer object */
 typedef struct {
