@@ -433,7 +433,7 @@ int read_lisa_message(zmq_pollitem_t* const pollitem, uint8_t* const buffer)
             if (message_length < LISA_MAX_MSG_LENGTH)
             {
                 int bytes_read = 0;
-                while (bytes_read < message_length)
+                while (bytes_read < message_length-2)
                 {
                     if (wait_for_data(pollitem, 1000) > 0)
                     {
