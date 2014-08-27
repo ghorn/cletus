@@ -94,6 +94,44 @@ static void sigdie(int signum) {
 int main(int argc __attribute__((unused)),
          char **argv __attribute__((unused))) {
 
+    struct sched_param param;
+    int rt_interval= 0;
+    if (argc == 2)
+    {
+        char* arg_ptr;
+        long priority = strtol(argv[0], &arg_ptr,10);
+        if (*arg_ptr != '\0' || priority > INT_MAX) {
+            printf("Failed to read passed priority. Using DEFAULT value instead.\n");
+            priority = DEFAULT_RT_PRIORITY;
+
+        }
+        printf("Setting priority to %li\n", priority);
+        set_priority(&param, priority);
+
+        long frequency = strtol(argv[1], &arg_ptr,10);
+        if (*arg_ptr != '\0' || frequency > INT_MAX) {
+            printf("Failed to read passed frequency. Using DEFAULT value instead.\n");
+            frequency = DEFAULT_RT_FRQUENCY;
+        }
+        printf("Setting frequency to %li Hz.\n", priority);
+        rt_interval = (NSEC_PER_SEC/frequency);
+    }
+    else
+    {
+        printf("No paarameters passed. Using DEFAULT values: \nPRIORITY=%i and FREQUENCY=%i\n",
+               DEFAULT_RT_PRIORITY, DEFAULT_RT_FRQUENCY);
+        set_priority(&param, DEFAULT_RT_PRIORITY);
+        rt_interval = (NSEC_PER_SEC/DEFAULT_RT_FRQUENCY);
+    }
+    stack_prefault();
+
+    struct timespec t;
+    //Init circular buffer
+    cbInit(&cb, 64);
+    //Init serial port
+    int err = serial_port_setup(1);
+    if (err != UART_ERR_NONE)
+        printf("Error setting up UART \n");
 
 
     /* Confignals. */
@@ -106,20 +144,6 @@ int main(int argc __attribute__((unused)),
     if (signal(SIGABRT, &sigdie) == SIG_IGN)
         signal(SIGABRT, SIG_IGN);
 
-
-
-    struct sched_param param;
-    set_priority(&param, RT_PRIORITY);
-    stack_prefault();
-    struct timespec t;
-    int rt_interval = 100000000; /* 5ms*/
-
-    //Init circular buffer
-    cbInit(&cb, 64);
-    //Init serial port
-    int err = serial_port_setup();
-    if (err != UART_ERR_NONE)
-        printf("Error setting up UART \n");
 
 
     /* ZMQ setup first. */
