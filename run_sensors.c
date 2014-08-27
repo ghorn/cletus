@@ -328,9 +328,9 @@ int main(int argc __attribute__((unused)),
         //********************************************
         // SENDING IMU DATA to Controller
         //********************************************
-        if (sensors.mag  != NULL && sensors.gyro  != NULL  && sensors.accel  != NULL)
+        if ((sensors.mag  != NULL) && (sensors.gyro  != NULL)  && (sensors.accel  != NULL))
         {
-            if (sensors.gps != NULL && sensors.airspeed != NULL)
+            if ((sensors.gps != NULL) && (sensors.airspeed != NULL))
             {
                 sensors.type = PROTOBETTY__SENSORS__TYPE__IMU_GPS_AIRSPEED;
             }
