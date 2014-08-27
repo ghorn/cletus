@@ -38,6 +38,8 @@ PROTOS_CXX = protos_cpp/messages.pb.cc \
 PROTOS_C = protos_c/messages.pb-c.c \
            protos_c/messages.pb-c.h
 
+PROTOS_PY = messages_pb2.py
+
 HS_PROTOS = hs/src/Messages.hs
 
 # build in the autopilot
@@ -87,7 +89,7 @@ CXX ?= g++
 HS_STRUCTS = hs/src/Structs/Structures.hs hs/src/Structs/Structures.hsc
 
 .PHONY: all
-all: $(PROTOS_C) $(PROTOS_CXX)  protos_cpp/messages.pb.o protos_c/messages.pb-c.o $(PROJ)
+all: $(PROTOS_C) $(PROTOS_CXX) $(PROTOS_PY) protos_cpp/messages.pb.o protos_c/messages.pb-c.o $(PROJ)
 hs: $(HS_PROTOS)
 
 .SECONDEXPANSION:
@@ -109,8 +111,12 @@ $(PROTOS_C) : messages.proto
 	$(Q)protoc-c --c_out=protos_c $<
 
 $(PROTOS_CXX) : messages.proto
-	@echo protoc $<
+	@echo protoc $< \(C++\)
 	$(Q)protoc --cpp_out=protos_cpp $<
+
+$(PROTOS_PY) : messages.proto
+	@echo protoc $< \(python\)
+	$(Q)protoc --python_out=. $<
 
 protos_cpp/messages.pb.o : protos_cpp/messages.pb.cc protos_cpp/messages.pb.h
 	@echo CXX protos_cpp/messages.pb.cc
@@ -144,5 +150,6 @@ clean:
 	rm -rf hs/src/Messages/*
 	rm -f protos_cpp/messages.pb.*
 	rm -f protos_c/messages.pb-c.*
+	rm -f messages_pb2.py messages_pb2.pyc
 	rm -f $(OBJ)
 	rm -f $(HS_STRUCTS)
