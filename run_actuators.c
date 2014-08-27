@@ -59,9 +59,9 @@ static void sigdie(int signum) {
 int main(int argc __attribute__((unused)),
          char **argv __attribute__((unused))) {
 
- const int rt_interval = ACT_RT_INTERVAL;
+ const int rt_interval = 100000000;
   struct sched_param param;
-  set_priority(&param, rt_interval);
+  set_priority(&param, 48);
   stack_prefault();
   struct timespec t;
 

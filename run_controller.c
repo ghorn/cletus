@@ -64,7 +64,7 @@ int main(int argc __attribute__((unused)),
     set_priority(&param, RT_PRIORITY);
     stack_prefault();
     struct timespec t;
-    const int rt_interval = RT_INTERVAL;
+    const int rt_interval = 100000000;
 
 
 
