@@ -202,7 +202,6 @@ int main(int argc __attribute__((unused)),
 
 
     uint8_t* zmq_buffer = calloc(sizeof(uint8_t),PROTOBETTY__MESSAGE__CONSTANTS__MAX_MESSAGE_SIZE);
-    void* zmq_buffer_ptr = &zmq_buffer;
     unsigned int packed_length;
 
 
@@ -351,7 +350,7 @@ int main(int argc __attribute__((unused)),
             //pack data to buffer
             protobetty__sensors__pack(&sensors,zmq_buffer);
             //sending sensor message over zmq
-            const int zs = zmq_send(zsock_sensors, zmq_buffer_ptr, packed_length, 0);
+            const int zs = zmq_send(zsock_sensors, zmq_buffer, packed_length, 0);
             if (zs < 0) {
                 txfails++;
             } else {
