@@ -261,10 +261,11 @@ int main(int argc __attribute__((unused)),
                             get_protbetty_timestamp(accel.timestamp);
                             sensors.accel = &accel;
 #ifdef DEBUG
-                            send_debug(zsock_print,TAG,"Received GYRO (ID:%u) and timestamp %f sec (Latency:%fms) ",
+                            send_debug(zsock_print,TAG,"Received GYRO (ID:%u) and timestamp %f sec (Latency:%fms)\n X: %f\t Y: %f\t Z: %f ",
                                        data_ptr->imu_raw.id,
                                        floating_ProtoTime(accel.timestamp),
-                                       calcCurrentLatencyProto(accel.timestamp)*1e3);
+                                       calcCurrentLatencyProto(accel.timestamp)*1e3,
+                                       accel.data->x, accel.data->y, accel.data->z);
 #endif
                             break;
                         case IMU_GYRO_SCALED:
@@ -273,10 +274,11 @@ int main(int argc __attribute__((unused)),
                             get_protbetty_timestamp(gyro.timestamp);
                             sensors.gyro = &gyro;
 #ifdef DEBUG
-                            send_debug(zsock_print,TAG,"Received GYRO (ID:%u) and timestamp %f sec (Latency:%fms) ",
+                            send_debug(zsock_print,TAG,"Received GYRO (ID:%u) and timestamp %f sec (Latency:%fms)\n X: %f\t Y: %f\t Z: %f ",
                                        data_ptr->imu_raw.id,
                                        floating_ProtoTime(gyro.timestamp),
-                                       calcCurrentLatencyProto(gyro.timestamp)*1e3);
+                                       calcCurrentLatencyProto(gyro.timestamp)*1e3,
+                                       gyro.data->x, gyro.data->y, gyro.data->z);
 #endif
                             break;
 
@@ -286,10 +288,11 @@ int main(int argc __attribute__((unused)),
                             get_protbetty_timestamp(mag.timestamp);
                             sensors.mag = &mag;
 #ifdef DEBUG
-                            send_debug(zsock_print,TAG,"Received GYRO (ID:%u) and timestamp %f sec (Latency:%fms) ",
+                            send_debug(zsock_print,TAG,"Received GYRO (ID:%u) and timestamp %f sec (Latency:%fms)\n X: %f\t Y: %f\t Z: %f",
                                        data_ptr->imu_raw.id,
                                        floating_ProtoTime(gyro.timestamp),
-                                       calcCurrentLatencyProto(gyro.timestamp)*1e3);
+                                       calcCurrentLatencyProto(gyro.timestamp)*1e3,
+                                       mag.data->x, mag.data->y, mag.data->z);
 #endif
                             break;
                         case AIRSPEED_ETS:
