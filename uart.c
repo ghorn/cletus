@@ -414,7 +414,10 @@ void signal_handler_IO (int status)
             ioctl(serial_stream->fd, FIONREAD,&irq_readbytes); //set to number of bytes in buffer
             read_uart(buffer_element.message,1);
             irq_msg_length = buffer_element.message[0];
-            uart_stage = MESSAGE_READING;
+            if (irq_msg_length < LISA_MAX_MSG_LENGTH)
+                uart_stage = MESSAGE_READING;
+            else
+                uart_stage = STARTBYTE_SEARCH;
             break;
         case MESSAGE_READING:
             ioctl(serial_stream->fd, FIONREAD, &irq_readbytes); //set to number of bytes in buffer
