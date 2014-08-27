@@ -38,12 +38,14 @@ void send_printf(void* zmq_sockit,char * toprint, int type, char* tag)
 
 void send_debug(void* zmq_sockit, char * tag, const char* const format, ...)
 {
+#ifdef DEBUG
     char buffer[MAX_PRINT_MSG_SIZE];
     va_list args;
     va_start( args, format );
     vsprintf(buffer,format,args);
     va_end( args );
     send_printf(zmq_sockit,buffer,PROTOBETTY__PRINTF__TYPE__DEBUG, tag);
+#endif
 }
 
 void send_error(void* zmq_sockit, char * tag, const char* const format, ...)
