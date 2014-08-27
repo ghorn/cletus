@@ -188,7 +188,7 @@ long safe_to_file(const char* const memory,uint64_t nitems)
     timestamp_t timestamp;
     gettime(&timestamp);
     char filename[50];
-    snprintf(filename, sizeof(filename),"%lu_logdata.bin",timestamp.tsec);
+    snprintf(filename, sizeof(filename),"%"PRIu64"_logdata.bin",timestamp.tsec);
     ptr_myfile=fopen(filename,"wb");
     if (!ptr_myfile)
     {
@@ -204,8 +204,8 @@ long safe_to_file(const char* const memory,uint64_t nitems)
         sensors[i] = protobetty__sensors__unpack(NULL,
                                                  PROTOBETTY__MESSAGE__CONSTANTS__MAX_MESSAGE_SIZE,
                                                  (uint8_t*)&memory[i*PROTOBETTY__MESSAGE__CONSTANTS__MAX_MESSAGE_SIZE]);
-        send_info(zsock_print,TAG,"Item %llu of %llu", i, nitems);
-        printf("Item %lu of %lu", i, nitems);
+        send_info(zsock_print,TAG,"Item %"PRIu64" of %"PRIu64, i, nitems);
+        printf("Item %"PRIu64" of %"PRIu64, i, nitems);
 
     }
     //Set number of items in log message
