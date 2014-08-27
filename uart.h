@@ -23,19 +23,6 @@
 extern void *zsock_print;
 
 
-
-enum lisa_msg_info{
-    BYTES_CHECKSUM = 2, //Number of bytes used for the checksum
-    BYTES_HEADER =  2, //Number of Bytes until message  (length, senderid)
-    SENDER_ID = 166, //Senser ID of the Lisa set with paparazzi
-    LISA_STARTBYTE = 0x99,
-    WINDSENSOR_STARTBYTE =0x24,
-    LISA_INDEX_MSG_ID = 2,
-    LISA_INDEX_SENDER_ID = 1,
-    LISA_MAX_MSG_LENGTH = 50
-};
-
-
 enum uart_errCode {
     UART_ERR_READ= -6 ,
     UART_ERR_READ_START_BYTE = -5,

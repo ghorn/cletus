@@ -2,11 +2,12 @@
 #define CIRCULAR_BUFFER_H_
 
 #include <inttypes.h>
+#include "../lisa_messages.h"
 
 // source: wikipedia
 
 // Opaque buffer element type.  This would be defined by the application.
-typedef struct { uint8_t message[50];} ElemType;
+typedef struct { uint8_t message[LISA_MAX_MSG_LENGTH];} ElemType;
  
 /* Circular buffer object */
 typedef struct {
