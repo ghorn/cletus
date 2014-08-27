@@ -57,10 +57,11 @@ int main(int argc __attribute__((unused)),
     struct timespec t;
     struct sched_param param;
     int rt_interval= 0;
-    if (argc == 2)
+    printf("%i", argc);
+    if (argc == 3)
     {
         char* arg_ptr;
-        long priority = strtol(argv[0], &arg_ptr,10);
+        long priority = strtol(argv[1], &arg_ptr,10);
         if (*arg_ptr != '\0' || priority > INT_MAX) {
             printf("Failed to read passed priority. Using DEFAULT value instead.\n");
             priority = DEFAULT_RT_PRIORITY;
@@ -69,12 +70,12 @@ int main(int argc __attribute__((unused)),
         printf("Setting priority to %li\n", priority);
         set_priority(&param, priority);
 
-        long frequency = strtol(argv[1], &arg_ptr,10);
+        long frequency = strtol(argv[2], &arg_ptr,10);
         if (*arg_ptr != '\0' || frequency > INT_MAX) {
             printf("Failed to read passed frequency. Using DEFAULT value instead.\n");
             frequency = DEFAULT_RT_FREQUENCY;
         }
-        printf("Setting frequency to %li Hz.\n", priority);
+        printf("Setting frequency to %li Hz.\n", frequency);
         rt_interval = (NSEC_PER_SEC/frequency);
     }
     else

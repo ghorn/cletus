@@ -20,19 +20,19 @@ echo "Ready for take off?"
 read -p "Press any key to continue... " -n1 -s
 
 echo "Starting run_actuators... "
-./run_actuators -49 -100 &
+./run_actuators 49 100 &
 echo "... started"
 
 sleep 3
 
 echo "Starting run_controller..."
-./run_controller -48 -100&
+./run_controller 48 100 &
 echo "... started"
 
 sleep 3
 
 echo "Starting run_sensors..."
-./run_sensors -47 -100&
+./run_sensors 47 100&
 echo "... started"
 
 
