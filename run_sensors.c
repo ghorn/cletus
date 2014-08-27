@@ -201,7 +201,7 @@ int main(int argc __attribute__((unused)),
 
 
 
-    uint8_t* zmq_buffer =alloc_workbuf(sizeof(uint8_t)*PROTOBETTY__MESSAGE__CONSTANTS__MAX_MESSAGE_SIZE);
+    uint8_t* zmq_buffer = calloc(sizeof(uint8_t),PROTOBETTY__MESSAGE__CONSTANTS__MAX_MESSAGE_SIZE);
     void* zmq_buffer_ptr = &zmq_buffer;
     unsigned int packed_length;
 
