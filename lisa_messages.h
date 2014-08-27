@@ -15,7 +15,7 @@ enum lisa_msg_info{
     WINDSENSOR_STARTBYTE =0x24,
     LISA_INDEX_MSG_ID = 2,
     LISA_INDEX_SENDER_ID = 1,
-    LISA_MAX_MSG_LENGTH = 50
+    LISA_MAX_MSG_LENGTH = 64
 };
 
 
