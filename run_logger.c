@@ -197,7 +197,7 @@ long safe_to_file(const char* const memory,uint64_t nitems)
     }
     //Allocate memory for received sensor data
     Protobetty__LogSensors log = PROTOBETTY__LOG_SENSORS__INIT;
-    Protobetty__Sensors *sensors[nitems];
+    Protobetty__Sensors **sensors = malloc(sizeof(Protobetty__Sensors*)*nitems);
     //Put sensor data into log message
     for (uint64_t i = 0; i < nitems; i++)
     {
@@ -205,7 +205,7 @@ long safe_to_file(const char* const memory,uint64_t nitems)
                                                  PROTOBETTY__MESSAGE__CONSTANTS__MAX_MESSAGE_SIZE,
                                                  (uint8_t*)&memory[i*PROTOBETTY__MESSAGE__CONSTANTS__MAX_MESSAGE_SIZE]);
         send_info(zsock_print,TAG,"Item %"PRIu64" of %"PRIu64, i, nitems);
-        printf("Item %"PRIu64" of %"PRIu64, i, nitems);
+        printf("Item %"PRIu64" of %"PRIu64"\n", i, nitems);
 
     }
     //Set number of items in log message
