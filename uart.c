@@ -426,7 +426,7 @@ void signal_handler_IO (int status)
                 read_uart(&(buffer_element.message[1]),irq_msg_length-2);
 #ifdef DEBUG
                 printf("Received message ");
-                for (int i = 0; i < irq_msg_length; i++)
+                for (int i = 0; i < irq_msg_length-1; i++)
                 {
                     printf(" %i ", buffer_element.message[i]);
                 }
