@@ -34,11 +34,13 @@ long safe_to_file(uint64_t nitems);
 /* ZMQ resources */
 static void *zctx = NULL;
 static void *zsock_sensors = NULL;
-static void *zsock_actuators = NULL;
 void *zsock_print = NULL;
+//pointer to temporal memory in ram
 uint8_t *ptr_temp_memory;
+//counter of elements received
 static uint64_t counter = 0;
-static uint64_t NUMBER_OF_LOGS = 0;
+//maximum limit of logs
+const uint64_t NUMBER_OF_LOGS = 1000000;
 char* TAG = "RUN_LOGGER";
 Protobetty__Sensors **sensors;
 
@@ -54,8 +56,7 @@ static void __attribute__((noreturn)) die(int code) {
 
     free_workbuf(ptr_temp_memory, NUMBER_OF_LOGS*PROTOBETTY__MESSAGE__CONSTANTS__MAX_MESSAGE_SIZE);
     zdestroy(zsock_print, NULL);
-    zdestroy(zsock_actuators, NULL);
-    zdestroy(zsock_sensors, zctx);
+    zdestroy(zsock_sensors, NULL);
     printf("%d TX fails; %d RX fails.\n", txfails, rxfails);
     printf("Moriturus te saluto!\n");
     exit(code);
@@ -78,7 +79,6 @@ int main(int argc __attribute__((unused)),
     struct timespec t;
     const int rt_interval = 1000000000;
 
-    NUMBER_OF_LOGS = 1000000;
 
 
 
@@ -99,9 +99,6 @@ int main(int argc __attribute__((unused)),
     zsock_sensors = setup_zmq_receiver(SENSORS_CHAN, &zctx, ZMQ_SUB, NULL, 1000, 500);
     if (NULL == zsock_sensors)
         return 1;
-    zsock_actuators = setup_zmq_sender(ACTUATORS_CHAN, &zctx, ZMQ_PUB, 1, 500);
-    if (NULL == zsock_actuators)
-        die(1);
     zsock_print = setup_zmq_sender(PRINT_CHAN, &zctx, ZMQ_PUSH, 100, 500);
     if (NULL == zsock_print)
         die(1);
@@ -158,25 +155,38 @@ int main(int argc __attribute__((unused)),
             continue;
         } else if (polled == 0) {
             if (bail) die(bail);
-            calc_next_shot(&t,rt_interval);
-            continue;
+            {
+                printf("No messages in queue \n");
+                calc_next_shot(&t,rt_interval);
+                continue;
+            }
         }
 
 
 
         if (bail) die(bail);
-        if (poll_sensors->revents & ZMQ_POLLIN) {
-            const int zmq_received = zmq_recvm(zsock_sensors,
-                                               (uint8_t*) &ptr_temp_memory[byte_counter],
-                    PROTOBETTY__MESSAGE__CONSTANTS__MAX_MESSAGE_SIZE);
-            if (zmq_received > 0)
-            {
-                sensors[counter] = protobetty__sensors__unpack(NULL, zmq_received, &ptr_temp_memory[byte_counter]);
-                byte_counter += zmq_received;
-                counter++;
+        if (counter < NUMBER_OF_LOGS)
+        {
+        if (poll_sensors->revents & ZMQ_POLLIN)
+        {
+
+                const int zmq_received = zmq_recvm(zsock_sensors,
+                                                   (uint8_t*) &ptr_temp_memory[byte_counter],
+                                                   PROTOBETTY__MESSAGE__CONSTANTS__MAX_MESSAGE_SIZE);
+                if (zmq_received > 0)
+                {
+                    sensors[counter] = protobetty__sensors__unpack(NULL, zmq_received, &ptr_temp_memory[byte_counter]);
+                    byte_counter += zmq_received;
+                    counter++;
+                }
+                /* Clear the poll state. */
+                poll_sensors->revents = 0;
             }
-            /* Clear the poll state. */
-            poll_sensors->revents = 0;
+        }
+        else
+        {
+            //stop polling for new messages beacuse we reached limit
+            poll_sensors->events = 0;
         }
 
 
