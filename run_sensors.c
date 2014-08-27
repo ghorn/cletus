@@ -261,7 +261,7 @@ int main(int argc __attribute__((unused)),
                             get_protbetty_timestamp(accel.timestamp);
                             sensors.accel = &accel;
 #ifdef DEBUG
-                            send_debug(zsock_print,TAG,"Received GYRO (ID:%u) and timestamp %f sec (Latency:%fms)\n X: %f\t Y: %f\t Z: %f ",
+                            send_debug(zsock_print,TAG,"Received ACCEL (ID:%u) and timestamp %f sec (Latency:%fms)\n X: %f\t Y: %f\t Z: %f ",
                                        data_ptr->imu_raw.header.msg_id,
                                        floating_ProtoTime(accel.timestamp),
                                        calcCurrentLatencyProto(accel.timestamp)*1e3,
@@ -288,7 +288,7 @@ int main(int argc __attribute__((unused)),
                             get_protbetty_timestamp(mag.timestamp);
                             sensors.mag = &mag;
 #ifdef DEBUG
-                            send_debug(zsock_print,TAG,"Received GYRO (ID:%u) and timestamp %f sec (Latency:%fms)\n X: %f\t Y: %f\t Z: %f",
+                            send_debug(zsock_print,TAG,"Received MAG (ID:%u) and timestamp %f sec (Latency:%fms)\n X: %f\t Y: %f\t Z: %f",
                                        data_ptr->imu_raw.header.msg_id,
                                        floating_ProtoTime(gyro.timestamp),
                                        calcCurrentLatencyProto(gyro.timestamp)*1e3,
