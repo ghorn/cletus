@@ -64,15 +64,18 @@ void run_demo_controller(const Protobetty__Sensors* const y, Protobetty__Actuato
 void run_pd_demo_controller(const Protobetty__Sensors* const y, Protobetty__Actuators* const u)
 {
     int Kp = 980;
-    int Kd = 500;
+    int Kd = 75;
     int Kdp = 100;
- //   int Kas = 20;
+    int Kas = 20;
     static double rudd_p = 0.0;
     if ((y->accel->data->y != 0.0) && (y->gyro->data !=0)){
 
-        u->elev = y->accel->data->x*Kp + y->gyro->data->y*Kd;
+        u->elev = -1*y->accel->data->x*Kp + y->gyro->data->y*Kd;
         u->ail =y->accel->data->y*Kp + y->gyro->data->x*Kd;
-        //u->flaps = y->airspeed->scaled*(-1)*Kas;
+        if (y->airspeed != NULL)
+        {
+            u->flaps = y->airspeed->scaled*(-1)*Kas;
+        }
 
         rudd_p +=  y->gyro->data->z*Kdp;
         u->rudd = rudd_p + y->gyro->data->z*Kd;
