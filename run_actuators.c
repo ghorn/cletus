@@ -92,6 +92,10 @@ int main(int argc __attribute__((unused)),
     struct timespec t;
 
 
+  int err = serial_port_setup(1);
+  if (err != UART_ERR_NONE)
+      printf("Error setting up UART \n");
+
   /* Confignals. */
   if (signal(SIGINT, &sigdie) == SIG_IGN)
     signal(SIGINT, SIG_IGN);

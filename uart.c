@@ -13,7 +13,7 @@
 
 UART_errCode serial_port_new(void);
 UART_errCode serial_port_create(void);
-UART_errCode  serial_port_open_raw(const char* device_ptr, speed_t speed_param);
+UART_errCode  serial_port_open_raw(const char* device_ptr, speed_t speed_param, int signal_hanlder);
 void serial_port_free(void);
 void serial_port_flush(void);
 UART_errCode serial_port_flush_output(void);
@@ -167,7 +167,7 @@ UART_errCode serial_port_flush_output(void) {
 
 //FUNCTIONS FOR UART SETUP
 
-UART_errCode serial_port_setup(void)
+UART_errCode serial_port_setup(int signal_handler_flag)
 {
 #ifdef DEBUG
     printf("Entering serial_port_setup\n");
@@ -185,7 +185,7 @@ UART_errCode serial_port_setup(void)
         return err;
     }
 
-    err = serial_port_open_raw(device, speed);
+    err = serial_port_open_raw(device, speed, signal_handler_flag);
     if(err!=UART_ERR_NONE){
         return err;
     }
@@ -271,7 +271,7 @@ UART_errCode serial_port_create(void)
     return UART_ERR_NONE;
 }
 
-UART_errCode  serial_port_open_raw(const char* device_ptr, speed_t speed_param) {
+UART_errCode  serial_port_open_raw(const char* device_ptr, speed_t speed_param, int signal_hanlder) {
 
 #ifdef DEBUG
     printf("Entering serial_port_open_raw\n");
@@ -279,10 +279,16 @@ UART_errCode  serial_port_open_raw(const char* device_ptr, speed_t speed_param) 
     if((serial_stream->fd = open(device_ptr, O_RDWR | O_NOCTTY | O_NDELAY)) < 0)
         return UART_ERR_SERIAL_PORT_OPEN;
 
-    serial_stream->saio.sa_handler = signal_handler_IO;
-    serial_stream->saio.sa_flags = 0;
-    serial_stream->saio.sa_restorer = NULL;
-    sigaction(SIGIO,&(serial_stream->saio),NULL);
+    if (signal_hanlder > 0)
+    {
+        sigset_t block_mask;
+        sigemptyset (&block_mask);
+        serial_stream->saio.sa_handler = signal_handler_IO;
+        serial_stream->saio.sa_flags = 0;
+        serial_stream->saio.sa_restorer = NULL;
+        sigaction(SIGIO,&(serial_stream->saio),NULL);
+    }
+
 
     fcntl(serial_stream->fd, F_SETFL, FNDELAY);
     fcntl(serial_stream->fd, F_SETOWN, getpid());
@@ -425,12 +431,12 @@ void signal_handler_IO (int status)
             {
                 read_uart(&(buffer_element.message[1]),irq_msg_length-2);
 #ifdef DEBUG
-//                printf("Received message ");
-//                for (int i = 0; i < irq_msg_length-1; i++)
-//                {
-//                    printf(" %i ", buffer_element.message[i]);
-//                }
-//                printf("\n");
+                //                printf("Received message ");
+                //                for (int i = 0; i < irq_msg_length-1; i++)
+                //                {
+                //                    printf(" %i ", buffer_element.message[i]);
+                //                }
+                //                printf("\n");
 #endif
                 if (cb.elems != NULL)
                     cbWrite(&cb,&buffer_element);
