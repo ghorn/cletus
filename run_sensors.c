@@ -138,31 +138,6 @@ int main(int argc __attribute__((unused)),
 #endif
     if (NULL == zsock_sensors)
         return 1;;
-    zsock_log = setup_zmq_sender(LOG_CHAN, &zctx, ZMQ_PUB, 500, 500);
-    if (NULL == zsock_log)
-        return 1;;
-    //TODO: Setting multiple Filters for one socket. Testing requiered
-    char filter[2];
-    filter[1] = '\0';
-    filter[0] = IMU_GYRO_SCALED;
-    zsock_lisa_gyro = setup_zmq_receiver(LISA_CHAN,&zctx,ZMQ_SUB,&filter[0],1,INPUT_BUFFER_SIZE);
-    if (NULL == zsock_lisa_gyro)
-        die(1);
-    filter[0] = IMU_ACCEL_SCALED;
-    zsock_lisa_accel = setup_zmq_receiver(LISA_CHAN,&zctx,ZMQ_SUB,&filter[0],1,INPUT_BUFFER_SIZE);
-    if (NULL == zsock_lisa_accel)
-        die(1);
-    filter[0] = IMU_MAG_SCALED;
-    zsock_lisa_mag = setup_zmq_receiver(LISA_CHAN,&zctx,ZMQ_SUB,&filter[0],1,INPUT_BUFFER_SIZE);
-    if (NULL == zsock_lisa_mag)
-        die(1);
-    zsock_lisa_ahrs = setup_zmq_receiver(LISA_CHAN,&zctx,ZMQ_SUB,NULL,1,INPUT_BUFFER_SIZE);
-    if (NULL == zsock_lisa_ahrs)
-        die(1);
-    filter[0] = AIRSPEED_ETS;
-    zsock_lisa_airspeed = setup_zmq_receiver(LISA_CHAN,&zctx,ZMQ_SUB,&filter[0],1,INPUT_BUFFER_SIZE);
-    if (NULL == zsock_lisa_airspeed)
-        die(1);
     zsock_print = setup_zmq_sender(PRINT_CHAN, &zctx, ZMQ_PUSH, 100, 500);
     if (NULL == zsock_print)
         die(1);
@@ -206,12 +181,12 @@ int main(int argc __attribute__((unused)),
     mag.data = &mag_data;
     mag.timestamp = &mag_timestamp;
 #endif
-    //#ifdef AIRSPEED
-    //    //Initialize Protobuf for Airspeed
-    //    Protobetty__Airspeed airspeed = PROTOBETTY__AIRSPEED__INIT;
-    //    Protobetty__Timestamp airspeed_timestamp = PROTOBETTY__TIMESTAMP__INIT;
-    //    airspeed.timestamp = &airspeed_timestamp;
-    //#endif
+#ifdef AIRSPEED
+        //Initialize Protobuf for Airspeed
+        Protobetty__Airspeed airspeed = PROTOBETTY__AIRSPEED__INIT;
+        Protobetty__Timestamp airspeed_timestamp = PROTOBETTY__TIMESTAMP__INIT;
+        airspeed.timestamp = &airspeed_timestamp;
+#endif
     //#ifdef GPS
     //    //Initialize Protobuf for GPS
     //    Protobetty__Gps gps = PROTOBETTY__GPS__INIT;
@@ -226,7 +201,7 @@ int main(int argc __attribute__((unused)),
 
 
 
-    uint8_t zmq_buffer[PROTOBETTY__MESSAGE__CONSTANTS__MAX_MESSAGE_SIZE];
+    uint8_t* zmq_buffer =alloc_workbuf(sizeof(uint8_t)*PROTOBETTY__MESSAGE__CONSTANTS__MAX_MESSAGE_SIZE);
     void* zmq_buffer_ptr = &zmq_buffer;
     unsigned int packed_length;
 
@@ -317,18 +292,30 @@ int main(int argc __attribute__((unused)),
                                        calcCurrentLatencyProto(gyro.timestamp)*1e3);
 #endif
                             break;
+                        case AIRSPEED_ETS:
+                            memcpy(&data_ptr->airspeed_raw,&element.message, sizeof(airspeed_t));
+                            airspeed.scaled = data_ptr->airspeed_raw.scaled;
+                            get_protbetty_timestamp(airspeed.timestamp);
+                            sensors.airspeed = &airspeed;
+#ifdef DEBUG
+                            send_debug(zsock_print,TAG,"Received AIRSPEED (ID:%u) and timestamp %f sec (Latency:%fms) ",
+                                       data_ptr->airspeed_raw.id,
+                                       floating_ProtoTime(airspeed.timestamp),
+                                       calcCurrentLatencyProto(airspeed.timestamp)*1e3);
+#endif
+                            break;
                         default:
                             break;
                         }
                     }
                     else
                     {
-                        send_error(zsock_print,TAG,"ERROR Checksum test failed for id %i\n",element.message[LISA_INDEX_MSG_ID]);
+                        send_warning(zsock_print,TAG,"ERROR Checksum test failed for id %i\n",element.message[LISA_INDEX_MSG_ID]);
                     }
                 }
                 else
                 {
-                    send_error(zsock_print,TAG,"ERROR wrong SENDER ID %i\n",element.message[LISA_INDEX_SENDER_ID]);
+                    send_warning(zsock_print,TAG,"ERROR wrong SENDER ID %i\n",element.message[LISA_INDEX_SENDER_ID]);
                 }
             }
         }
@@ -340,7 +327,6 @@ int main(int argc __attribute__((unused)),
         //********************************************
         if (sensors.mag  != NULL && sensors.gyro  != NULL  && sensors.accel  != NULL)
         {
-
             if (sensors.gps != NULL && sensors.airspeed != NULL)
             {
                 sensors.type = PROTOBETTY__SENSORS__TYPE__IMU_GPS_AIRSPEED;
@@ -361,10 +347,8 @@ int main(int argc __attribute__((unused)),
             packed_length = protobetty__sensors__get_packed_size(&sensors);
             //pack data to buffer
             protobetty__sensors__pack(&sensors,zmq_buffer);
-
-
+            //sending sensor message over zmq
             const int zs = zmq_send(zsock_sensors, zmq_buffer_ptr, packed_length, 0);
-
             if (zs < 0) {
                 txfails++;
             } else {
@@ -374,11 +358,6 @@ int main(int argc __attribute__((unused)),
             protobetty__sensors__init(&sensors);
         }
         calc_next_shot(&t,rt_interval);
-
-
-
-
-
     }
 
     /* Shouldn't get here. */
