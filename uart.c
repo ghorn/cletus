@@ -44,7 +44,7 @@ int add_timestamp(uint8_t*const buffer,const int msg_length)
 {
     timestamp_t timestamp;
     gettime(&timestamp);
-#if DEBUG  > 1
+#ifdef DEBUG
     printf("Added timestamp: %f\n", floating_time(&timestamp));
 #endif
     int timestamp_position = msg_length - BYTES_CHECKSUM -1;

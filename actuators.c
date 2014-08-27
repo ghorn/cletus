@@ -41,7 +41,7 @@ void convert_for_lisa(const Protobetty__Actuators * const actuators, lisa_messag
 
 
 void calculate_checksum(uint8_t buffer[],uint8_t *checksum_1,uint8_t *checksum_2){
-#if DEBUG  > 1
+#ifdef DEBUG
   printf("Entering calculate_checksum\n");
 #endif
   int length = buffer[LENGTH_INDEX];
