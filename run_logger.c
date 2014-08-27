@@ -28,7 +28,7 @@
 
 
 #define MAX_MSG_SIZE 512
-long safe_to_file(const char* const memory,uint64_t nitems);
+long safe_to_file(uint64_t nitems);
 
 
 /* ZMQ resources */
@@ -36,10 +36,11 @@ static void *zctx = NULL;
 static void *zsock_sensors = NULL;
 static void *zsock_actuators = NULL;
 void *zsock_print = NULL;
-char *ptr_temp_memory;
+uint8_t *ptr_temp_memory;
 static uint64_t counter = 0;
 static uint64_t NUMBER_OF_LOGS = 0;
 char* TAG = "RUN_LOGGER";
+Protobetty__Sensors **sensors;
 
 
 /* Error tracking. */
@@ -48,7 +49,7 @@ int txfails = 0, rxfails = 0;
 static void __attribute__((noreturn)) die(int code) {
 
     send_info(zsock_print,TAG,"Starting Logging now....");
-    safe_to_file(ptr_temp_memory, counter);
+    safe_to_file(counter);
     send_info(zsock_print,TAG,"Finished Logging");
 
     free_workbuf(ptr_temp_memory, NUMBER_OF_LOGS*PROTOBETTY__MESSAGE__CONSTANTS__MAX_MESSAGE_SIZE);
@@ -78,6 +79,7 @@ int main(int argc __attribute__((unused)),
     const int rt_interval = 1000000000;
 
     NUMBER_OF_LOGS = 1000000;
+
 
 
 
@@ -123,7 +125,8 @@ int main(int argc __attribute__((unused)),
 
 
     ptr_temp_memory = alloc_workbuf(NUMBER_OF_LOGS*PROTOBETTY__MESSAGE__CONSTANTS__MAX_MESSAGE_SIZE);
-
+    sensors = alloc_workbuf(sizeof(Protobetty__Sensors*)*NUMBER_OF_LOGS);
+    uint64_t byte_counter = 0;
 
 
     const u_int8_t npolls = sizeof(polls) / sizeof(polls[0]);
@@ -164,10 +167,14 @@ int main(int argc __attribute__((unused)),
         if (bail) die(bail);
         if (poll_sensors->revents & ZMQ_POLLIN) {
             const int zmq_received = zmq_recvm(zsock_sensors,
-                                               (uint8_t*) &ptr_temp_memory[counter*PROTOBETTY__MESSAGE__CONSTANTS__MAX_MESSAGE_SIZE],
+                                               (uint8_t*) &ptr_temp_memory[byte_counter],
                     PROTOBETTY__MESSAGE__CONSTANTS__MAX_MESSAGE_SIZE);
             if (zmq_received > 0)
+            {
+                sensors[counter] = protobetty__sensors__unpack(NULL, zmq_received, &ptr_temp_memory[byte_counter]);
+                byte_counter += zmq_received;
                 counter++;
+            }
             /* Clear the poll state. */
             poll_sensors->revents = 0;
         }
@@ -181,7 +188,7 @@ int main(int argc __attribute__((unused)),
     return 0;
 }
 
-long safe_to_file(const char* const memory,uint64_t nitems)
+long safe_to_file(uint64_t nitems)
 {
     FILE *ptr_myfile;
     //Open file
@@ -197,17 +204,6 @@ long safe_to_file(const char* const memory,uint64_t nitems)
     }
     //Allocate memory for received sensor data
     Protobetty__LogSensors log = PROTOBETTY__LOG_SENSORS__INIT;
-    Protobetty__Sensors **sensors = malloc(sizeof(Protobetty__Sensors*)*nitems);
-    //Put sensor data into log message
-    for (uint64_t i = 0; i < nitems; i++)
-    {
-        sensors[i] = protobetty__sensors__unpack(NULL,
-                                                 PROTOBETTY__MESSAGE__CONSTANTS__MAX_MESSAGE_SIZE,
-                                                 (uint8_t*)&memory[i*PROTOBETTY__MESSAGE__CONSTANTS__MAX_MESSAGE_SIZE]);
-        send_info(zsock_print,TAG,"Item %"PRIu64" of %"PRIu64, i, nitems);
-        printf("Item %"PRIu64" of %"PRIu64"\n", i, nitems);
-
-    }
     //Set number of items in log message
     log.n_data = nitems;
     //set data
