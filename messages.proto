@@ -139,3 +139,7 @@ enum Type {
   optional Timestamp timestamp=3;
   required string tag=4 [default=""];
  }
+
+message LogSensors {
+  repeated Sensors data = 1;
+}
