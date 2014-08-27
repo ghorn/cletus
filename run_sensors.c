@@ -206,10 +206,10 @@ int main(int argc __attribute__((unused)),
     mag.timestamp = &mag_timestamp;
 #endif
 #ifdef AIRSPEED
-        //Initialize Protobuf for Airspeed
-        Protobetty__Airspeed airspeed = PROTOBETTY__AIRSPEED__INIT;
-        Protobetty__Timestamp airspeed_timestamp = PROTOBETTY__TIMESTAMP__INIT;
-        airspeed.timestamp = &airspeed_timestamp;
+    //Initialize Protobuf for Airspeed
+    Protobetty__Airspeed airspeed = PROTOBETTY__AIRSPEED__INIT;
+    Protobetty__Timestamp airspeed_timestamp = PROTOBETTY__TIMESTAMP__INIT;
+    airspeed.timestamp = &airspeed_timestamp;
 #endif
     //#ifdef GPS
     //    //Initialize Protobuf for GPS
