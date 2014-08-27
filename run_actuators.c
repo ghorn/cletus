@@ -67,13 +67,6 @@ int main(int argc __attribute__((unused)),
 
 
 
-  //init the data decode pointers
-  //init_decoding();
-  int errRet = serial_port_setup();
-  if(errRet!=UART_ERR_NONE){
-      err("couldn't initialize serial port");
-    }
-
 
   /* Confignals. */
   if (signal(SIGINT, &sigdie) == SIG_IGN)
