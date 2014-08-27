@@ -63,6 +63,14 @@ typedef struct __attribute__((packed))
     timestamp_t timestamp;
 }gps_t;
 
+typedef struct __attribute__((packed))
+{
+    uint8_t id;
+    uint16_t adc;
+    uint16_t offset;
+    float scaled;
+}airspeed_t;
+
 
 
 typedef struct __attribute__((packed))
@@ -102,6 +110,7 @@ typedef struct __attribute__((packed)) {
     ahrs_int_t ahrs_int;
     ahrs_double_t ahrs_double;
     rc_t rc;
+    airspeed_t airspeed_raw;
 } lisa_messages_t;
 
 typedef struct __attribute__((packed)) {
