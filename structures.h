@@ -57,6 +57,13 @@ typedef struct __attribute__((packed)){
 
 typedef struct __attribute__((packed))
 {
+    uint8_t length;
+    uint8_t sender_id;
+    uint8_t msg_id;
+}lisa_header_t;
+
+typedef struct __attribute__((packed))
+{
     uint8_t id;
     xyz_int pos_data;
     xyz_int vel_data;
@@ -65,7 +72,7 @@ typedef struct __attribute__((packed))
 
 typedef struct __attribute__((packed))
 {
-    uint8_t id;
+    lisa_header_t header;
     uint16_t adc;
     uint16_t offset;
     float scaled;
@@ -75,9 +82,8 @@ typedef struct __attribute__((packed))
 
 typedef struct __attribute__((packed))
 {
-    uint8_t id;
+    lisa_header_t header;
     xyz_int data;
-    timestamp_t timestamp;
 }imu_raw_t;
 
 typedef struct __attribute__((packed)){
