@@ -118,9 +118,9 @@ int main(int argc __attribute__((unused)),
     imu_raw_t mag_dummy;
     imu_raw_t gyro_dummy;
     //Assigning IDs
-    accel_dummy.id = IMU_ACCEL_SCALED;
-    mag_dummy.id = IMU_MAG_SCALED;
-    gyro_dummy.id = IMU_GYRO_SCALED;
+    accel_dummy.header.msg_id = IMU_ACCEL_SCALED;
+    mag_dummy.header.msg_id = IMU_MAG_SCALED;
+    gyro_dummy.header.msg_id = IMU_GYRO_SCALED;
 
 
     uint8_t sequenceNumber = 0;
@@ -155,9 +155,6 @@ int main(int argc __attribute__((unused)),
         sequenceNumber++;
         timestamp_t timestamp;
         gettime(&timestamp);
-        accel_dummy.timestamp = timestamp;
-        gyro_dummy.timestamp = timestamp;
-        mag_dummy.timestamp = timestamp;
 
 
         memcpy(&msg_data[0], &accel_dummy,sizeof(imu_raw_t));
