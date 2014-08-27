@@ -133,7 +133,7 @@ int main(int argc __attribute__((unused)),
     zmq_pollitem_t* poll_log = &polls[2];
 
 
-    uint8_t zmq_buffer[PROTOBETTY__MESSAGE__CONSTANTS__MAX_MESSAGE_SIZE]; // Input data container for bytes
+    uint8_t* zmq_buffer = alloc_workbuf(PROTOBETTY__MESSAGE__CONSTANTS__MAX_MESSAGE_SIZE); // Input data container for bytes
 
     //Placeholders for PROTOBUF data
     Protobetty__Sensors *sensors_ptr;         // Sensors
