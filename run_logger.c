@@ -90,7 +90,7 @@ int main(int argc __attribute__((unused)),
         long frequency = strtol(argv[1], &arg_ptr,10);
         if (*arg_ptr != '\0' || frequency > INT_MAX) {
             printf("Failed to read passed frequency. Using DEFAULT value instead.\n");
-            frequency = DEFAULT_RT_FRQUENCY;
+            frequency = DEFAULT_RT_FREQUENCY;
         }
         printf("Setting frequency to %li Hz.\n", priority);
         rt_interval = (NSEC_PER_SEC/frequency);
@@ -98,9 +98,9 @@ int main(int argc __attribute__((unused)),
     else
     {
         printf("No paarameters passed. Using DEFAULT values: \nPRIORITY=%i and FREQUENCY=%i\n",
-               DEFAULT_RT_PRIORITY, DEFAULT_RT_FRQUENCY);
+               DEFAULT_RT_PRIORITY, DEFAULT_RT_FREQUENCY);
         set_priority(&param, DEFAULT_RT_PRIORITY);
-        rt_interval = (NSEC_PER_SEC/DEFAULT_RT_FRQUENCY);
+        rt_interval = (NSEC_PER_SEC/DEFAULT_RT_FREQUENCY);
     }
     stack_prefault();
     struct timespec t;

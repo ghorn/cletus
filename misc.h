@@ -25,6 +25,8 @@ typedef struct timespec timespec;
                                    faulting */
 
 #define NSEC_PER_SEC    (1000000000) /* The number of nsecs per sec. */
+#define DEFAULT_RT_PRIORITY 48
+#define DEFAULT_RT_FREQUENCY 100
 
 
 double floating_time(const timestamp_t * const t);
