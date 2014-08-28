@@ -64,7 +64,7 @@ int main(int argc __attribute__((unused)),
     struct sched_param param;
     int rt_interval= 0;
     printf("%i", argc);
-    if (argc == 3)
+    if (argc == 7)
     {
         char* arg_ptr;
         long priority = strtol(argv[1], &arg_ptr,10);
@@ -83,6 +83,27 @@ int main(int argc __attribute__((unused)),
         }
         printf("Setting frequency to %li Hz.\n", frequency);
         rt_interval = (NSEC_PER_SEC/frequency);
+        long Kd = strtol(argv[3], &arg_ptr,10);
+        if (*arg_ptr != '\0' || Kd > INT_MAX) {
+            printf("Failed to read passed frequency. Using DEFAULT value instead.\n");
+            Kd = 20;
+        }
+        long Kp = strtol(argv[4], &arg_ptr,10);
+        if (*arg_ptr != '\0' || Kp > INT_MAX) {
+            printf("Failed to read passed frequency. Using DEFAULT value instead.\n");
+            Kd = 950;
+        }
+        long Kdp = strtol(argv[5], &arg_ptr,10);
+        if (*arg_ptr != '\0' || Kp > INT_MAX) {
+            printf("Failed to read passed frequency. Using DEFAULT value instead.\n");
+            Kdp = 10;
+        }
+        long Kas = strtol(argv[5], &arg_ptr,10);
+        if (*arg_ptr != '\0' || Kp > INT_MAX) {
+            printf("Failed to read passed frequency. Using DEFAULT value instead.\n");
+            Kas = 150;
+        }
+        init_controller(Kp,Kd,Kdp,Kas);
     }
     else
     {
@@ -241,7 +262,7 @@ int main(int argc __attribute__((unused)),
 #endif
                 /* Here is where you might run your controller when you get a
                    * complete set of sensor inputs. */
-                run_demo_controller(sensors_ptr, &actuators);
+                run_pd_demo_controller(sensors_ptr, &actuators);
                 /* Controller went OK (it had damn well better) -- enable
                    * output sockets. */
 #ifdef DEBUG

@@ -60,13 +60,22 @@ void run_demo_controller(const Protobetty__Sensors* const y, Protobetty__Actuato
 
 }
 
+int Kp = 980;
+int Kd = 75;
+int Kdp = 100;
+int Kas = 20;
+
+void init_controller(int pKp, int pKd, int pKpd, int pKas)
+{
+    Kp = pKp;
+    Kd = pKd;
+    Kdp = pKpd;
+    Kas = pKas;
+}
 
 void run_pd_demo_controller(const Protobetty__Sensors* const y, Protobetty__Actuators* const u)
 {
-    int Kp = 980;
-    int Kd = 75;
-    int Kdp = 100;
-    int Kas = 20;
+
     static double rudd_p = 0.0;
     if ((y->accel->data->y != 0.0) && (y->gyro->data !=0)){
 
