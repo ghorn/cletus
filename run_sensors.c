@@ -56,6 +56,8 @@ static void *zsock_lisa_ahrs = NULL;
 static void *zsock_lisa_airspeed = NULL;
 void *zsock_print = NULL;
 
+void signal_handler_IO (int status);
+CircularBuffer cb;
 
 
 
@@ -128,10 +130,17 @@ int main(int argc __attribute__((unused)),
     stack_prefault();
 
 
+
+    irq_callback uart_callback;
+    uart_callback.sa_handler = signal_handler_IO;
+    uart_callback.sa_flags = 0;
+    uart_callback.sa_restorer = NULL;
+    sigaction(SIGIO,&(serial_stream->saio),NULL);
+
     //Init circular buffer
     cbInit(&cb, 64);
     //Init serial port
-    int err = serial_port_setup(1);
+    int err = serial_port_setup(&uart_callback);
     if (err != UART_ERR_NONE)
         printf("Error setting up UART \n");
 
@@ -213,7 +222,8 @@ int main(int argc __attribute__((unused)),
     Protobetty__Timestamp airspeed_timestamp = PROTOBETTY__TIMESTAMP__INIT;
     airspeed.timestamp = &airspeed_timestamp;
 #endif
-    //#ifdef GPS
+    //#ifdef GPS    set_global_variables(poll_lisa, msg_buffer);
+
     //    //Initialize Protobuf for GPS
     //    Protobetty__Gps gps = PROTOBETTY__GPS__INIT;
     //    Protobetty__Timestamp gps_timestamp = PROTOBETTY__TIMESTAMP__INIT;
@@ -391,3 +401,64 @@ int main(int argc __attribute__((unused)),
     /* Shouldn't get here. */
     return 0;
 }
+
+
+
+
+
+void signal_handler_IO (int status)
+{
+    static uint8_t irq_msg_length;
+    static int irq_readbytes;
+    static uint8_t irq_msg_buffer[256];
+    static ElemType buffer_element;
+    static int uart_stage;
+
+
+    if (status == SIGIO)
+    {
+        switch (uart_stage) {
+        case STARTBYTE_SEARCH:
+            irq_readbytes = 0;
+            ioctl(serial_stream->fd, FIONREAD,&irq_readbytes); //set to number of bytes in buffer
+            read_uart(irq_msg_buffer,1);
+            if (irq_msg_buffer[0] == LISA_STARTBYTE)
+            {
+                uart_stage = MESSAGE_LENGTH;
+            }
+            break;
+        case MESSAGE_LENGTH:
+            ioctl(serial_stream->fd, FIONREAD,&irq_readbytes); //set to number of bytes in buffer
+            read_uart(buffer_element.message,1);
+            irq_msg_length = buffer_element.message[0];
+            if (irq_msg_length < LISA_MAX_MSG_LENGTH)
+                uart_stage = MESSAGE_READING;
+            else
+                uart_stage = STARTBYTE_SEARCH;
+            break;
+        case MESSAGE_READING:
+            ioctl(serial_stream->fd, FIONREAD, &irq_readbytes); //set to number of bytes in buffer
+            if (!(irq_readbytes < irq_msg_length))
+            {
+                read_uart(&(buffer_element.message[1]),irq_msg_length-2);
+#ifdef DEBUG
+                //                printf("Received message ");
+                //                for (int i = 0; i < irq_msg_length-1; i++)
+                //                {
+                //                    printf(" %i ", buffer_element.message[i]);
+                //                }
+                //                printf("\n");
+#endif
+                if (cb.elems != NULL)
+                    cbWrite(&cb,&buffer_element);
+                uart_stage = STARTBYTE_SEARCH;
+            }
+            break;
+        default:
+            break;
+        }
+    }
+}
+
+
+

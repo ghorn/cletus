@@ -55,6 +55,8 @@ typedef struct{
     struct sigaction saio;
 }serial_port;
 
+typedef struct sigaction irq_callback;
+
 serial_port *serial_stream;
 
 /*typedef struct{
@@ -85,7 +87,7 @@ typedef struct{
 
 
 
-extern UART_errCode serial_port_setup(int signal_handler_flag);
+extern UART_errCode serial_port_setup(const irq_callback* const callback);
 extern int serial_input_get_lisa_data(uint8_t *const buffer); //returns the number of read bytes or a negative error message and puts the result in serial_input
 extern int serial_input_get_windsensor_data(uint8_t buffer[]);
 extern UART_errCode write_uart(uint8_t output[],long unsigned int message_length);
@@ -101,7 +103,6 @@ int set_global_variables(zmq_pollitem_t* const pollitem, uint8_t* const msg_buff
 void init_circular_buffer(int buffer_size);
 
 
-extern CircularBuffer cb;
 
 
 

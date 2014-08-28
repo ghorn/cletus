@@ -124,7 +124,6 @@ int main(int argc __attribute__((unused)),
     uint8_t msg_length;
     uint8_t msg_buffer[INPUT_BUFFER_SIZE];
 
-    set_global_variables(poll_lisa, msg_buffer);
 
 
     /* Here's the main loop -- we only do stuff when input or output
