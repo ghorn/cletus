@@ -143,10 +143,11 @@ int main(int argc __attribute__((unused)),
     zsock_log = setup_zmq_sender(LOG_CHAN, &zctx, ZMQ_PUB, 1000, 100000);
     if (NULL == zsock_log)
         die(1);
+    zsock_print = setup_zmq_sender(PRINT_CHAN, &zctx, ZMQ_PUSH, 100, 500);
+    if (NULL == zsock_print)
+        die(1);
 
-    /* Data storage. */
-    //  sensors_t y_incoming;
-    //  actuators_t u_outgoing;
+
 
 
     zmq_pollitem_t polls[] = {
