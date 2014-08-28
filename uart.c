@@ -279,19 +279,21 @@ UART_errCode  serial_port_open_raw(const char* device_ptr, speed_t speed_param, 
     if((serial_stream->fd = open(device_ptr, O_RDWR | O_NOCTTY | O_NDELAY)) < 0)
         return UART_ERR_SERIAL_PORT_OPEN;
 
-    if (signal_hanlder > 0)
-    {
-        sigset_t block_mask;
-        sigemptyset (&block_mask);
-        serial_stream->saio.sa_handler = signal_handler_IO;
-        serial_stream->saio.sa_flags = 0;
-        serial_stream->saio.sa_restorer = NULL;
-        sigaction(SIGIO,&(serial_stream->saio),NULL);
-    }
+    sigset_t block_mask;
+    sigemptyset (&block_mask);
+    serial_stream->saio.sa_handler = signal_handler_IO;
+    serial_stream->saio.sa_flags = 0;
+    serial_stream->saio.sa_restorer = NULL;
+    sigaction(SIGIO,&(serial_stream->saio),NULL);
 
 
     fcntl(serial_stream->fd, F_SETFL, FNDELAY);
-    fcntl(serial_stream->fd, F_SETOWN, getpid());
+    if (signal_hanlder > 0)
+        fcntl(serial_stream->fd, F_SETOWN, getpid());
+    else {
+        pid_t child = fork();
+        fcntl(serial_stream->fd, F_SETOWN, child);
+    }
     fcntl(serial_stream->fd, F_SETFL, FASYNC);
 
 
