@@ -17,10 +17,10 @@
 #include "./structures.h"
 #include "./log.h"
 #include "./misc.h"
+#include "./print_output.h"
 
 #include "./controller.h"
 #include "./protos_c/messages.pb-c.h"
-
 
 
 #define MAX_MSG_SIZE 512
@@ -32,6 +32,8 @@ static void *zsock_sensors = NULL;
 static void *zsock_actuators = NULL;
 static void *zsock_log = NULL;
 void *zsock_print = NULL;
+
+char* const TAG = "RUN_CONTROLLER";
 
 
 /* Error tracking. */
@@ -157,11 +159,11 @@ int main(int argc __attribute__((unused)),
         },
         {
             /* Outputs (our socket to send data to the actuators and the
-                                                       * logger socket) */
+                                                                               * logger socket) */
             .socket = zsock_actuators,
             .fd = -1,
             /* 'events' would be ZMQ_POLLOUT, but we'll wait till we have
-                                                           * something to send*/
+                                                                                   * something to send*/
             .events = 0,
             .revents = 0
         },
@@ -187,9 +189,9 @@ int main(int argc __attribute__((unused)),
     Protobetty__Sensors *sensors_ptr;         // Sensors
     Protobetty__Actuators actuators = PROTOBETTY__ACTUATORS__INIT;
     Protobetty__Timestamp actuators_timstamp_start = PROTOBETTY__TIMESTAMP__INIT;
-//    TimestampProto actuators_timstamp_stop = TIMESTAMP_PROTO__INIT;
+    //    TimestampProto actuators_timstamp_stop = TIMESTAMP_PROTO__INIT;
     actuators.start = &actuators_timstamp_start;
-//    actuators.stop = &actuators_timstamp_stop;
+    //    actuators.stop = &actuators_timstamp_stop;
 
 
 
@@ -232,31 +234,46 @@ int main(int argc __attribute__((unused)),
         if (bail) die(bail);
         if (poll_sensors->revents & ZMQ_POLLIN) {
             const int zmq_received = zmq_recvm(zsock_sensors, zmq_buffer,
-                                     PROTOBETTY__MESSAGE__CONSTANTS__MAX_MESSAGE_SIZE);
+                                               PROTOBETTY__MESSAGE__CONSTANTS__MAX_MESSAGE_SIZE);
 
-                sensors_ptr = protobetty__sensors__unpack(NULL, zmq_received, zmq_buffer);
-                if (sensors_ptr != NULL)
-                {
+            sensors_ptr = protobetty__sensors__unpack(NULL, zmq_received, zmq_buffer);
+            if (sensors_ptr != NULL)
+            {
 #ifdef DEBUG
-                printf("Controller received Sensor data containing: ");
                 switch (sensors_ptr->type) {
                 case PROTOBETTY__SENSORS__TYPE__IMU_ONLY:
-                    printf("IMU_ONLY\n");
+                    send_debug(zsock_print, TAG,"Controller received Sensor data containing: IMU_ONLY\n Latencies: ACCEL=%f \tGYRO=%f \tMAG=%f",
+                               calcCurrentLatencyProto(sensors_ptr->accel->timestamp),
+                               calcCurrentLatencyProto(sensors_ptr->gyro->timestamp),
+                               calcCurrentLatencyProto(sensors_ptr->mag->timestamp));
                     break;
                 case PROTOBETTY__SENSORS__TYPE__IMU_GPS:
-                    printf("IMU ; GPS\n");
+                    send_debug(zsock_print, TAG,"Controller received Sensor data containing: IMU ; GPS\nLatencies: ACCEL=%f \tGYRO=%f \tMAG=%f \tGPS=%f",
+                               calcCurrentLatencyProto(sensors_ptr->accel->timestamp),
+                               calcCurrentLatencyProto(sensors_ptr->gyro->timestamp),
+                               calcCurrentLatencyProto(sensors_ptr->mag->timestamp),
+                               calcCurrentLatencyProto(sensors_ptr->gps->timestamp));
                     break;
                 case PROTOBETTY__SENSORS__TYPE__IMU_AIRSPEED:
-                    printf("IMU ; AIRSPEED\n");
+                    send_debug(zsock_print, TAG,"Controller received Sensor data containing: IMU ; AIRSPEED\nLatencies: ACCEL=%f \tGYRO=%f \tMAG=%f \tAIRSPEED=%f",
+                               calcCurrentLatencyProto(sensors_ptr->accel->timestamp),
+                               calcCurrentLatencyProto(sensors_ptr->gyro->timestamp),
+                               calcCurrentLatencyProto(sensors_ptr->mag->timestamp),
+                               calcCurrentLatencyProto(sensors_ptr->airspeed->timestamp));
                     break;
                 case PROTOBETTY__SENSORS__TYPE__IMU_GPS_AIRSPEED:
-                    printf("IMU ; GPS ; AIRSPEED\n");
+                    send_debug(zsock_print, TAG,"Controller received Sensor data containing: IMU ; GPS ; AIRSPEED\nLatencies: ACCEL=%f \tGYRO=%f \tMAG=%f \tGPS=%f \tAIRSPEED=%f",
+                               calcCurrentLatencyProto(sensors_ptr->accel->timestamp),
+                               calcCurrentLatencyProto(sensors_ptr->gyro->timestamp),
+                               calcCurrentLatencyProto(sensors_ptr->mag->timestamp),
+                               calcCurrentLatencyProto(sensors_ptr->gps->timestamp),
+                               calcCurrentLatencyProto(sensors_ptr->airspeed->timestamp));
                     break;
                 case _PROTOBETTY__SENSORS__TYPE_IS_INT_SIZE:
-                    printf("INT SIZE case -> no vailid type\n");
+                    send_debug(zsock_print, TAG,"Controller received Sensor data containing: INT SIZE case -> no valid type\n");
                     break;
                 default:
-                    printf("UNKNOWN TYPE\n");
+                    send_debug(zsock_print, TAG,"Controller received Sensor data containing: UNKNOWN TYPE\n");
                     break;
                 }
 #endif
@@ -266,8 +283,11 @@ int main(int argc __attribute__((unused)),
                 /* Controller went OK (it had damn well better) -- enable
                    * output sockets. */
 #ifdef DEBUG
-                printf("New Control values: Rudder -> %f \n\t Flaps -> %f\n\t Ailerons -> %f\n\t Elevator -> %f\n",
-                       actuators.rudd, actuators.flaps, actuators.ail, actuators.elev);
+                send_debug(zsock_print, TAG, "New Control values: Rudder -> %f \n\t Flaps -> %f\n\t Ailerons -> %f\n\t Elevator -> %f\n",
+                           actuators.rudd,
+                           actuators.flaps,
+                           actuators.ail,
+                           actuators.elev);
 #endif
                 poll_actuators->events = ZMQ_POLLOUT;
                 poll_log->events = ZMQ_POLLOUT;
@@ -278,6 +298,7 @@ int main(int argc __attribute__((unused)),
 
         if (bail) die(bail);
         if (poll_actuators->revents & ZMQ_POLLOUT) {
+            get_protbetty_timestamp(actuators.start);
             packed_length = protobetty__actuators__get_packed_size(&actuators); //
             protobetty__actuators__pack(&actuators, zmq_buffer);
             const int zs = zmq_send(zsock_actuators,zmq_buffer, packed_length,0);
@@ -285,7 +306,8 @@ int main(int argc __attribute__((unused)),
                 txfails++;
             } else {
 #ifdef DEBUG
-                printf("Sent to actuators!\n");
+                send_debug(zsock_print,TAG,"Sent to actuators wit timestamp %f",
+                           floating_ProtoTime(actuators.start));
 #endif
                 /* Clear the events flag so we won't try to send until we
                    * have more data. */
