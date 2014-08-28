@@ -11,7 +11,7 @@
 const uint16_t MAX_PRINT_MSG_SIZE = 256;
 
 
-void send_printf(void* zmq_sockit,char * toprint, int type, char* tag)
+void send_printf(void* zmq_sockit,char * toprint, int type, char* const tag)
 {
     Protobetty__Printf message = PROTOBETTY__PRINTF__INIT;
     Protobetty__Timestamp timestamp = PROTOBETTY__TIMESTAMP__INIT;
@@ -36,7 +36,7 @@ void send_printf(void* zmq_sockit,char * toprint, int type, char* tag)
 }
 
 
-void send_debug(void* zmq_sockit __attribute__((unused)), char * tag __attribute__((unused)), const char* const format __attribute__((unused)), ...)
+void send_debug(void* zmq_sockit __attribute__((unused)), char * const tag, const char* const format __attribute__((unused)), ...)
 {
 #ifdef DEBUG
     char buffer[MAX_PRINT_MSG_SIZE];
@@ -48,16 +48,17 @@ void send_debug(void* zmq_sockit __attribute__((unused)), char * tag __attribute
 #endif
 }
 
-void send_error(void* zmq_sockit, char * tag, const char* const format, ...)
+void send_error(void* zmq_sockit, char* const tag,const char* const format, ...)
 {
     char buffer[MAX_PRINT_MSG_SIZE];
     va_list args;
     va_start( args, format );
     vsprintf(buffer,format,args);
-    va_end( args );    send_printf(zmq_sockit,buffer,PROTOBETTY__PRINTF__TYPE__ERROR, tag);
+    va_end( args );
+    send_printf(zmq_sockit,buffer,PROTOBETTY__PRINTF__TYPE__ERROR, tag);
 }
 
-void send_warning(void* zmq_sockit,char * tag,const char* const format, ...)
+void send_warning(void* zmq_sockit,char* const tag,const char* const format, ...)
 {
     char buffer[MAX_PRINT_MSG_SIZE];
     va_list args;
@@ -67,7 +68,7 @@ void send_warning(void* zmq_sockit,char * tag,const char* const format, ...)
     send_printf(zmq_sockit,buffer,PROTOBETTY__PRINTF__TYPE__WARNING, tag);
 }
 
-void send_info(void* zmq_sockit,char * tag,const char* const format, ...)
+void send_info(void* zmq_sockit, char* const tag,const char* const format, ...)
 {
     char buffer[MAX_PRINT_MSG_SIZE];
     va_list args;

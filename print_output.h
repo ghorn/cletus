@@ -4,11 +4,11 @@
 #include "./zmq.h"
 
 
-void send_printf(void* zmq_sockit, char *message, int type, char *tag);
-void send_debug(void* zmq_sockit, char *tag, const char* const format, ...);
-void send_error(void* zmq_sockit, char *tag, const char* const format, ...);
-void send_warning(void* zmq_sockit, char *tag, const char* const format, ...);
-void send_info(void* zmq_sockit, char *tag, const char* const format, ...);
+void send_printf(void* zmq_sockit, char *message, int type, char * const tag);
+void send_debug(void* zmq_sockit, char* const tag, const char* const format, ...);
+void send_error(void* zmq_sockit, char* const tag, const char* const format, ...);
+void send_warning(void* zmq_sockit, char* const tag, const char* const format, ...);
+void send_info(void* zmq_sockit, char* const tag, const char* const format, ...);
 
 //*******************************
 // MACROS for Console output
