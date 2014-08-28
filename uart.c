@@ -268,7 +268,7 @@ UART_errCode  serial_port_open_raw(const char* device_ptr, speed_t speed_param, 
 #ifdef DEBUG
     printf("Entering serial_port_open_raw\n");
 #endif
-    if((serial_stream->fd = open(device_ptr, O_RDWR | O_NOCTTY | O_NDELAY)) < 0)
+    if((serial_stream->fd = open(device_ptr, O_RDWR | O_NOCTTY | O_NONBLOCK)) < 0)
         return UART_ERR_SERIAL_PORT_OPEN;
 
 
