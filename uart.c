@@ -289,9 +289,13 @@ UART_errCode  serial_port_open_raw(const char* device_ptr, speed_t speed_param, 
     }
 
     sigaction(SIGIO,&(serial_stream->saio),NULL);
-    fcntl(serial_stream->fd, F_SETFL, FNDELAY);
-
+    int ret = fcntl(serial_stream->fd, F_SETFL, FNDELAY);
+    printf("FNDELAY= %i\n",ret);
+    fcntl(serial_stream->fd, F_SETOWN, getpid());
+    printf("F_SETOWN= %i\n",ret);
     fcntl(serial_stream->fd, F_SETFL, FASYNC);
+    printf("FASYNC= %i\n",ret);
+
 
 
     serial_stream->cur_termios = serial_stream->orig_termios;

@@ -135,7 +135,6 @@ int main(int argc __attribute__((unused)),
     uart_callback.sa_handler = signal_handler_IO;
     uart_callback.sa_flags = 0;
     uart_callback.sa_restorer = NULL;
-    sigaction(SIGIO,&(serial_stream->saio),NULL);
 
     //Init circular buffer
     cbInit(&cb, 64);
