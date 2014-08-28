@@ -81,6 +81,12 @@ void calc_next_shot(timespec* const t,const int interval)
         t->tv_nsec -= NSEC_PER_SEC;
         t->tv_sec++;
     }
+    struct timespec t_now;
+    clock_gettime(CLOCK_MONOTONIC ,&t_now);
+    if ((t->tv_sec < t_now.tv_sec) && (t->tv_nsec < t_now.tv_nsec))
+        calc_next_shot(t,interval);
+
+
 }
 
 void * alloc_workbuf(int size)
