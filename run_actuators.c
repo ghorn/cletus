@@ -44,6 +44,7 @@ int txfails = 0, rxfails = 0;
 static void __attribute__((noreturn)) die(int code) {
   zdestroy(zsock_log, NULL);
   zdestroy(zsock_in, zctx);
+  serial_port_close();
   printf("%d TX fails; %d RX fails.\n", txfails, rxfails);
   printf("Moriturus te saluto!\n");
   exit(code);
@@ -93,7 +94,7 @@ int main(int argc __attribute__((unused)),
     stack_prefault();
 
 
-  int err = serial_port_setup(1);
+  int err = serial_port_setup(0);
   if (err != UART_ERR_NONE)
       printf("Error setting up UART \n");
 
