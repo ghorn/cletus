@@ -5,9 +5,6 @@
 #include <string.h>
 #include <fcntl.h>
 #include <inttypes.h>
-#include <poll.h>
-#include <pthread.h>
-
 
 #include "./misc.h"
 #include "./structures.h"
@@ -22,8 +19,8 @@ void serial_port_free(void);
 void serial_port_flush(void);
 UART_errCode serial_port_flush_output(void);
 void signal_handler_IO (int status);
-static int wait_for_data(pollfd_t * const pollitem, const int timeout_ms);
-static int find_startbyte(pollfd_t * const pollitem, uint8_t* const buffer);
+static int wait_for_data(const int descriptor, epoll_event_t *event, const int timeout_ms);
+static int find_startbyte(const int descriptor, epoll_event_t *event, uint8_t *buffer);
 
 
 
@@ -383,9 +380,9 @@ void UART_err_handler( UART_errCode err_p,void (*write_error_ptr)(char *,char *,
     }
 }
 
-static int find_startbyte(pollfd_t* const pollitem, uint8_t* const buffer)
+static int find_startbyte(const int descriptor, epoll_event_t* event, uint8_t* buffer)
 {
-    if (wait_for_data(pollitem, 1000) > 0)
+    if (wait_for_data(descriptor,event, 1000) > 0)
     {
         ioctl(serial_stream->fd, FIONREAD); //set to number of bytes in buffer
         read_uart(buffer,1);
@@ -396,11 +393,11 @@ static int find_startbyte(pollfd_t* const pollitem, uint8_t* const buffer)
 }
 
 
-int read_lisa_message(pollfd_t* const pollitem, uint8_t* buffer)
+int read_lisa_message(const int descriptor, epoll_event_t* event, uint8_t* buffer)
 {
-    if (find_startbyte(pollitem,buffer)>0)
+    if (find_startbyte(descriptor,event,buffer)>0)
     {
-        if (wait_for_data(pollitem, 1000) > 0)
+        if (wait_for_data(descriptor,event, 1000) > 0)
         {
             ioctl(serial_stream->fd, FIONREAD); //set to number of bytes in buffer
             read_uart(buffer,1);
@@ -410,7 +407,7 @@ int read_lisa_message(pollfd_t* const pollitem, uint8_t* buffer)
                 int bytes_read = 0;
                 while (bytes_read < message_length-2)
                 {
-                    if (wait_for_data(pollitem, 1000) > 0)
+                    if (wait_for_data(descriptor,event, 1000) > 0)
                     {
                         ioctl(serial_stream->fd, FIONREAD, &bytes_read); //set to number of bytes in buffer
                     }
@@ -428,11 +425,10 @@ int read_lisa_message(pollfd_t* const pollitem, uint8_t* buffer)
 
 
 
-static int wait_for_data(pollfd_t* const pollitem, const int timeout_ms)
+static int wait_for_data(const int descriptor, epoll_event_t* event, const int timeout_ms)
 {
     int result;
-    pollitem->events=POLLIN;
-    result=poll(pollitem,1,timeout_ms); //block until there is data in the serial stream
+    result=epoll_wait(descriptor,event,1,timeout_ms); //block until there is data in the serial stream
 
     if((result & (1 << 0)) == 0){
         return -1;

@@ -8,7 +8,7 @@
 #include <inttypes.h>
 #include <sys/ioctl.h>
 #include <sys/signal.h>
-#include <sys/poll.h>
+#include <sys/epoll.h>
 #include "./lisa_communication/circular_buffer.h"
 
 
@@ -60,6 +60,8 @@ typedef struct{
 typedef struct sigaction irq_callback;
 
 typedef struct pollfd pollfd_t;
+typedef struct epoll_event epoll_event_t;
+
 
 
 serial_port *serial_stream;
@@ -102,8 +104,7 @@ int serial_port_read_temp(uint8_t buffer[],int length) ;
 int check_checksum(const uint8_t * const message);
 UART_errCode serial_port_flush_input(void);
 int add_timestamp(uint8_t* const buffer, const int msg_length);
-int read_lisa_message(pollfd_t* const pollitem, uint8_t *buffer);
-
+int read_lisa_message(const int descriptor, epoll_event_t* event, uint8_t* buffer);
 
 
 

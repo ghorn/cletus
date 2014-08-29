@@ -415,14 +415,27 @@ static void *uart_reading(void *arg __attribute__((unused))){
 
     int msg_length;
     ElemType message_element;
-    pollfd_t poll_lisa[1];
-    poll_lisa[0].fd=serial_stream->fd;
-    poll_lisa[0].events=POLLIN;
+
+    int epolldescriptor =  epoll_create1(0);
+    if (epolldescriptor == -1)
+    {
+        perror ("epoll_create");
+        abort ();
+    }
+    epoll_event_t event;
+
+    event.data.fd = serial_stream->fd;
+    event.events = EPOLLIN | EPOLLET;
+    if (epoll_ctl (epolldescriptor, EPOLL_CTL_ADD, serial_stream->fd, &event) == -1)
+    {
+        perror ("epoll_ctl");
+        abort ();
+    }
 
     while(1){
 
 
-        msg_length = read_lisa_message(poll_lisa, message_element.message);
+        msg_length = read_lisa_message(epolldescriptor,&event, message_element.message);
         if (msg_length > 0)
         {
             cbWrite(&cb,&message_element);
