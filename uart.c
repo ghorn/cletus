@@ -421,15 +421,14 @@ int read_lisa_message(const int descriptor, epoll_event_t* event, uint8_t* buffe
                 printf("Message length %i is larger than MAX. Seems like we are missing bytes.",message_length);
         }
     }
-    return 0;}
+    return 0;
+}
 
 
 
 static int wait_for_data(const int descriptor, epoll_event_t* event, const int timeout_ms)
 {
-    int result;
-    result=epoll_wait(descriptor,event,1,timeout_ms); //block until there is data in the serial stream
-
+    const int result=epoll_wait(descriptor,event,1,timeout_ms); //block until there is data in the serial stream
     if((result & (1 << 0)) == 0){
         return -1;
     }
