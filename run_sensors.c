@@ -425,7 +425,7 @@ static void *uart_reading(void *arg __attribute__((unused))){
     epoll_event_t event;
 
     event.data.fd = serial_stream->fd;
-    event.events = EPOLLIN | EPOLLET;
+    event.events = EPOLLIN;
     if (epoll_ctl (epolldescriptor, EPOLL_CTL_ADD, serial_stream->fd, &event) == -1)
     {
         perror ("epoll_ctl");
