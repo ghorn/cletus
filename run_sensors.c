@@ -11,6 +11,8 @@
 #include <string.h>
 #include <signal.h>
 #include <zmq.h>
+#include <pthread.h>
+
 
 #include "./zmq.h"
 #include "./comms.h"
@@ -56,7 +58,8 @@ static void *zsock_lisa_ahrs = NULL;
 static void *zsock_lisa_airspeed = NULL;
 void *zsock_print = NULL;
 
-void signal_handler_IO (int status);
+static void *uart_reading(void *);
+static void signal_handler_IO (int status);
 CircularBuffer cb;
 
 
@@ -129,19 +132,41 @@ int main(int argc __attribute__((unused)),
     }
     stack_prefault();
 
+    //Blocking UART signal for main loop
+    static sigset_t   signal_mask_main;  /* signals to block         */
+    if ((sigemptyset(&signal_mask_main) == -1) || (sigaddset(&signal_mask_main, SIGUART) == -1)){
+       perror("Failed to initialize the signal mask");
+       return 1;
+    }
+    sigprocmask(SIG_BLOCK, &signal_mask_main, NULL);
 
 
-    irq_callback uart_callback;
-    uart_callback.sa_handler = signal_handler_IO;
-    uart_callback.sa_flags = 0;
-    uart_callback.sa_restorer = NULL;
+    //thread variables
+    pthread_t thread_uart_reading;
+    //Allow UART signal for thread
+    static sigset_t   signal_mask_thread;  /* signals to block         */
+    sigemptyset (&signal_mask_thread);
+    sigaddset (&signal_mask_thread, SIGUART);
+    sigaddset (&signal_mask_thread, SIGABRT);
+    sigaddset (&signal_mask_thread, SIGTERM);
+    sigaddset (&signal_mask_thread, SIGINT);
+    pthread_sigmask (SIG_UNBLOCK, &signal_mask_thread, NULL);
+
+
+
+    //create a thread which executes data_logging_lisa
+    if(pthread_create(&thread_uart_reading, NULL, uart_reading,NULL)) {
+        send_error(zsock_print,TAG,"error creating lisa logging thread");
+        exit(EXIT_FAILURE);
+    }
+
+
+
+
 
     //Init circular buffer
     cbInit(&cb, 64);
-    //Init serial port
-    int err = serial_port_setup(&uart_callback);
-    if (err != UART_ERR_NONE)
-        printf("Error setting up UART \n");
+
 
 
     /* Confignals. */
@@ -404,8 +429,34 @@ int main(int argc __attribute__((unused)),
 
 
 
+//Function for writing data messages from buffer to the lisa log file
+static void *uart_reading(void *arg __attribute__((unused))){
+    /*-------------------------START OF THREAD: LISA LOGGING------------------------*/
 
-void signal_handler_IO (int status)
+    irq_callback uart_callback;
+    uart_callback.sa_handler = signal_handler_IO;
+    uart_callback.sa_flags = 0;
+    uart_callback.sa_restorer = NULL;
+
+    //Init serial port
+    int err = serial_port_setup(&uart_callback);
+    if (err != UART_ERR_NONE)
+        printf("Error setting up UART \n");
+
+    while(1){
+        sleep(1);
+    }
+
+    return NULL;
+    /*-------------------------END OF THREAD: LISA LOGGING------------------------*/
+}
+
+
+
+
+
+
+static void signal_handler_IO (int status)
 {
     static uint8_t irq_msg_length;
     static int irq_readbytes;
@@ -430,7 +481,7 @@ void signal_handler_IO (int status)
             ioctl(serial_stream->fd, FIONREAD,&irq_readbytes); //set to number of bytes in buffer
             read_uart(buffer_element.message,1);
             irq_msg_length = buffer_element.message[0];
-            if (irq_msg_length < LISA_MAX_MSG_LENGTH)
+            if ((irq_msg_length < LISA_MAX_MSG_LENGTH) && (irq_msg_length > 0))
                 uart_stage = MESSAGE_READING;
             else
                 uart_stage = STARTBYTE_SEARCH;

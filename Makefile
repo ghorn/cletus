@@ -30,7 +30,7 @@ CXX_SRC = \
 #	main.cpp \
 #	parsing.cpp
 
-LIBS = $(shell pkg-config --libs libzmq) $(shell pkg-config --libs libprotobuf-c)-lm -lrt -lprotobuf 
+LIBS = $(shell pkg-config --libs libzmq) $(shell pkg-config --libs libprotobuf-c)-lm -lrt -lprotobuf  -pthread
 
 Q ?= @
 

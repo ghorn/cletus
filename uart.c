@@ -1,14 +1,18 @@
-﻿#include <stdlib.h>
+﻿#define _GNU_SOURCE
+
+#include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
 #include <fcntl.h>
 #include <inttypes.h>
 #include <poll.h>
+#include <pthread.h>
 
 
 #include "./misc.h"
 #include "./structures.h"
 #include "./uart.h"
+
 
 
 UART_errCode serial_port_new(void);
@@ -285,12 +289,12 @@ UART_errCode  serial_port_open_raw(const char* device_ptr, speed_t speed_param, 
     }
     else {
         memcpy(&(serial_stream->saio),callback,sizeof(irq_callback));
-
     }
 
-    sigaction(SIGIO,&(serial_stream->saio),NULL);
+    sigaction(SIGUART,&(serial_stream->saio),NULL);
     int ret = fcntl(serial_stream->fd, F_SETFL, FNDELAY);
     printf("FNDELAY= %i\n",ret);
+    ret = fcntl(serial_stream->fd, F_SETSIG, SIGUART);
     fcntl(serial_stream->fd, F_SETOWN, getpid());
     printf("F_SETOWN= %i\n",ret);
     fcntl(serial_stream->fd, F_SETFL, FASYNC);

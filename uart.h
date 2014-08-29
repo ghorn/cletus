@@ -13,6 +13,7 @@
 
 
 #include "./print_output.h"
+#define SIGUART SIGRTMIN-1
 
 #define INPUT_BUFFER_SIZE 255
 
