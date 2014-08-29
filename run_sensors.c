@@ -59,7 +59,6 @@ static void *zsock_lisa_airspeed = NULL;
 void *zsock_print = NULL;
 
 static void *uart_reading(void *);
-static void signal_handler_IO (int status);
 CircularBuffer cb;
 
 
@@ -132,27 +131,8 @@ int main(int argc __attribute__((unused)),
     }
     stack_prefault();
 
-    //Blocking UART signal for main loop
-    static sigset_t   signal_mask_main;  /* signals to block         */
-    if ((sigemptyset(&signal_mask_main) == -1) || (sigaddset(&signal_mask_main, SIGUART) == -1)){
-       perror("Failed to initialize the signal mask");
-       return 1;
-    }
-    sigprocmask(SIG_BLOCK, &signal_mask_main, NULL);
-
-
     //thread variables
     pthread_t thread_uart_reading;
-    //Allow UART signal for thread
-    static sigset_t   signal_mask_thread;  /* signals to block         */
-    sigemptyset (&signal_mask_thread);
-    sigaddset (&signal_mask_thread, SIGUART);
-    sigaddset (&signal_mask_thread, SIGABRT);
-    sigaddset (&signal_mask_thread, SIGTERM);
-    sigaddset (&signal_mask_thread, SIGINT);
-    pthread_sigmask (SIG_UNBLOCK, &signal_mask_thread, NULL);
-
-
 
     //create a thread which executes data_logging_lisa
     if(pthread_create(&thread_uart_reading, NULL, uart_reading,NULL)) {
@@ -433,18 +413,21 @@ int main(int argc __attribute__((unused)),
 static void *uart_reading(void *arg __attribute__((unused))){
     /*-------------------------START OF THREAD: LISA LOGGING------------------------*/
 
-    irq_callback uart_callback;
-    uart_callback.sa_handler = signal_handler_IO;
-    uart_callback.sa_flags = 0;
-    uart_callback.sa_restorer = NULL;
-
-    //Init serial port
-    int err = serial_port_setup(&uart_callback);
-    if (err != UART_ERR_NONE)
-        printf("Error setting up UART \n");
+    int msg_length;
+    ElemType message_element;
+    pollfd_t poll_lisa[1];
+    poll_lisa[0].fd=serial_stream->fd;
+    poll_lisa[0].events=POLLIN;
 
     while(1){
-        sleep(1);
+
+
+        msg_length = read_lisa_message(poll_lisa, message_element.message);
+        if (msg_length > 0)
+        {
+            cbWrite(&cb,&message_element);
+        }
+
     }
 
     return NULL;
@@ -456,59 +439,7 @@ static void *uart_reading(void *arg __attribute__((unused))){
 
 
 
-static void signal_handler_IO (int status)
-{
-    static uint8_t irq_msg_length;
-    static int irq_readbytes;
-    static uint8_t irq_msg_buffer[256];
-    static ElemType buffer_element;
-    static int uart_stage;
 
-
-    if (status == SIGIO)
-    {
-        switch (uart_stage) {
-        case STARTBYTE_SEARCH:
-            irq_readbytes = 0;
-            ioctl(serial_stream->fd, FIONREAD,&irq_readbytes); //set to number of bytes in buffer
-            read_uart(irq_msg_buffer,1);
-            if (irq_msg_buffer[0] == LISA_STARTBYTE)
-            {
-                uart_stage = MESSAGE_LENGTH;
-            }
-            break;
-        case MESSAGE_LENGTH:
-            ioctl(serial_stream->fd, FIONREAD,&irq_readbytes); //set to number of bytes in buffer
-            read_uart(buffer_element.message,1);
-            irq_msg_length = buffer_element.message[0];
-            if ((irq_msg_length < LISA_MAX_MSG_LENGTH) && (irq_msg_length > 0))
-                uart_stage = MESSAGE_READING;
-            else
-                uart_stage = STARTBYTE_SEARCH;
-            break;
-        case MESSAGE_READING:
-            ioctl(serial_stream->fd, FIONREAD, &irq_readbytes); //set to number of bytes in buffer
-            if (!(irq_readbytes < irq_msg_length))
-            {
-                read_uart(&(buffer_element.message[1]),irq_msg_length-2);
-#ifdef DEBUG
-                //                printf("Received message ");
-                //                for (int i = 0; i < irq_msg_length-1; i++)
-                //                {
-                //                    printf(" %i ", buffer_element.message[i]);
-                //                }
-                //                printf("\n");
-#endif
-                if (cb.elems != NULL)
-                    cbWrite(&cb,&buffer_element);
-                uart_stage = STARTBYTE_SEARCH;
-            }
-            break;
-        default:
-            break;
-        }
-    }
-}
 
 
 

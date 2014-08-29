@@ -8,6 +8,7 @@
 #include <inttypes.h>
 #include <sys/ioctl.h>
 #include <sys/signal.h>
+#include <sys/poll.h>
 #include "./lisa_communication/circular_buffer.h"
 
 
@@ -58,6 +59,9 @@ typedef struct{
 
 typedef struct sigaction irq_callback;
 
+typedef struct pollfd pollfd_t;
+
+
 serial_port *serial_stream;
 
 /*typedef struct{
@@ -88,7 +92,7 @@ typedef struct{
 
 
 
-extern UART_errCode serial_port_setup(const irq_callback* const callback);
+extern UART_errCode serial_port_setup(void);
 extern int serial_input_get_lisa_data(uint8_t *const buffer); //returns the number of read bytes or a negative error message and puts the result in serial_input
 extern int serial_input_get_windsensor_data(uint8_t buffer[]);
 extern UART_errCode write_uart(uint8_t output[],long unsigned int message_length);
@@ -98,10 +102,8 @@ int serial_port_read_temp(uint8_t buffer[],int length) ;
 int check_checksum(const uint8_t * const message);
 UART_errCode serial_port_flush_input(void);
 int add_timestamp(uint8_t* const buffer, const int msg_length);
-int read_lisa_message(zmq_pollitem_t* const pollitem, uint8_t* const buffer);
-int set_global_variables(zmq_pollitem_t* const pollitem, uint8_t* const msg_buffer);
+int read_lisa_message(pollfd_t* const pollitem, uint8_t *buffer);
 
-void init_circular_buffer(int buffer_size);
 
 
 
