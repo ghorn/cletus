@@ -100,7 +100,7 @@ int main(int argc __attribute__((unused)),
             printf("Failed to read passed frequency. Using DEFAULT value instead.\n");
             Kdp = 10;
         }
-        long Kas = strtol(argv[5], &arg_ptr,10);
+        long Kas = strtol(argv[6], &arg_ptr,10);
         if (*arg_ptr != '\0' || Kp > INT_MAX) {
             printf("Failed to read passed frequency. Using DEFAULT value instead.\n");
             Kas = 150;
