@@ -36,7 +36,7 @@ void send_printf(void* zmq_sockit,char * toprint, int type, char* const tag)
 }
 
 
-void send_debug(void* zmq_sockit __attribute__((unused)), char * const tag, const char* const format __attribute__((unused)), ...)
+void send_debug(void* zmq_sockit __attribute__((unused)), char * const tag __attribute__((unused)), const char* const format __attribute__((unused)), ...)
 {
 #ifdef DEBUG
     char buffer[MAX_PRINT_MSG_SIZE];
