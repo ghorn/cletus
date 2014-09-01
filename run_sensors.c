@@ -274,7 +274,7 @@ int main(int argc __attribute__((unused)),
             cbRead(&cb, &element);
 
             msg_length = element.message[0];
-            if (msg_length < LISA_MAX_MSG_LENGTH)
+            if ((msg_length < LISA_MAX_MSG_LENGTH) && (msg_length > 0))
             {
                 //Check 1: Sender ID must be correct.
                 if (element.message[LISA_INDEX_SENDER_ID] == SENDER_ID)
@@ -430,7 +430,7 @@ void signal_handler_IO (int status)
             ioctl(serial_stream->fd, FIONREAD,&irq_readbytes); //set to number of bytes in buffer
             read_uart(buffer_element.message,1);
             irq_msg_length = buffer_element.message[0];
-            if (irq_msg_length < LISA_MAX_MSG_LENGTH)
+            if ((irq_msg_length < LISA_MAX_MSG_LENGTH) && (irq_msg_length > 0))
                 uart_stage = MESSAGE_READING;
             else
                 uart_stage = STARTBYTE_SEARCH;
