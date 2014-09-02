@@ -86,8 +86,8 @@ required Type type = 1;
 }
 
 message Actuators {
-  required Timestamp start = 1;
-  optional Timestamp stop = 2;
+  required Timestamp timestamp_actuators = 1;
+  optional Timestamp timestamp_sensors = 2;
   required double flaps = 3;
   required double ail = 4;
   required double rudd = 5;
@@ -143,3 +143,12 @@ enum Type {
 message LogSensors {
   repeated Sensors data = 1;
 }
+
+message LogActuators {
+  repeated Actuators data = 1;
+}
+
+message LogData {
+  optional LogSensors sensor_data = 1;
+  optional LogActuators actuator_data = 2;
+  }

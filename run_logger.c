@@ -28,21 +28,25 @@
 
 
 #define MAX_MSG_SIZE 512
-long safe_to_file(uint64_t nitems);
+static long safe_to_file(void);
 
 
 /* ZMQ resources */
 static void *zctx = NULL;
 static void *zsock_sensors = NULL;
+static void *zsock_actuators = NULL;
 void *zsock_print = NULL;
 //pointer to temporal memory in ram
 uint8_t *ptr_temp_memory;
 //counter of elements received
-static uint64_t counter = 0;
+static uint64_t counter_sensors = 0;
+static uint64_t counter_actuators = 0;
 //maximum limit of logs
 const uint64_t NUMBER_OF_LOGS = 1000000;
 char* TAG = "RUN_LOGGER";
-Protobetty__Sensors **sensors;
+Protobetty__Sensors **sensors = NULL;
+Protobetty__Actuators **actuators = NULL;
+
 
 
 /* Error tracking. */
@@ -51,7 +55,7 @@ int txfails = 0, rxfails = 0;
 static void __attribute__((noreturn)) die(int code) {
 
     send_info(zsock_print,TAG,"Starting Logging now....");
-    safe_to_file(counter);
+    safe_to_file();
     send_info(zsock_print,TAG,"Finished Logging");
 
     free_workbuf(ptr_temp_memory, NUMBER_OF_LOGS*PROTOBETTY__MESSAGE__CONSTANTS__MAX_MESSAGE_SIZE);
@@ -126,6 +130,9 @@ int main(int argc __attribute__((unused)),
     zsock_sensors = setup_zmq_receiver(SENSORS_CHAN, &zctx, ZMQ_SUB, NULL, 1000, 500);
     if (NULL == zsock_sensors)
         return 1;
+    zsock_actuators = setup_zmq_receiver(ACTUATORS_CHAN, &zctx, ZMQ_SUB, NULL, 1000, 500);
+    if (NULL == zsock_sensors)
+        return 1;
     zsock_print = setup_zmq_sender(PRINT_CHAN, &zctx, ZMQ_PUSH, 100, 500);
     if (NULL == zsock_print)
         die(1);
@@ -140,11 +147,19 @@ int main(int argc __attribute__((unused)),
             .fd=-1,
             .events= ZMQ_POLLIN,
             .revents=0
+        },
+        {
+            .socket=zsock_actuators,
+            .fd=-1,
+            .events= ZMQ_POLLIN,
+            .revents=0
         }
     };
 
     //Pollitem for sensors
     zmq_pollitem_t* poll_sensors = &polls[0];
+    zmq_pollitem_t* poll_actuators = &polls[1];
+
 
 
 
@@ -192,7 +207,7 @@ int main(int argc __attribute__((unused)),
 
 
         if (bail) die(bail);
-        if (counter < NUMBER_OF_LOGS)
+        if ((counter_actuators + counter_sensors) < NUMBER_OF_LOGS)
         {
         if (poll_sensors->revents & ZMQ_POLLIN)
         {
@@ -202,9 +217,9 @@ int main(int argc __attribute__((unused)),
                                                    PROTOBETTY__MESSAGE__CONSTANTS__MAX_MESSAGE_SIZE);
                 if (zmq_received > 0)
                 {
-                    sensors[counter] = protobetty__sensors__unpack(NULL, zmq_received, &ptr_temp_memory[byte_counter]);
+                    sensors[counter_sensors] = protobetty__sensors__unpack(NULL, zmq_received, &ptr_temp_memory[byte_counter]);
                     byte_counter += zmq_received;
-                    counter++;
+                    counter_sensors++;
                 }
                 /* Clear the poll state. */
                 poll_sensors->revents = 0;
@@ -216,6 +231,27 @@ int main(int argc __attribute__((unused)),
             poll_sensors->events = 0;
         }
 
+        if (poll_actuators->revents & ZMQ_POLLIN)
+        {
+
+                const int zmq_received = zmq_recvm(zsock_sensors,
+                                                   (uint8_t*) &ptr_temp_memory[byte_counter],
+                                                   PROTOBETTY__MESSAGE__CONSTANTS__MAX_MESSAGE_SIZE);
+                if (zmq_received > 0)
+                {
+                    sensors[counter_actuators] = protobetty__sensors__unpack(NULL, zmq_received, &ptr_temp_memory[byte_counter]);
+                    byte_counter += zmq_received;
+                    counter_actuators++;
+                }
+                /* Clear the poll state. */
+                poll_actuators->revents = 0;
+        }
+        else
+        {
+            //stop polling for new messages beacuse we reached limit
+            poll_actuators->events = 0;
+        }
+
 
         calc_next_shot(&t,rt_interval);
 
@@ -225,7 +261,7 @@ int main(int argc __attribute__((unused)),
     return 0;
 }
 
-long safe_to_file(uint64_t nitems)
+static long safe_to_file(void)
 {
     FILE *ptr_myfile;
     //Open file
@@ -239,16 +275,22 @@ long safe_to_file(uint64_t nitems)
         printf("Unable to open file!");
         return -1;
     }
-    //Allocate memory for received sensor data
-    Protobetty__LogSensors log = PROTOBETTY__LOG_SENSORS__INIT;
-    //Set number of items in log message
-    log.n_data = nitems;
-    //set data
-    log.data = sensors;
+    //Allocate protobuf structure for sensors and set data
+    Protobetty__LogSensors log_sensors = PROTOBETTY__LOG_SENSORS__INIT;
+    log_sensors.n_data = counter_sensors;
+    log_sensors.data = sensors;
+    //Allocate protobuf structure for actuators and set data
+    Protobetty__LogActuators log_actuators = PROTOBETTY__LOG_ACTUATORS__INIT;
+    log_actuators.n_data = counter_actuators;
+    log_actuators.data = actuators;
+    //set data to final log messages
+    Protobetty__LogData log = PROTOBETTY__LOG_DATA__INIT;
+    log.actuator_data = &log_actuators;
+    log.sensor_data = &log_sensors;
     // back it to buffer
-    const uint64_t packed_size = protobetty__log_sensors__get_packed_size(&log);
+    const uint64_t packed_size = protobetty__log_data__get_packed_size(&log);
     uint8_t* buffer = alloc_workbuf(packed_size);
-    protobetty__log_sensors__pack(&log,buffer);
+    protobetty__log_data__pack(&log,buffer);
     //write bytewise data to file
     send_debug(zsock_print, TAG, "Writing data to file ...\n");
     printf("Writing data to file ...");
