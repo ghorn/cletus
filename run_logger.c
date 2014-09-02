@@ -209,8 +209,8 @@ int main(int argc __attribute__((unused)),
         if (bail) die(bail);
         if ((counter_actuators + counter_sensors) < NUMBER_OF_LOGS)
         {
-        if (poll_sensors->revents & ZMQ_POLLIN)
-        {
+            if (poll_sensors->revents & ZMQ_POLLIN)
+            {
 
                 const int zmq_received = zmq_recvm(zsock_sensors,
                                                    (uint8_t*) &ptr_temp_memory[byte_counter],
@@ -224,15 +224,10 @@ int main(int argc __attribute__((unused)),
                 /* Clear the poll state. */
                 poll_sensors->revents = 0;
             }
-        }
-        else
-        {
-            //stop polling for new messages beacuse we reached limit
-            poll_sensors->events = 0;
-        }
 
-        if (poll_actuators->revents & ZMQ_POLLIN)
-        {
+
+            if (poll_actuators->revents & ZMQ_POLLIN)
+            {
 
                 const int zmq_received = zmq_recvm(zsock_sensors,
                                                    (uint8_t*) &ptr_temp_memory[byte_counter],
@@ -245,69 +240,71 @@ int main(int argc __attribute__((unused)),
                 }
                 /* Clear the poll state. */
                 poll_actuators->revents = 0;
+
+            }
+            else
+            {
+                //stop polling for new messages beacuse we reached limit
+                poll_sensors->events = 0;
+                poll_actuators->events = 0;
+            }
         }
-        else
+
+            calc_next_shot(&t,rt_interval);
+
+        }
+
+        /* Shouldn't get here. */
+        return 0;
+    }
+
+    static long safe_to_file(void)
+    {
+        FILE *ptr_myfile;
+        //Open file
+        timestamp_t timestamp;
+        gettime(&timestamp);
+        char filename[50];
+        snprintf(filename, sizeof(filename),"%"PRIu64"_logdata.bin",timestamp.tsec);
+        ptr_myfile=fopen(filename,"wb");
+        if (!ptr_myfile)
         {
-            //stop polling for new messages beacuse we reached limit
-            poll_actuators->events = 0;
+            printf("Unable to open file!");
+            return -1;
         }
+        //Allocate protobuf structure for sensors and set data
+        Protobetty__LogSensors log_sensors = PROTOBETTY__LOG_SENSORS__INIT;
+        log_sensors.n_data = counter_sensors;
+        log_sensors.data = sensors;
+        //Allocate protobuf structure for actuators and set data
+        Protobetty__LogActuators log_actuators = PROTOBETTY__LOG_ACTUATORS__INIT;
+        log_actuators.n_data = counter_actuators;
+        log_actuators.data = actuators;
+        //set data to final log messages
+        Protobetty__LogData log = PROTOBETTY__LOG_DATA__INIT;
+        log.actuator_data = &log_actuators;
+        log.sensor_data = &log_sensors;
+        // back it to buffer
+        const uint64_t packed_size = protobetty__log_data__get_packed_size(&log);
+        uint8_t* buffer = alloc_workbuf(packed_size);
+        protobetty__log_data__pack(&log,buffer);
+        //write bytewise data to file
+        send_debug(zsock_print, TAG, "Writing data to file ...\n");
+        printf("Writing data to file ...");
 
+        for (uint64_t i = 0; i < packed_size; i++)
+        {
+            fwrite(&buffer[i], sizeof(uint8_t), 1, ptr_myfile);
+            printf(".");
+        }
+        send_debug(zsock_print, TAG, "Finsihed writing. Closing File.");
+        printf("Finsihed writing. Closing File.\n");
+        free_workbuf(buffer,packed_size);
 
-        calc_next_shot(&t,rt_interval);
+        fclose(ptr_myfile);
+
+        return packed_size;
 
     }
-
-    /* Shouldn't get here. */
-    return 0;
-}
-
-static long safe_to_file(void)
-{
-    FILE *ptr_myfile;
-    //Open file
-    timestamp_t timestamp;
-    gettime(&timestamp);
-    char filename[50];
-    snprintf(filename, sizeof(filename),"%"PRIu64"_logdata.bin",timestamp.tsec);
-    ptr_myfile=fopen(filename,"wb");
-    if (!ptr_myfile)
-    {
-        printf("Unable to open file!");
-        return -1;
-    }
-    //Allocate protobuf structure for sensors and set data
-    Protobetty__LogSensors log_sensors = PROTOBETTY__LOG_SENSORS__INIT;
-    log_sensors.n_data = counter_sensors;
-    log_sensors.data = sensors;
-    //Allocate protobuf structure for actuators and set data
-    Protobetty__LogActuators log_actuators = PROTOBETTY__LOG_ACTUATORS__INIT;
-    log_actuators.n_data = counter_actuators;
-    log_actuators.data = actuators;
-    //set data to final log messages
-    Protobetty__LogData log = PROTOBETTY__LOG_DATA__INIT;
-    log.actuator_data = &log_actuators;
-    log.sensor_data = &log_sensors;
-    // back it to buffer
-    const uint64_t packed_size = protobetty__log_data__get_packed_size(&log);
-    uint8_t* buffer = alloc_workbuf(packed_size);
-    protobetty__log_data__pack(&log,buffer);
-    //write bytewise data to file
-    send_debug(zsock_print, TAG, "Writing data to file ...\n");
-    printf("Writing data to file ...");
-
-    for (uint64_t i = 0; i < packed_size; i++)
-    {
-        fwrite(&buffer[i], sizeof(uint8_t), 1, ptr_myfile);
-        printf(".");
-    }
-    send_debug(zsock_print, TAG, "Finsihed writing. Closing File.");
-    printf("Finsihed writing. Closing File.\n");
-    free_workbuf(buffer,packed_size);
-
-    fclose(ptr_myfile);
-
-    return packed_size;
-
-}
 
 
