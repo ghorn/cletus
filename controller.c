@@ -53,10 +53,9 @@ void run_demo_controller(const Protobetty__Sensors* const y, Protobetty__Actuato
         u->elev = y->accel->data->x;
         u->ail =  -1*y->accel->data->x;
     }
-    timestamp_t timestamp;
-    gettime(&timestamp);
-    u->start->tsec = timestamp.tsec;
-    u->start->tnsec = timestamp.tnsec;
+    Protobetty__Timestamp timestamp;
+    get_protbetty_timestamp(&timestamp);
+    u->timestamp_actuators = &timestamp;
 
 }
 

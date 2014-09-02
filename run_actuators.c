@@ -128,6 +128,7 @@ int main(int argc __attribute__((unused)),
 
     /* Actuator data storage. */
     Protobetty__Actuators* incoming;
+    //create template for actuator message for lisa
     lisa_message_t output;
     output.startbyte = 0x99;
     output.length = sizeof(lisa_message_t);
@@ -139,10 +140,6 @@ int main(int argc __attribute__((unused)),
            output.startbyte,output.length,output.sender_id,output.message_id);
 
 #endif
-
-
-
-
 
     zmq_pollitem_t polls[] = {
         /* Inputs -- in this case, our incoming actuator commands. */
@@ -205,7 +202,7 @@ int main(int argc __attribute__((unused)),
 
             if (incoming != NULL){
                 send_debug(zsock_print,TAG,"Received Actuators message with latency %f ms and \n rudd:%f\n elev:%f\n ail:%f\n flaps:%f",
-                           calcCurrentLatencyProto(incoming->start),
+                           calcCurrentLatencyProto(incoming->timestamp_actuators),
                            incoming->rudd,
                            incoming->elev,
                            incoming->ail,

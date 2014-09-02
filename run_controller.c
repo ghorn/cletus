@@ -189,9 +189,9 @@ int main(int argc __attribute__((unused)),
     //Placeholders for PROTOBUF data
     Protobetty__Sensors *sensors_ptr;         // Sensors
     Protobetty__Actuators actuators = PROTOBETTY__ACTUATORS__INIT;
-    Protobetty__Timestamp actuators_timstamp_start = PROTOBETTY__TIMESTAMP__INIT;
+    Protobetty__Timestamp actuators_timstamp = PROTOBETTY__TIMESTAMP__INIT;
     //    TimestampProto actuators_timstamp_stop = TIMESTAMP_PROTO__INIT;
-    actuators.start = &actuators_timstamp_start;
+    actuators.timestamp_actuators = &actuators_timstamp;
     //    actuators.stop = &actuators_timstamp_stop;
 
 
@@ -278,6 +278,7 @@ int main(int argc __attribute__((unused)),
                     break;
                 }
 #endif
+                actuators.timestamp_sensors = sensors_ptr->accel->timestamp;
                 /* Here is where you might run your controller when you get a
                    * complete set of sensor inputs. */
                 run_pd_demo_controller(sensors_ptr, &actuators);
@@ -299,7 +300,7 @@ int main(int argc __attribute__((unused)),
 
         if (bail) die(bail);
         if (poll_actuators->revents & ZMQ_POLLOUT) {
-            get_protbetty_timestamp(actuators.start);
+            get_protbetty_timestamp(actuators.timestamp_actuators);
             packed_length = protobetty__actuators__get_packed_size(&actuators); //
             protobetty__actuators__pack(&actuators, zmq_buffer);
             const int zs = zmq_send(zsock_actuators,zmq_buffer, packed_length,0);
@@ -308,7 +309,7 @@ int main(int argc __attribute__((unused)),
             } else {
 #ifdef DEBUG
                 send_debug(zsock_print,TAG,"Sent to actuators wit timestamp %f",
-                           floating_ProtoTime(actuators.start));
+                           floating_ProtoTime(actuators.timestamp_actuators));
 #endif
                 /* Clear the events flag so we won't try to send until we
                    * have more data. */
