@@ -59,10 +59,10 @@ void run_demo_controller(const Protobetty__Sensors* const y, Protobetty__Actuato
 
 }
 
-int Kp = 980;
+int Kp = 2500;
 int Kd = 75;
-int Kdp = 100;
-int Kas = 20;
+int Kdp = 50;
+int Kas = 200;
 
 void init_controller(int pKp, int pKd, int pKpd, int pKas)
 {
