@@ -1,18 +1,23 @@
 import pylab as plt
 import messages_pb2
 
-x = messages_pb2.LogSensors()
-f = open("8292_logdata.bin", "r")
+x = messages_pb2.LogData()
+f = open("300_logdata.bin", "r")
 d = f.read()
 f.close()
 x.ParseFromString(d)
+
+sensors = x.sensor_data
+actuators = x.actuator_data
+
+
 
 
 def fromTimestamp(ts):
     return float(ts.tsec) + 1e-9*float(ts.tnsec)
 
-gyros = [y.gyro for y in x.data if y.type == 1]
-accels = [y.accel for y in x.data if y.type == 1]
+gyros = [y.gyro for y in sensors.data if y.type == 1]
+accels = [y.accel for y in sensors.data if y.type == 1]
 
 plt.figure(1)
 plt.subplot(311)
