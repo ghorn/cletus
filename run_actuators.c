@@ -28,7 +28,6 @@ char* const TAG = "RUN_ACTUATORS";
 /* ZMQ resources */
 static void *zctx = NULL;
 static void *zsock_in = NULL;
-static void *zsock_log = NULL;
 void *zsock_print = NULL;
 
 
@@ -36,8 +35,8 @@ void *zsock_print = NULL;
 int txfails = 0, rxfails = 0;
 
 static void __attribute__((noreturn)) die(int code) {
-    zdestroy(zsock_log, NULL);
-    zdestroy(zsock_in, zctx);
+    zdestroy(zsock_in, NULL);
+    zdestroy(zsock_print,NULL);
     serial_port_close();
     printf("%d TX fails; %d RX fails.\n", txfails, rxfails);
     printf("Moriturus te saluto!\n");
@@ -114,12 +113,6 @@ int main(int argc __attribute__((unused)),
     zsock_in = setup_zmq_receiver(ACTUATORS_CHAN, &zctx, ZMQ_SUB, NULL, 1, 500);
     if (NULL == zsock_in)
         return 1;
-    /* Use big buffers here.  We're just publishing the data for
-   * logging, so we don't mind saving some data until the logger can
-   * receive it. */
-    zsock_log = setup_zmq_sender(LOG_CHAN, &zctx, ZMQ_PUB, 1000, 100000);
-    if (NULL == zsock_log)
-        die(1);
     zsock_print = setup_zmq_sender(PRINT_CHAN, &zctx, ZMQ_PUSH, 1000, 500);
     if (NULL == zsock_print)
         die(1);
@@ -148,18 +141,11 @@ int main(int argc __attribute__((unused)),
             .fd = -1,
             .events = ZMQ_POLLIN,
             .revents = 0
-        },
-        {
-            .socket = zsock_log,
-            .fd = -1,
-            .events = 0,
-            .revents = 0
         }
     };
 
 
     zmq_pollitem_t* poll_controller = &polls[0];
-    zmq_pollitem_t* poll_log = &polls[1];
 
     const int npolls = sizeof(polls) / sizeof(polls[0]);
     uint8_t zmq_buffer[PROTOBETTY__MESSAGE__CONSTANTS__MAX_MESSAGE_SIZE]; // Input data container for bytes
@@ -219,10 +205,10 @@ int main(int argc __attribute__((unused)),
                            (int)output.servos_msg.servo_6,
                            (int)output.servos_msg.servo_7);
 #endif
-                poll_log->events = ZMQ_POLLOUT;
             }
             /* Clear the poll state. */
             poll_controller->revents = 0;
+            poll_controller->events = ZMQ_POLLIN;
         }
 
 
