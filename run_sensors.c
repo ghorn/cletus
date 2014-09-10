@@ -48,12 +48,6 @@ char* TAG = "RUN_SENSORS";
 static void *zctx = NULL;
 static void *zsock_sensors = NULL;
 static void *zsock_log = NULL;
-static void *zsock_lisa_gyro = NULL;
-static void *zsock_lisa_mag = NULL;
-static void *zsock_lisa_accel = NULL;
-static void *zsock_lisa_gps = NULL;
-static void *zsock_lisa_ahrs = NULL;
-static void *zsock_lisa_airspeed = NULL;
 void *zsock_print = NULL;
 
 void signal_handler_IO (int status);
@@ -68,18 +62,9 @@ int txfails = 0, rxfails = 0;
 static void __attribute__((noreturn)) die(int code) {
     zdestroy(zsock_log, zctx);
     zdestroy(zsock_sensors, NULL);
-    //Receive sockets
-    zdestroy(zsock_lisa_gyro, NULL);
-    zdestroy(zsock_lisa_mag, NULL);
-    zdestroy(zsock_lisa_accel, NULL);
-    zdestroy(zsock_lisa_gps, NULL);
-    zdestroy(zsock_lisa_ahrs, NULL);
-    zdestroy(zsock_lisa_airspeed, NULL);
     zdestroy(zsock_print, NULL);
 
-
     serial_port_close();
-
 
     printf("%d TX fails; %d RX fails.\n", txfails, rxfails);
     printf("Moriturus te saluto!\n");
@@ -93,13 +78,27 @@ static void sigdie(int signum) {
     bail = signum;
 }
 
+
+
 int main(int argc __attribute__((unused)),
          char **argv __attribute__((unused))) {
+
+    /* Confignals. */
+    if (signal(SIGINT, &sigdie) == SIG_IGN)
+        signal(SIGINT, SIG_IGN);
+    if (signal(SIGTERM, &sigdie) == SIG_IGN)
+        signal(SIGTERM, SIG_IGN);
+    if (signal(SIGHUP, &sigdie) == SIG_IGN)
+        signal(SIGHUP, SIG_IGN);
+    if (signal(SIGABRT, &sigdie) == SIG_IGN)
+        signal(SIGABRT, SIG_IGN);
+
+
 
     struct timespec t;
     struct sched_param param;
     int rt_interval= 0;
-    printf("%i", argc);
+    //get arguments for frequency and
     if (argc == 3)
     {
         char* arg_ptr;
@@ -127,34 +126,24 @@ int main(int argc __attribute__((unused)),
         set_priority(&param, DEFAULT_RT_PRIORITY);
         rt_interval = (NSEC_PER_SEC/DEFAULT_RT_FREQUENCY);
     }
+
     stack_prefault();
 
-
-
+    //set interrupt callback
     irq_callback uart_callback;
     uart_callback.sa_handler = signal_handler_IO;
     uart_callback.sa_flags = 0;
     uart_callback.sa_restorer = NULL;
-
-    //Init circular buffer
-    cbInit(&cb, 64);
     //Init serial port
     int err = serial_port_setup(&uart_callback);
     if (err != UART_ERR_NONE)
+    {
         printf("Error setting up UART \n");
+        die(1);
+    }
 
-
-    /* Confignals. */
-    if (signal(SIGINT, &sigdie) == SIG_IGN)
-        signal(SIGINT, SIG_IGN);
-    if (signal(SIGTERM, &sigdie) == SIG_IGN)
-        signal(SIGTERM, SIG_IGN);
-    if (signal(SIGHUP, &sigdie) == SIG_IGN)
-        signal(SIGHUP, SIG_IGN);
-    if (signal(SIGABRT, &sigdie) == SIG_IGN)
-        signal(SIGABRT, SIG_IGN);
-
-
+    //Init circular buffer
+    cbInit(&cb, 64);
 
     /* ZMQ setup first. */
 
@@ -171,19 +160,10 @@ int main(int argc __attribute__((unused)),
     zsock_sensors = setup_zmq_sender(SENSORS_CHAN, &zctx, ZMQ_PUB, 1, 500);
 #endif
     if (NULL == zsock_sensors)
-        return 1;;
+        die(1);
     zsock_print = setup_zmq_sender(PRINT_CHAN, &zctx, ZMQ_PUSH, 100, 500);
     if (NULL == zsock_print)
         die(1);
-
-    /* Use big buffers here.  We're just publishing the data for
-   * logging, so we don't mind saving some data until the logger can
-   * receive it. */
-    zsock_log = setup_zmq_sender(LOG_CHAN, &zctx, ZMQ_PUB, 1000, 100000);
-    if (NULL == zsock_log)
-        die(1);
-
-
 
 
 
@@ -234,8 +214,6 @@ int main(int argc __attribute__((unused)),
     //#endif
 
 
-
-
     uint8_t* zmq_buffer = calloc(sizeof(uint8_t),PROTOBETTY__MESSAGE__CONSTANTS__MAX_MESSAGE_SIZE);
     unsigned int packed_length;
 
@@ -266,14 +244,17 @@ int main(int argc __attribute__((unused)),
 
         /* wait until next shot */
         clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, &t, NULL);
-        //Poll on activated channels for messages
         if (bail) die(bail);
-        /* Poll for activity; time out after 10 milliseconds. */
-        /* Remove and print all elements */
-        while (!cbIsEmpty(&cb)) {
-            cbRead(&cb, &element);
 
+        //When sensor data is in circular buffer
+        while (!cbIsEmpty(&cb))
+        {
+            //get sensor message elment
+            cbRead(&cb, &element);
+            //first byte is length of message
+            //startbyte already stripped in signal handler
             msg_length = element.message[0];
+            //messages are never longer than 64 bytes
             if ((msg_length < LISA_MAX_MSG_LENGTH) && (msg_length > 0))
             {
                 //Check 1: Sender ID must be correct.
@@ -283,10 +264,9 @@ int main(int argc __attribute__((unused)),
                     if (check_checksum(element.message) == UART_ERR_NONE)
                     {
 
-#ifdef DEBUG
                         send_debug(zsock_print,TAG,"Passed Checksum test. Sending Message [%u bytes] with ID %i\n",
                                    msg_length, element.message[LISA_INDEX_MSG_ID]);
-#endif
+                        //Depending on message type copy data and set it to protobuf message
                         switch (element.message[LISA_INDEX_MSG_ID])
                         {
                         case IMU_ACCEL_SCALED:
@@ -294,26 +274,22 @@ int main(int argc __attribute__((unused)),
                             scaled_to_protobuf(&(data_ptr->imu_raw.data), accel.data, acc_scale_unit_coef);
                             get_protbetty_timestamp(accel.timestamp);
                             sensors.accel = &accel;
-#ifdef DEBUG
                             send_debug(zsock_print,TAG,"Received ACCEL (ID:%u) and timestamp %f sec (Latency:%fms)\n X: %f\t Y: %f\t Z: %f ",
                                        data_ptr->imu_raw.header.msg_id,
                                        floating_ProtoTime(accel.timestamp),
                                        calcCurrentLatencyProto(accel.timestamp)*1e3,
                                        accel.data->x, accel.data->y, accel.data->z);
-#endif
                             break;
                         case IMU_GYRO_SCALED:
                             memcpy(&data_ptr->imu_raw,&element.message, sizeof(imu_raw_t));
                             scaled_to_protobuf(&(data_ptr->imu_raw.data), gyro.data, gyro_scale_unit_coef);
                             get_protbetty_timestamp(gyro.timestamp);
                             sensors.gyro = &gyro;
-#ifdef DEBUG
                             send_debug(zsock_print,TAG,"Received GYRO (ID:%u) and timestamp %f sec (Latency:%fms)\n X: %f\t Y: %f\t Z: %f ",
                                        data_ptr->imu_raw.header.msg_id,
                                        floating_ProtoTime(gyro.timestamp),
                                        calcCurrentLatencyProto(gyro.timestamp)*1e3,
                                        gyro.data->x, gyro.data->y, gyro.data->z);
-#endif
                             break;
 
                         case IMU_MAG_SCALED:
@@ -321,25 +297,21 @@ int main(int argc __attribute__((unused)),
                             scaled_to_protobuf(&(data_ptr->imu_raw.data), mag.data, mag_scale_unit_coef);
                             get_protbetty_timestamp(mag.timestamp);
                             sensors.mag = &mag;
-#ifdef DEBUG
                             send_debug(zsock_print,TAG,"Received MAG (ID:%u) and timestamp %f sec (Latency:%fms)\n X: %f\t Y: %f\t Z: %f",
                                        data_ptr->imu_raw.header.msg_id,
                                        floating_ProtoTime(gyro.timestamp),
                                        calcCurrentLatencyProto(gyro.timestamp)*1e3,
                                        mag.data->x, mag.data->y, mag.data->z);
-#endif
                             break;
                         case AIRSPEED_ETS:
                             memcpy(&data_ptr->airspeed_raw,&element.message, sizeof(airspeed_t));
                             airspeed.scaled = data_ptr->airspeed_raw.scaled;
                             get_protbetty_timestamp(airspeed.timestamp);
                             sensors.airspeed = &airspeed;
-#ifdef DEBUG
                             send_debug(zsock_print,TAG,"Received AIRSPEED (ID:%u) and timestamp %f sec (Latency:%fms) ",
                                        data_ptr->airspeed_raw.header.msg_id,
                                        floating_ProtoTime(airspeed.timestamp),
                                        calcCurrentLatencyProto(airspeed.timestamp)*1e3);
-#endif
                             break;
                         default:
                             break;
@@ -362,8 +334,10 @@ int main(int argc __attribute__((unused)),
         //********************************************
         // SENDING IMU DATA to Controller
         //********************************************
+        //If we have all IMU messages we send data to controller
         if ((sensors.mag  != NULL) && (sensors.gyro  != NULL)  && (sensors.accel  != NULL))
         {
+            //set message type corresponding to the data currently available
             if ((sensors.gps != NULL) && (sensors.airspeed != NULL))
             {
                 sensors.type = PROTOBETTY__SENSORS__TYPE__IMU_GPS_AIRSPEED;
@@ -404,7 +378,11 @@ int main(int argc __attribute__((unused)),
 
 
 
-
+/*
+ *The signal handler is invoked by a interrupt on the UART port
+ *After detecting the startbyte the message from LISA is read
+ *and written to the circular buffer which is emptied in the mainloop
+ */
 void signal_handler_IO (int status)
 {
     static uint8_t irq_msg_length;
@@ -416,7 +394,8 @@ void signal_handler_IO (int status)
 
     if (status == SIGIO)
     {
-        switch (uart_stage) {
+        switch (uart_stage)
+        {
         case STARTBYTE_SEARCH:
             irq_readbytes = 0;
             ioctl(serial_stream->fd, FIONREAD,&irq_readbytes); //set to number of bytes in buffer
@@ -448,6 +427,7 @@ void signal_handler_IO (int status)
                 //                }
                 //                printf("\n");
 #endif
+                //Write message to buffer and start over
                 if (cb.elems != NULL)
                     cbWrite(&cb,&buffer_element);
                 uart_stage = STARTBYTE_SEARCH;
