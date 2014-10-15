@@ -86,6 +86,14 @@ typedef struct __attribute__((packed))
     xyz_int data;
 }imu_raw_t;
 
+typedef struct __attribute__((packed))
+{
+    lisa_header_t header;
+    xyz_int accel;
+    xyz_int gyro;
+    xyz_int mag;
+}imu_all_raw_t;
+
 typedef struct __attribute__((packed)){
     quaternion_t imu;
     quaternion_t body;
@@ -112,6 +120,7 @@ typedef struct __attribute__((packed)){
 
 typedef struct __attribute__((packed)) {
     imu_raw_t imu_raw;
+    imu_all_raw_t imu_all;
     gps_t gps;
     ahrs_int_t ahrs_int;
     ahrs_double_t ahrs_double;

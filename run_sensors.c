@@ -269,6 +269,23 @@ int main(int argc __attribute__((unused)),
                         //Depending on message type copy data and set it to protobuf message
                         switch (element.message[LISA_INDEX_MSG_ID])
                         {
+                        case IMU_ALL_SCALED:
+                            memcpy(&data_ptr->imu_all,&element.message, sizeof(imu_all_raw_t));
+                            scaled_to_protobuf(&(data_ptr->imu_all.accel), accel.data, acc_scale_unit_coef);
+                            scaled_to_protobuf(&(data_ptr->imu_all.gyro), gyro.data, gyro_scale_unit_coef);
+                            scaled_to_protobuf(&(data_ptr->imu_all.mag), mag.data, mag_scale_unit_coef);
+                            get_protbetty_timestamp(accel.timestamp);
+                            get_protbetty_timestamp(gyro.timestamp);
+                            get_protbetty_timestamp(mag.timestamp);
+                            sensors.accel = &accel;
+                            sensors.gyro = &gyro;
+                            sensors.mag = &mag;
+                            send_debug(zsock_print,TAG,"Received IMU_ALL (ID:%u) and timestamp %f sec (Latency:%fms)\n X: %f\t Y: %f\t Z: %f ",
+                                       data_ptr->imu_raw.header.msg_id,
+                                       floating_ProtoTime(accel.timestamp),
+                                       calcCurrentLatencyProto(accel.timestamp)*1e3,
+                                       accel.data->x, accel.data->y, accel.data->z);
+                            break;
                         case IMU_ACCEL_SCALED:
                             memcpy(&data_ptr->imu_raw,&element.message, sizeof(imu_raw_t));
                             scaled_to_protobuf(&(data_ptr->imu_raw.data), accel.data, acc_scale_unit_coef);
