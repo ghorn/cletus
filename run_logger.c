@@ -165,6 +165,8 @@ int main(int argc __attribute__((unused)),
 
     ptr_temp_memory = alloc_workbuf(NUMBER_OF_LOGS*PROTOBETTY__MESSAGE__CONSTANTS__MAX_MESSAGE_SIZE);
     sensors = alloc_workbuf(sizeof(Protobetty__Sensors*)*NUMBER_OF_LOGS);
+    actuators = alloc_workbuf(sizeof(Protobetty__Actuators*)*NUMBER_OF_LOGS);
+
     uint64_t byte_counter = 0;
 
 
