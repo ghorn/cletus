@@ -280,8 +280,9 @@ int main(int argc __attribute__((unused)),
                             sensors.accel = &accel;
                             sensors.gyro = &gyro;
                             sensors.mag = &mag;
-                            send_debug(zsock_print,TAG,"Received IMU_ALL (ID:%u) and timestamp %f sec (Latency:%fms)\n X: %f\t Y: %f\t Z: %f ",
-                                       data_ptr->imu_raw.header.msg_id,
+                            send_debug(zsock_print,TAG,"Received IMU_ALL (ID:%u; Seq: %u) and timestamp %f sec (Latency:%fms)\n X: %f\t Y: %f\t Z: %f ",
+                                       data_ptr->imu_all.header.msg_id,
+                                       data_ptr->imu_all.sequence_number,
                                        floating_ProtoTime(accel.timestamp),
                                        calcCurrentLatencyProto(accel.timestamp)*1e3,
                                        accel.data->x, accel.data->y, accel.data->z);

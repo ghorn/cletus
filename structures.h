@@ -89,6 +89,7 @@ typedef struct __attribute__((packed))
 typedef struct __attribute__((packed))
 {
     lisa_header_t header;
+    uint32_t sequence_number;
     xyz_int accel;
     xyz_int gyro;
     xyz_int mag;
