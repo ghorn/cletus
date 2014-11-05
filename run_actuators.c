@@ -87,7 +87,7 @@ int main(int argc __attribute__((unused)),
     stack_prefault();
 
 
-    int err = serial_port_setup(NULL);
+    int err = serial_port_setup();
     if (err != UART_ERR_NONE)
         printf("Error setting up UART \n");
 

@@ -48,6 +48,7 @@ char* TAG = "RUN_SENSORS";
 static void *zctx = NULL;
 static void *zsock_sensors = NULL;
 static void *zsock_log = NULL;
+
 void *zsock_print = NULL;
 
 void signal_handler_IO (int status);
@@ -62,9 +63,12 @@ int txfails = 0, rxfails = 0;
 static void __attribute__((noreturn)) die(int code) {
     zdestroy(zsock_log, zctx);
     zdestroy(zsock_sensors, NULL);
+
     zdestroy(zsock_print, NULL);
 
+
     serial_port_close();
+
 
     printf("%d TX fails; %d RX fails.\n", txfails, rxfails);
     printf("Moriturus te saluto!\n");
@@ -78,22 +82,8 @@ static void sigdie(int signum) {
     bail = signum;
 }
 
-
-
 int main(int argc __attribute__((unused)),
          char **argv __attribute__((unused))) {
-
-    /* Confignals. */
-    if (signal(SIGINT, &sigdie) == SIG_IGN)
-        signal(SIGINT, SIG_IGN);
-    if (signal(SIGTERM, &sigdie) == SIG_IGN)
-        signal(SIGTERM, SIG_IGN);
-    if (signal(SIGHUP, &sigdie) == SIG_IGN)
-        signal(SIGHUP, SIG_IGN);
-    if (signal(SIGABRT, &sigdie) == SIG_IGN)
-        signal(SIGABRT, SIG_IGN);
-
-
 
     struct timespec t;
     struct sched_param param;
@@ -126,7 +116,6 @@ int main(int argc __attribute__((unused)),
         set_priority(&param, DEFAULT_RT_PRIORITY);
         rt_interval = (NSEC_PER_SEC/DEFAULT_RT_FREQUENCY);
     }
-
     stack_prefault();
 
     //set interrupt callback
@@ -134,16 +123,26 @@ int main(int argc __attribute__((unused)),
     uart_callback.sa_handler = signal_handler_IO;
     uart_callback.sa_flags = 0;
     uart_callback.sa_restorer = NULL;
-    //Init serial port
-    int err = serial_port_setup(&uart_callback);
-    if (err != UART_ERR_NONE)
-    {
-        printf("Error setting up UART \n");
-        die(1);
-    }
 
     //Init circular buffer
     cbInit(&cb, 64);
+    //Init serial port
+    int err = serial_port_setup(&uart_callback);
+    if (err != UART_ERR_NONE)
+        printf("Error setting up UART \n");
+
+
+    /* Confignals. */
+    if (signal(SIGINT, &sigdie) == SIG_IGN)
+        signal(SIGINT, SIG_IGN);
+    if (signal(SIGTERM, &sigdie) == SIG_IGN)
+        signal(SIGTERM, SIG_IGN);
+    if (signal(SIGHUP, &sigdie) == SIG_IGN)
+        signal(SIGHUP, SIG_IGN);
+    if (signal(SIGABRT, &sigdie) == SIG_IGN)
+        signal(SIGABRT, SIG_IGN);
+
+
 
     /* ZMQ setup first. */
 
@@ -164,6 +163,15 @@ int main(int argc __attribute__((unused)),
     zsock_print = setup_zmq_sender(PRINT_CHAN, &zctx, ZMQ_PUSH, 100, 500);
     if (NULL == zsock_print)
         die(1);
+
+    /* Use big buffers here.  We're just publishing the data for
+   * logging, so we don't mind saving some data until the logger can
+   * receive it. */
+    zsock_log = setup_zmq_sender(LOG_CHAN, &zctx, ZMQ_PUB, 1000, 100000);
+    if (NULL == zsock_log)
+        die(1);
+
+
 
 
 
@@ -212,6 +220,8 @@ int main(int argc __attribute__((unused)),
     //    Protobetty__Xyz gps_vel = PROTOBETTY__XYZ__INIT;
     //    gps.vel = &gps_vel;
     //#endif
+
+
 
 
     uint8_t* zmq_buffer = calloc(sizeof(uint8_t),PROTOBETTY__MESSAGE__CONSTANTS__MAX_MESSAGE_SIZE);
@@ -264,6 +274,7 @@ int main(int argc __attribute__((unused)),
                     if (check_checksum(element.message) == UART_ERR_NONE)
                     {
 
+#ifdef DEBUG
                         send_debug(zsock_print,TAG,"Passed Checksum test. Sending Message [%u bytes] with ID %i\n",
                                    msg_length, element.message[LISA_INDEX_MSG_ID]);
                         //Depending on message type copy data and set it to protobuf message
@@ -396,66 +407,50 @@ int main(int argc __attribute__((unused)),
 
 
 
-/*
- *The signal handler is invoked by a interrupt on the UART port
- *After detecting the startbyte the message from LISA is read
- *and written to the circular buffer which is emptied in the mainloop
- */
-void signal_handler_IO (int status)
-{
-    static uint8_t irq_msg_length;
-    static int irq_readbytes;
-    static uint8_t irq_msg_buffer[256];
-    static ElemType buffer_element;
-    static int uart_stage;
+//Function for writing data messages from buffer to the lisa log file
+static void *uart_reading(void *arg __attribute__((unused))){
+    /*-------------------------START OF THREAD: LISA LOGGING------------------------*/
 
+    int msg_length;
+    ElemType message_element;
 
-    if (status == SIGIO)
+    int epolldescriptor =  epoll_create1(0);
+    if (epolldescriptor == -1)
     {
-        switch (uart_stage)
-        {
-        case STARTBYTE_SEARCH:
-            irq_readbytes = 0;
-            ioctl(serial_stream->fd, FIONREAD,&irq_readbytes); //set to number of bytes in buffer
-            read_uart(irq_msg_buffer,1);
-            if (irq_msg_buffer[0] == LISA_STARTBYTE)
-            {
-                uart_stage = MESSAGE_LENGTH;
-            }
-            break;
-        case MESSAGE_LENGTH:
-            ioctl(serial_stream->fd, FIONREAD,&irq_readbytes); //set to number of bytes in buffer
-            read_uart(buffer_element.message,1);
-            irq_msg_length = buffer_element.message[0];
-            if ((irq_msg_length < LISA_MAX_MSG_LENGTH) && (irq_msg_length > 0))
-                uart_stage = MESSAGE_READING;
-            else
-                uart_stage = STARTBYTE_SEARCH;
-            break;
-        case MESSAGE_READING:
-            ioctl(serial_stream->fd, FIONREAD, &irq_readbytes); //set to number of bytes in buffer
-            if (!(irq_readbytes < irq_msg_length))
-            {
-                read_uart(&(buffer_element.message[1]),irq_msg_length-2);
-#ifdef DEBUG
-                //                printf("Received message ");
-                //                for (int i = 0; i < irq_msg_length-1; i++)
-                //                {
-                //                    printf(" %i ", buffer_element.message[i]);
-                //                }
-                //                printf("\n");
-#endif
-                //Write message to buffer and start over
-                if (cb.elems != NULL)
-                    cbWrite(&cb,&buffer_element);
-                uart_stage = STARTBYTE_SEARCH;
-            }
-            break;
-        default:
-            break;
-        }
+        perror ("epoll_create");
+        abort ();
     }
+    epoll_event_t event;
+
+    event.data.fd = serial_stream->fd;
+    event.events = EPOLLIN;
+    if (epoll_ctl (epolldescriptor, EPOLL_CTL_ADD, serial_stream->fd, &event) == -1)
+    {
+        perror ("epoll_ctl");
+        abort ();
+    }
+
+    while(1){
+
+
+        msg_length = read_lisa_message(epolldescriptor,&event, message_element.message);
+        if (msg_length > 0)
+        {
+            cbWrite(&cb,&message_element);
+        }
+
+    }
+
+    return NULL;
+    /*-------------------------END OF THREAD: LISA LOGGING------------------------*/
 }
+
+
+
+
+
+
+
 
 
 

@@ -1,23 +1,26 @@
-﻿#include <stdlib.h>
+﻿#define _GNU_SOURCE
+
+#include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
 #include <fcntl.h>
 #include <inttypes.h>
-#include <poll.h>
-
 
 #include "./misc.h"
 #include "./structures.h"
 #include "./uart.h"
 
 
+
 UART_errCode serial_port_new(void);
 UART_errCode serial_port_create(void);
-UART_errCode  serial_port_open_raw(const char* device_ptr, speed_t speed_param, const irq_callback * const callback);
+UART_errCode  serial_port_open_raw(const char* device_ptr, speed_t speed_param);
 void serial_port_free(void);
 void serial_port_flush(void);
 UART_errCode serial_port_flush_output(void);
 void signal_handler_IO (int status);
+static int wait_for_data(const int descriptor, epoll_event_t *event, const int timeout_ms);
+static int find_startbyte(const int descriptor, epoll_event_t *event, uint8_t *buffer);
 
 
 
@@ -159,7 +162,7 @@ UART_errCode serial_port_flush_output(void) {
 
 //FUNCTIONS FOR UART SETUP
 
-UART_errCode serial_port_setup(const irq_callback * const callback)
+UART_errCode serial_port_setup(void)
 {
 #ifdef DEBUG
     printf("Entering serial_port_setup\n");
@@ -177,7 +180,7 @@ UART_errCode serial_port_setup(const irq_callback * const callback)
         return err;
     }
 
-    err = serial_port_open_raw(device, speed,callback);
+    err = serial_port_open_raw(device, speed);
     if(err!=UART_ERR_NONE){
         return err;
     }
@@ -263,57 +266,43 @@ UART_errCode serial_port_create(void)
     return UART_ERR_NONE;
 }
 
-UART_errCode  serial_port_open_raw(const char* device_ptr, speed_t speed_param, const irq_callback * const callback) {
+UART_errCode  serial_port_open_raw(const char* device_ptr, speed_t speed_param) {
 
 #ifdef DEBUG
     printf("Entering serial_port_open_raw\n");
 #endif
-    if((serial_stream->fd = open(device_ptr, O_RDWR | O_NOCTTY | O_NONBLOCK)) < 0)
+    if ((serial_stream->fd = open(device_ptr, O_RDWR | O_NONBLOCK | O_NOCTTY)) < 0) {
         return UART_ERR_SERIAL_PORT_OPEN;
-
-
-
-
-    if (callback == NULL)
-    {
-        sigset_t block_mask;
-        sigemptyset (&block_mask);
-        serial_stream->saio.sa_handler = SIG_IGN;
-        serial_stream->saio.sa_flags = 0;
-        serial_stream->saio.sa_restorer = NULL;
-
     }
-    else {
-        memcpy(&(serial_stream->saio),callback,sizeof(irq_callback));
-
+    if (tcgetattr(serial_stream->fd, &serial_stream->orig_termios) < 0) {
+        close(serial_stream->fd);
+        return UART_ERR_SERIAL_PORT_OPEN;
     }
-
-    sigaction(SIGIO,&(serial_stream->saio),NULL);
-    int ret = fcntl(serial_stream->fd, F_SETFL, FNDELAY);
-    printf("FNDELAY= %i\n",ret);
-    fcntl(serial_stream->fd, F_SETOWN, getpid());
-    printf("F_SETOWN= %i\n",ret);
-    fcntl(serial_stream->fd, F_SETFL, FASYNC);
-    printf("FASYNC= %i\n",ret);
-
-
-
     serial_stream->cur_termios = serial_stream->orig_termios;
-    tcgetattr(serial_stream->fd,&(serial_stream->cur_termios));
-    cfsetispeed(&(serial_stream->cur_termios),speed_param);
-    cfsetospeed(&(serial_stream->cur_termios),speed_param);
-    serial_stream->cur_termios.c_cflag &= ~PARENB;
-    serial_stream->cur_termios.c_cflag &= ~CSTOPB;
-    serial_stream->cur_termios.c_cflag &= ~CSIZE;
-    serial_stream->cur_termios.c_cflag |= CS8;
-    serial_stream->cur_termios.c_cflag |= (CLOCAL | CREAD);
-    serial_stream->cur_termios.c_lflag &= ~(ICANON | ECHO | ECHOE | ISIG);
-    serial_stream->cur_termios.c_iflag &= ~(IXON | IXOFF | IXANY);
-    serial_stream->cur_termios.c_oflag &= ~OPOST;
-    tcsetattr(serial_stream->fd,TCSANOW,&(serial_stream->cur_termios));
-    printf("UART4 configured....\n");
-
-    return UART_ERR_NONE;
+   /* input modes  */
+    serial_stream->cur_termios.c_iflag &= ~(IGNBRK|BRKINT|PARMRK|INPCK|ISTRIP|INLCR|IGNCR
+                                            |ICRNL |IUCLC|IXON|IXANY|IXOFF|IMAXBEL);
+    serial_stream->cur_termios.c_iflag |= IGNPAR;
+    /* control modes*/
+    serial_stream->cur_termios.c_cflag &= ~(CSIZE|PARENB|CRTSCTS|PARODD|HUPCL|CSTOPB);
+    serial_stream->cur_termios.c_cflag |= CREAD|CS8|CLOCAL;
+    /* local modes  */
+    serial_stream->cur_termios.c_lflag &= ~(ISIG|ICANON|IEXTEN|ECHO|FLUSHO|PENDIN);
+    serial_stream->cur_termios.c_lflag |= NOFLSH;
+    if (cfsetispeed(&serial_stream->cur_termios, speed_param)) {
+        close(serial_stream->fd);
+        return UART_ERR_SERIAL_PORT_OPEN;
+    }
+    if (cfsetospeed(&serial_stream->cur_termios, speed_param)) {
+        close(serial_stream->fd);
+        return UART_ERR_SERIAL_PORT_OPEN;
+    }
+    if (tcsetattr(serial_stream->fd, TCSADRAIN, &serial_stream->cur_termios)) {
+        close(serial_stream->fd);
+        return UART_ERR_SERIAL_PORT_OPEN;
+    }
+    serial_port_flush();
+   return UART_ERR_NONE;
 }
 
 UART_errCode serial_port_close(void) {
@@ -391,7 +380,61 @@ void UART_err_handler( UART_errCode err_p,void (*write_error_ptr)(char *,char *,
     }
 }
 
+static int find_startbyte(const int descriptor, epoll_event_t* event, uint8_t* buffer)
+{
+    if (wait_for_data(descriptor,event, 1000) > 0)
+    {
+        ioctl(serial_stream->fd, FIONREAD); //set to number of bytes in buffer
+        read_uart(buffer,1);
+        if (buffer[0] == LISA_STARTBYTE)
+            return 1;
+    }
+    return 0;
+}
 
+
+int read_lisa_message(const int descriptor, epoll_event_t* event, uint8_t* buffer)
+{
+    if (find_startbyte(descriptor,event,buffer)>0)
+    {
+        if (wait_for_data(descriptor,event, 1000) > 0)
+        {
+            ioctl(serial_stream->fd, FIONREAD); //set to number of bytes in buffer
+            read_uart(buffer,1);
+            const int message_length = buffer[0];
+            if ((message_length > 0)&& (message_length < LISA_MAX_MSG_LENGTH))
+            {
+                int bytes_read = 0;
+                while (bytes_read < message_length-2)
+                {
+                    if (wait_for_data(descriptor,event, 1000) > 0)
+                    {
+                        ioctl(serial_stream->fd, FIONREAD, &bytes_read); //set to number of bytes in buffer
+                    }
+                    else
+                        return 0;
+                }
+                read_uart(&buffer[1],bytes_read);
+                return message_length;
+            }
+            else
+                printf("Message length %i is larger than MAX. Seems like we are missing bytes.",message_length);
+        }
+    }
+    return 0;
+}
+
+
+
+static int wait_for_data(const int descriptor, epoll_event_t* event, const int timeout_ms)
+{
+    const int result=epoll_wait(descriptor,event,1,timeout_ms); //block until there is data in the serial stream
+    if((result & (1 << 0)) == 0){
+        return -1;
+    }
+    return result;
+
+}
 
 
 
