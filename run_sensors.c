@@ -118,16 +118,12 @@ int main(int argc __attribute__((unused)),
     }
     stack_prefault();
 
-    //set interrupt callback
-    irq_callback uart_callback;
-    uart_callback.sa_handler = signal_handler_IO;
-    uart_callback.sa_flags = 0;
-    uart_callback.sa_restorer = NULL;
+
 
     //Init circular buffer
     cbInit(&cb, 64);
     //Init serial port
-    int err = serial_port_setup(&uart_callback);
+    int err = serial_port_setup();
     if (err != UART_ERR_NONE)
         printf("Error setting up UART \n");
 
@@ -256,6 +252,30 @@ int main(int argc __attribute__((unused)),
         clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, &t, NULL);
         if (bail) die(bail);
 
+        int epolldescriptor =  epoll_create1(0);
+        if (epolldescriptor == -1)
+        {
+            perror ("epoll_create");
+            abort ();
+        }
+        epoll_event_t event;
+
+        event.data.fd = serial_stream->fd;
+        event.events = EPOLLIN | EPOLLET;
+        if (epoll_ctl (epolldescriptor, EPOLL_CTL_ADD, serial_stream->fd, &event) == -1)
+        {
+            perror ("epoll_ctl");
+            abort ();
+        }
+        uint8_t buffer[1024];
+        while (1)
+        {
+            msg_length = read_lisa_message(epolldescriptor,&event, buffer);
+            if (bail) die(bail);
+        }
+
+
+
         //When sensor data is in circular buffer
         while (!cbIsEmpty(&cb))
         {
@@ -273,8 +293,6 @@ int main(int argc __attribute__((unused)),
                     //Check 2: Checksum must be correct
                     if (check_checksum(element.message) == UART_ERR_NONE)
                     {
-
-#ifdef DEBUG
                         send_debug(zsock_print,TAG,"Passed Checksum test. Sending Message [%u bytes] with ID %i\n",
                                    msg_length, element.message[LISA_INDEX_MSG_ID]);
                         //Depending on message type copy data and set it to protobuf message
@@ -405,45 +423,6 @@ int main(int argc __attribute__((unused)),
 }
 
 
-
-
-//Function for writing data messages from buffer to the lisa log file
-static void *uart_reading(void *arg __attribute__((unused))){
-    /*-------------------------START OF THREAD: LISA LOGGING------------------------*/
-
-    int msg_length;
-    ElemType message_element;
-
-    int epolldescriptor =  epoll_create1(0);
-    if (epolldescriptor == -1)
-    {
-        perror ("epoll_create");
-        abort ();
-    }
-    epoll_event_t event;
-
-    event.data.fd = serial_stream->fd;
-    event.events = EPOLLIN;
-    if (epoll_ctl (epolldescriptor, EPOLL_CTL_ADD, serial_stream->fd, &event) == -1)
-    {
-        perror ("epoll_ctl");
-        abort ();
-    }
-
-    while(1){
-
-
-        msg_length = read_lisa_message(epolldescriptor,&event, message_element.message);
-        if (msg_length > 0)
-        {
-            cbWrite(&cb,&message_element);
-        }
-
-    }
-
-    return NULL;
-    /*-------------------------END OF THREAD: LISA LOGGING------------------------*/
-}
 
 
 

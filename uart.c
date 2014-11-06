@@ -20,7 +20,7 @@ void serial_port_flush(void);
 UART_errCode serial_port_flush_output(void);
 void signal_handler_IO (int status);
 static int wait_for_data(const int descriptor, epoll_event_t *event, const int timeout_ms);
-static int find_startbyte(const int descriptor, epoll_event_t *event, uint8_t *buffer);
+//static int find_startbyte(const int descriptor, epoll_event_t *event, uint8_t *buffer);
 
 
 
@@ -28,7 +28,7 @@ static char FILENAME[] = "uart_communication.c";
 
 //extern serial_port *serial_stream;
 
-speed_t speed = B57600;
+speed_t speed = B115200;
 //Variables for serial port
 const char device[]="/dev/ttyO4";
 const char device_enabled_check[] = "ttyO4_armhf.com"; //For Angstrom: enable-uart5
@@ -380,46 +380,29 @@ void UART_err_handler( UART_errCode err_p,void (*write_error_ptr)(char *,char *,
     }
 }
 
-static int find_startbyte(const int descriptor, epoll_event_t* event, uint8_t* buffer)
-{
-    if (wait_for_data(descriptor,event, 1000) > 0)
-    {
-        ioctl(serial_stream->fd, FIONREAD); //set to number of bytes in buffer
-        read_uart(buffer,1);
-        if (buffer[0] == LISA_STARTBYTE)
-            return 1;
-    }
-    return 0;
-}
+//static int find_startbyte(const int descriptor, epoll_event_t* event, uint8_t* buffer)
+//{
+//    if (wait_for_data(descriptor,event, 1000) > 0)
+//    {
+//        ioctl(serial_stream->fd, FIONREAD); //set to number of bytes in buffer
+//        read_uart(buffer,1);
+//        if (buffer[0] == LISA_STARTBYTE)
+//            return 1;
+//    }
+//    return 0;
+//}
 
 
 int read_lisa_message(const int descriptor, epoll_event_t* event, uint8_t* buffer)
 {
-    if (find_startbyte(descriptor,event,buffer)>0)
-    {
         if (wait_for_data(descriptor,event, 1000) > 0)
         {
-            ioctl(serial_stream->fd, FIONREAD); //set to number of bytes in buffer
-            read_uart(buffer,1);
-            const int message_length = buffer[0];
-            if ((message_length > 0)&& (message_length < LISA_MAX_MSG_LENGTH))
-            {
-                int bytes_read = 0;
-                while (bytes_read < message_length-2)
-                {
-                    if (wait_for_data(descriptor,event, 1000) > 0)
-                    {
-                        ioctl(serial_stream->fd, FIONREAD, &bytes_read); //set to number of bytes in buffer
-                    }
-                    else
-                        return 0;
-                }
-                read_uart(&buffer[1],bytes_read);
-                return message_length;
-            }
-            else
-                printf("Message length %i is larger than MAX. Seems like we are missing bytes.",message_length);
-        }
+            printf("Returned from wait...");
+            int bytes_read = 0;
+            ioctl(serial_stream->fd, FIONREAD, &bytes_read); //set to number of bytes in buffer
+            printf("Buffer contains %i bytes",bytes_read);
+            read_uart(buffer,bytes_read);
+
     }
     return 0;
 }
