@@ -271,7 +271,7 @@ UART_errCode  serial_port_open_raw(const char* device_ptr, speed_t speed_param) 
 #ifdef DEBUG
     printf("Entering serial_port_open_raw\n");
 #endif
-    if ((serial_stream->fd = open(device_ptr, O_RDWR | O_NONBLOCK | O_NOCTTY)) < 0) {
+    if ((serial_stream->fd = open(device_ptr, O_RDWR | O_NOCTTY)) < 0) {
         return UART_ERR_SERIAL_PORT_OPEN;
     }
     if (tcgetattr(serial_stream->fd, &serial_stream->orig_termios) < 0) {
@@ -380,31 +380,32 @@ void UART_err_handler( UART_errCode err_p,void (*write_error_ptr)(char *,char *,
     }
 }
 
-//static int find_startbyte(const int descriptor, epoll_event_t* event, uint8_t* buffer)
-//{
-//    if (wait_for_data(descriptor,event, 1000) > 0)
-//    {
-//        ioctl(serial_stream->fd, FIONREAD); //set to number of bytes in buffer
-//        read_uart(buffer,1);
-//        if (buffer[0] == LISA_STARTBYTE)
-//            return 1;
-//    }
-//    return 0;
-//}
+static int find_startbyte(const int descriptor, epoll_event_t* event, uint8_t* buffer)
+{
+    if (wait_for_data(descriptor,event, 1000) > 0)
+    {
+        read_uart(buffer,1);
+        if (buffer[0] == LISA_STARTBYTE)
+            return 1;
+    }
+    return 0;
+}
 
 
 int read_lisa_message(const int descriptor, epoll_event_t* event, uint8_t* buffer)
 {
-        if (wait_for_data(descriptor,event, 1000) > 0)
-        {
-            printf("Returned from wait...");
-            int bytes_read = 0;
-            ioctl(serial_stream->fd, FIONREAD, &bytes_read); //set to number of bytes in buffer
-            printf("Buffer contains %i bytes",bytes_read);
-            read_uart(buffer,bytes_read);
+    printf("In Syncing\n");
 
-    }
-    return 0;
+            read_uart(buffer,46);
+            if (buffer[0] != LISA_STARTBYTE)
+            {
+                while (!find_startbyte(descriptor,event,buffer))
+                {
+                    printf("Syncing\n");
+                }
+                read_uart(buffer,45);
+            }
+            return 1;
 }
 
 
