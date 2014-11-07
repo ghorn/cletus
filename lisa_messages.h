@@ -13,8 +13,8 @@ enum lisa_msg_info{
     SENDER_ID = 166, //Senser ID of the Lisa set with paparazzi
     LISA_STARTBYTE = 0x99,
     WINDSENSOR_STARTBYTE =0x24,
-    LISA_INDEX_MSG_ID = 2,
-    LISA_INDEX_SENDER_ID = 1,
+    LISA_INDEX_MSG_ID = 3,
+    LISA_INDEX_SENDER_ID = 2,
     LISA_MAX_MSG_LENGTH = 64
 };
 
