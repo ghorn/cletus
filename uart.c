@@ -406,7 +406,7 @@ int read_lisa_message(const int descriptor, epoll_event_t* event, uint8_t* buffe
     {
         bytes_read += read_uart(&buffer[bytes_read], 1);
         message_length = buffer[bytes_read-1];
-        bytes_read += read_message_data(descriptor, event, buffer, message_length- bytes_read);
+        bytes_read += read_message_data(descriptor, event, &buffer[bytes_read], message_length-bytes_read);
         return message_length;
     }
     return 0;
