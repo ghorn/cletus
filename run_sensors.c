@@ -281,7 +281,7 @@ int main(int argc __attribute__((unused)),
             if (buffer[LISA_INDEX_SENDER_ID] == SENDER_ID)
             {
                 //Check 2: Checksum must be correct
-                if (check_checksum(&buffer[LISA_INDEX_MSG_ID]) == UART_ERR_NONE)
+                if (check_checksum(&buffer[LISA_INDEX_MSG_LENGTH]) == UART_ERR_NONE)
                 {
                     send_debug(zsock_print,TAG,"Passed Checksum test. Sending Message [%u bytes] with ID %i\n",
                                msg_length, buffer[LISA_INDEX_MSG_ID]);
