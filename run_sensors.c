@@ -294,17 +294,18 @@ int main(int argc __attribute__((unused)),
                         scaled_to_protobuf(&(data_ptr->imu_all.gyro), gyro.data, gyro_scale_unit_coef);
                         scaled_to_protobuf(&(data_ptr->imu_all.mag), mag.data, mag_scale_unit_coef);
                         get_protbetty_timestamp(accel.timestamp);
-                        get_protbetty_timestamp(gyro.timestamp);
-                        get_protbetty_timestamp(mag.timestamp);
+                        gyro.timestamp = mag.timestamp= accel.timestamp;
                         sensors.accel = &accel;
                         sensors.gyro = &gyro;
                         sensors.mag = &mag;
-                        send_debug(zsock_print,TAG,"Received IMU_ALL (ID:%u; Seq: %u) and timestamp %f sec (Latency:%fms)\n X: %f\t Y: %f\t Z: %f ",
+                        send_debug(zsock_print,TAG,"Received IMU_ALL (ID:%u; SeqNo: %u) and timestamp %f sec (Latency:%fms)\nACCEL: X: %f\t Y: %f\t Z: %f \nGYRO: X: %f\t Y: %f\t Z: %f \nMAG: X: %f\t Y: %f\t Z: %f ",
                                    data_ptr->imu_all.header.msg_id,
                                    data_ptr->imu_all.sequence_number,
                                    floating_ProtoTime(accel.timestamp),
                                    calcCurrentLatencyProto(accel.timestamp)*1e3,
-                                   accel.data->x, accel.data->y, accel.data->z);
+                                   accel.data->x, accel.data->y, accel.data->z,
+                                   gyro.data->x, gyro.data->y, gyro.data->z,
+                                   mag.data->x, mag.data->y, mag.data->z);
                         break;
                     case IMU_ACCEL_SCALED:
                         memcpy(&data_ptr->imu_raw,&element.message, sizeof(imu_raw_t));
