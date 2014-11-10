@@ -22,6 +22,7 @@ sbp_baseline_ned_t baseline_ned;
 sbp_vel_ned_t      vel_ned;
 sbp_dops_t         dops;
 sbp_gps_time_t     gps_time;
+sbp_heartbeat_t    heartbeat;
 
 /*
  * SBP callback nodes must be statically allocated. Each message ID / callback
@@ -32,6 +33,7 @@ sbp_msg_callbacks_node_t baseline_ned_node;
 sbp_msg_callbacks_node_t vel_ned_node;
 sbp_msg_callbacks_node_t dops_node;
 sbp_msg_callbacks_node_t gps_time_node;
+sbp_msg_callbacks_node_t heartbeat_node;
 
 /*
  * Callback functions to interpret SBP messages.
@@ -41,7 +43,12 @@ sbp_msg_callbacks_node_t gps_time_node;
 void sbp_pos_llh_callback(u16 sender_id __attribute__((unused)), u8 len __attribute__((unused)), u8 msg[], void *context __attribute__((unused)))
 {
   pos_llh = *(sbp_pos_llh_t *)msg;
-  //printf("pos_llh\n");
+  printf("pos_llh\n");
+}
+void sbp_heartbeat_callback(u16 sender_id __attribute__((unused)), u8 len __attribute__((unused)), u8 msg[], void *context __attribute__((unused)))
+{
+  heartbeat = *(sbp_heartbeat_t *)msg;
+  printf("heartbeat: %d\n", heartbeat.flags);
 }
 void sbp_baseline_ned_callback(u16 sender_id __attribute__((unused)), u8 len __attribute__((unused)), u8 msg[], void *context __attribute__((unused)))
 {
@@ -58,17 +65,17 @@ void sbp_vel_ned_callback(u16 sender_id __attribute__((unused)), u8 len __attrib
          1e-3*((double)baseline_ned.n),
          1e-3*((double)baseline_ned.e),
          1e-3*((double)baseline_ned.d));
-//  printf("vel_ned: (%d, %d, %d)\n", vel_ned.n, vel_ned.e, vel_ned.d);
+  printf("vel_ned: (%d, %d, %d)\n", vel_ned.n, vel_ned.e, vel_ned.d);
 }
 void sbp_dops_callback(u16 sender_id __attribute__((unused)), u8 len __attribute__((unused)), u8 msg[], void *context __attribute__((unused)))
 {
   dops = *(sbp_dops_t *)msg;
-  //printf("dops\n");
+  printf("dops\n");
 }
 void sbp_gps_time_callback(u16 sender_id __attribute__((unused)), u8 len __attribute__((unused)), u8 msg[], void *context __attribute__((unused)))
 {
   gps_time = *(sbp_gps_time_t *)msg;
-//  printf("time (%d, %d, %d)\n", gps_time.wn, gps_time.tow, gps_time.ns);
+  printf("time (%d, %d, %d)\n", gps_time.wn, gps_time.tow, gps_time.ns);
 }
 
 /*
@@ -88,6 +95,9 @@ void sbp_setup(void)
   int ret = 0;
 
   /* Register a node and callback, and associate them with a specific message ID. */
+  ret = sbp_register_callback(&sbp_state, SBP_HEARTBEAT, &sbp_heartbeat_callback,
+                        NULL, &heartbeat_node);
+  if (0 != ret) {printf("sbp_register_callback error: %d\n", ret); exit(-1);}
   ret = sbp_register_callback(&sbp_state, SBP_GPS_TIME, &sbp_gps_time_callback,
                         NULL, &gps_time_node);
   if (0 != ret) {printf("sbp_register_callback error: %d\n", ret); exit(-1);}
@@ -168,32 +178,37 @@ set_blocking (int fd, int should_block)
 int fd = NULL;
 
 u32 fifo_read(u8 *buff, u32 n, void *context __attribute__((unused))){
+//  printf("reading fifo thingy, length %d\n", n);
   return read(fd, buff, n);
 }
 
 int main(){
-  char *portname = "/dev/ttyUSB0";
+  const char * const portname = "/dev/ttyUSB0";
   fd = open(portname, O_RDWR | O_NOCTTY | O_SYNC);
   if (fd < 0)
   {
     printf("error %d opening %s: %s\n", errno, portname, strerror (errno));
     return -1;
   }
-    
+  printf("opened %s successfully, setting up usb read\n", portname);
+
+
 //  set_interface_attribs (fd, B115200, 0);  // set speed to 115,200 bps, 8n1 (no parity)
   set_interface_attribs (fd, B1000000, 0);  // set speed to 1,000,000 bps, 8n1 (no parity)
   set_blocking (fd, 1);                // set blocking
 //  usleep ((7 + 25) * 100);             // sleep enough to transmit the 7 plus
 
   
+  printf("setting up SBP\n");
   sbp_setup();
 //  sbp_state_set_io_context(&sbp_state, &fd);
 
+  printf("starting read loop\n");
   for (;;){
     s8 ret = sbp_process(&sbp_state, &fifo_read);
     if (ret < 0) {
       printf("sbp_process error: %d\n", (int)ret);
-      return ret;
+      //return ret;
     }
   }
 
