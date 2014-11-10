@@ -6,20 +6,20 @@ PROJ =  run_uart run_sensors run_controller run_actuators run_function_test test
 # What C or C++ files must we compile to make the executable?
 C_SRC = run_uart.c \
 	run_controller.c \
-        run_actuators.c \
-        run_sensors.c \
+ 	run_actuators.c \
+ 	run_sensors.c \
 	run_print_output.c \
 	lisa_communication/circular_buffer.c\
-        sensors.c \
-        uart.c \
-        controller.c \
+	sensors.c \
+ 	uart.c \
+	controller.c \
 	actuators.c \
 	print_output.c \
-        misc.c \
-        zmq.c \
-        run_function_test.c \
-        tests/test_uart.c   \
-        tests/test_lisa_message.c \
+ 	misc.c \
+ 	zmq.c \
+ 	run_function_test.c \
+	tests/test_uart.c   \
+	tests/test_lisa_message.c \
 	tests/log_lisa.c \
 	sim_uart.c \
 	run_logger.c
@@ -52,7 +52,6 @@ UNAME := $(shell uname)
 LDFLAGS = $(LIBS)
 INCLUDES = -I./protos_c
 
-#CFLAGS = -O3 -Wall -Wextra -Werror -std=gnu99 -Wimplicit -Wshadow -Wswitch-default -Wswitch-enum -Wundef -Wuninitialized -Wpointer-arith -Wstrict-prototypes -Wmissing-prototypes -Wcast-align -Wformat=2 -Wimplicit-function-declaration -Wredundant-decls -Wformat-security  -Werror -Os -march=native -ftree-vectorize -flto -fPIC -D_FORTIFY_SOURCE=2 -fstack-protector-all -fno-strict-overflow   -g -ftrapv
 
 ifeq ($(UNAME),Darwin)
 	LDFLAGS += -L/opt/local/lib
@@ -66,8 +65,8 @@ OBJ = $(C_SRC:%.c=%.o) $(CXX_SRC:%.cpp=%.o) $(CXX_SRC:%.cc=%.o) protos_c/message
 ## Compile pedantically and save pain later
 CXX_WARNINGFLAGS = -Wall -Wextra -Wshadow
 C_WARNINGFLAGS =  -Wall -Wextra -Wshadow -Wstrict-prototypes
-C_WARNINGFLAGS += -Wimplicit -Wswitch-default -Wswitch-enum -Wundef -Wuninitialized -Wpointer-arith -Wstrict-prototypes -Wmissing-prototypes -Wcast-align -Wformat=2 -Wimplicit-function-declaration -Wredundant-decls -Wformat-security -march=native -ftree-vectorize -flto -fPIC -D_FORTIFY_SOURCE=2 -fstack-protector-all -fno-strict-overflow -ftrapv
-
+C_WARNINGFLAGS += -Wimplicit -Wswitch-default -Wswitch-enum -Wundef -Wuninitialized -Wpointer-arith -Wstrict-prototypes -Wmissing-prototypes -Wcast-align -Wformat=2 -Wimplicit-function-declaration -Wredundant-decls -Wformat-security -Wstrict-overflow -march=native 
+C_FEATUREFLAGS = -ftree-vectorize -flto -fPIC -D_FORTIFY_SOURCE=2 -fstack-protector-all -fno-strict-overflow -ftrapv
 C_WARNINGFLAGS += -Werror
 CXX_WARNINGFLAGS += -Werror
 DEBUGFLAGS ?= -g -DDEBUG # -pg to generate profiling information
@@ -81,9 +80,11 @@ DEBUGFLAGS ?= -g -DDEBUG # -pg to generate profiling information
 SENSORFLAGS ?= -DALL
 
 
-OPTFLAGS = -O3
+OPTFLAGS = -O2
 
-CFLAGS ?= $(C_WARNINGFLAGS) $(DEBUGFLAGS) $(FEATUREFLAGS) $(INCLUDES) $(OPTFLAGS) $(SENSORFLAGS) -std=gnu99
+CFLAGS ?= $(C_WARNINGFLAGS)  $(INCLUDES) $(OPTFLAGS) $(SENSORFLAGS) -std=gnu99
+debug: CFLAGS+= $(DEBUGFLAGS) $(C_FEATUREFLAGS)
+debug: all
 CXXFLAGS ?= $(CXX_WARNINGFLAGS) $(DEBUGFLAGS) $(FEATUREFLAGS) $(INCLUDES) $(OPTFLAGS) $(SENSORFLAGS) -std=gnu++0x
 CC ?= gcc
 CXX ?= g++
