@@ -9,7 +9,6 @@ C_SRC = run_uart.c \
  	run_actuators.c \
  	run_sensors.c \
 	run_print_output.c \
-	lisa_communication/circular_buffer.c\
 	sensors.c \
  	uart.c \
 	controller.c \
@@ -83,16 +82,23 @@ SENSORFLAGS ?= -DALL
 OPTFLAGS = -O2
 
 CFLAGS ?= $(C_WARNINGFLAGS)  $(INCLUDES) $(OPTFLAGS) $(SENSORFLAGS) -std=gnu99
-debug: CFLAGS+= $(DEBUGFLAGS) $(C_FEATUREFLAGS)
-debug: all
+
 CXXFLAGS ?= $(CXX_WARNINGFLAGS) $(DEBUGFLAGS) $(FEATUREFLAGS) $(INCLUDES) $(OPTFLAGS) $(SENSORFLAGS) -std=gnu++0x
 CC ?= gcc
 CXX ?= g++
 
 HS_STRUCTS = hs/src/Structs/Structures.hs hs/src/Structs/Structures.hsc
 
+
+.PHONY: debug
+debug: CFLAGS+= $(DEBUGFLAGS) $(C_FEATUREFLAGS)
+debug: build
+
 .PHONY: all
-all: $(PROTOS_C) $(PROTOS_CXX) $(PROTOS_PY) protos_cpp/messages.pb.o protos_c/messages.pb-c.o $(PROJ)
+debug: build
+
+.PHONY: build
+build: $(PROTOS_C) $(PROTOS_CXX) $(PROTOS_PY) protos_cpp/messages.pb.o protos_c/messages.pb-c.o $(PROJ)
 hs: $(HS_PROTOS)
 
 .SECONDEXPANSION:
