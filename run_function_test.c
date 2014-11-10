@@ -53,7 +53,7 @@ int main(int argc __attribute__((unused)),
   if (signal(SIGABRT, &sigdie) == SIG_IGN)
     signal(SIGABRT, SIG_IGN);
 
-  int errRet = serial_port_setup(0);
+  int errRet = serial_port_setup();
   if(errRet!=UART_ERR_NONE){
       err("couldn't initialize serial port");
       die(SIGABRT);
