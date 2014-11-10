@@ -265,7 +265,7 @@ int main(int argc __attribute__((unused)),
     {
         msg_length = read_lisa_message(epolldescriptor,&event, buffer);
         if (bail) die(bail);
-        //messages are never longer than 256 bytes
+        //messages are never longer than 64 bytes
         if ((msg_length < LISA_MAX_MSG_LENGTH) && (msg_length > 0))
         {
             //Check 1: Sender ID must be correct.
