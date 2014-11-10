@@ -280,7 +280,7 @@ int main(int argc __attribute__((unused)),
                     switch (buffer[LISA_INDEX_MSG_ID])
                     {
                     case IMU_ALL_SCALED:
-                        memcpy(&data_ptr->imu_all,&buffer[LISA_INDEX_SENDER_ID], sizeof(imu_all_raw_t));
+                        memcpy(&data_ptr->imu_all,&buffer[LISA_INDEX_MSG_LENGTH], sizeof(imu_all_raw_t));
                         scaled_to_protobuf(&(data_ptr->imu_all.accel), accel.data, acc_scale_unit_coef);
                         scaled_to_protobuf(&(data_ptr->imu_all.gyro), gyro.data, gyro_scale_unit_coef);
                         scaled_to_protobuf(&(data_ptr->imu_all.mag), mag.data, mag_scale_unit_coef);
