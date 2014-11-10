@@ -51,8 +51,6 @@ static void *zsock_log = NULL;
 
 void *zsock_print = NULL;
 
-void signal_handler_IO (int status);
-CircularBuffer cb;
 
 
 
@@ -118,10 +116,6 @@ int main(int argc __attribute__((unused)),
     }
     stack_prefault();
 
-
-
-    //Init circular buffer
-    cbInit(&cb, 64);
     //Init serial port
     int err = serial_port_setup();
     if (err != UART_ERR_NONE)
@@ -226,8 +220,6 @@ int main(int argc __attribute__((unused)),
 
     lisa_messages_t data_container;
     lisa_messages_t* const data_ptr = &data_container;
-
-    ElemType element;
     uint8_t msg_length;
 
 
@@ -255,7 +247,6 @@ int main(int argc __attribute__((unused)),
         abort ();
     }
     epoll_event_t event;
-
     event.data.fd = serial_stream->fd;
     event.events = EPOLLIN | EPOLLET;
     if (epoll_ctl (epolldescriptor, EPOLL_CTL_ADD, serial_stream->fd, &event) == -1)
@@ -263,7 +254,7 @@ int main(int argc __attribute__((unused)),
         perror ("epoll_ctl");
         abort ();
     }
-    uint8_t buffer[1024];
+    uint8_t buffer[256];
 
 
 
@@ -274,7 +265,7 @@ int main(int argc __attribute__((unused)),
     {
         msg_length = read_lisa_message(epolldescriptor,&event, buffer);
         if (bail) die(bail);
-        //messages are never longer than 64 bytes
+        //messages are never longer than 256 bytes
         if ((msg_length < LISA_MAX_MSG_LENGTH) && (msg_length > 0))
         {
             //Check 1: Sender ID must be correct.
@@ -308,7 +299,7 @@ int main(int argc __attribute__((unused)),
                                    mag.data->x, mag.data->y, mag.data->z);
                         break;
                     case IMU_ACCEL_SCALED:
-                        memcpy(&data_ptr->imu_raw,&element.message, sizeof(imu_raw_t));
+                        memcpy(&data_ptr->imu_raw,&buffer[LISA_INDEX_SENDER_ID], sizeof(imu_raw_t));
                         scaled_to_protobuf(&(data_ptr->imu_raw.data), accel.data, acc_scale_unit_coef);
                         get_protbetty_timestamp(accel.timestamp);
                         sensors.accel = &accel;
@@ -319,7 +310,7 @@ int main(int argc __attribute__((unused)),
                                    accel.data->x, accel.data->y, accel.data->z);
                         break;
                     case IMU_GYRO_SCALED:
-                        memcpy(&data_ptr->imu_raw,&element.message, sizeof(imu_raw_t));
+                        memcpy(&data_ptr->imu_raw,&buffer[LISA_INDEX_SENDER_ID], sizeof(imu_raw_t));
                         scaled_to_protobuf(&(data_ptr->imu_raw.data), gyro.data, gyro_scale_unit_coef);
                         get_protbetty_timestamp(gyro.timestamp);
                         sensors.gyro = &gyro;
@@ -331,7 +322,7 @@ int main(int argc __attribute__((unused)),
                         break;
 
                     case IMU_MAG_SCALED:
-                        memcpy(&data_ptr->imu_raw,&element.message, sizeof(imu_raw_t));
+                        memcpy(&data_ptr->imu_raw,&buffer[LISA_INDEX_SENDER_ID], sizeof(imu_raw_t));
                         scaled_to_protobuf(&(data_ptr->imu_raw.data), mag.data, mag_scale_unit_coef);
                         get_protbetty_timestamp(mag.timestamp);
                         sensors.mag = &mag;
@@ -342,7 +333,7 @@ int main(int argc __attribute__((unused)),
                                    mag.data->x, mag.data->y, mag.data->z);
                         break;
                     case AIRSPEED_ETS:
-                        memcpy(&data_ptr->airspeed_raw,&element.message, sizeof(airspeed_t));
+                        memcpy(&data_ptr->airspeed_raw,&buffer[LISA_INDEX_SENDER_ID], sizeof(airspeed_t));
                         airspeed.scaled = data_ptr->airspeed_raw.scaled;
                         get_protbetty_timestamp(airspeed.timestamp);
                         sensors.airspeed = &airspeed;
@@ -357,12 +348,12 @@ int main(int argc __attribute__((unused)),
                 }
                 else
                 {
-                    send_warning(zsock_print,TAG,"ERROR Checksum test failed for id %i\n",element.message[LISA_INDEX_MSG_ID]);
+                    send_warning(zsock_print,TAG,"ERROR Checksum test failed for id %i\n",buffer[LISA_INDEX_MSG_ID]);
                 }
             }
             else
             {
-                send_warning(zsock_print,TAG,"ERROR wrong SENDER ID %i\n",element.message[LISA_INDEX_SENDER_ID]);
+                send_warning(zsock_print,TAG,"ERROR wrong SENDER ID %i\n",buffer[LISA_INDEX_SENDER_ID]);
             }
         }
 
