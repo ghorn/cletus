@@ -6,7 +6,7 @@ enum Mode3 {
 }
 
 enum Message_Constants{
-MAX_MESSAGE_SIZE = 256;
+MAX_MESSAGE_SIZE = 512;
 }
 
 enum UpDown {
