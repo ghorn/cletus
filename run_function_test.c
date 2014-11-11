@@ -62,9 +62,9 @@ int main(int argc __attribute__((unused)),
 
   lisa_message_t output;
   output.startbyte = 0x99;
-  output.length = sizeof(lisa_message_t);
-  output.sender_id = SENDER_ID;
-  output.message_id = SERVO_COMMANDS;
+  output.header.length = sizeof(lisa_message_t);
+  output.header.sender_id = SENDER_ID;
+  output.header.msg_id = SERVO_COMMANDS;
 
 
   for (value=0;value < 9600; value++) {

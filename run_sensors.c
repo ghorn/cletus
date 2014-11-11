@@ -23,6 +23,8 @@
 #include "./lisa_messages.h"
 #include "./print_output.h"
 
+#include "./protos_c/messages.pb-c.h"
+
 
 
 //#define ALL
@@ -306,7 +308,7 @@ int main(int argc __attribute__((unused)),
                                    mag.data->x, mag.data->y, mag.data->z);
                         break;
                     case IMU_ACCEL_SCALED:
-                        memcpy(&data_ptr->imu_raw,&buffer[LISA_INDEX_SENDER_ID], sizeof(imu_raw_t));
+                        memcpy(&data_ptr->imu_raw,&buffer[LISA_INDEX_MSG_LENGTH], sizeof(imu_raw_t));
                         scaled_to_protobuf(&(data_ptr->imu_raw.data), accel.data, acc_scale_unit_coef);
                         get_protbetty_timestamp(accel.timestamp);
                         sensors.accel = &accel;
@@ -317,7 +319,7 @@ int main(int argc __attribute__((unused)),
                                    accel.data->x, accel.data->y, accel.data->z);
                         break;
                     case IMU_GYRO_SCALED:
-                        memcpy(&data_ptr->imu_raw,&buffer[LISA_INDEX_SENDER_ID], sizeof(imu_raw_t));
+                        memcpy(&data_ptr->imu_raw,&buffer[LISA_INDEX_MSG_LENGTH], sizeof(imu_raw_t));
                         scaled_to_protobuf(&(data_ptr->imu_raw.data), gyro.data, gyro_scale_unit_coef);
                         get_protbetty_timestamp(gyro.timestamp);
                         sensors.gyro = &gyro;
@@ -329,7 +331,7 @@ int main(int argc __attribute__((unused)),
                         break;
 
                     case IMU_MAG_SCALED:
-                        memcpy(&data_ptr->imu_raw,&buffer[LISA_INDEX_SENDER_ID], sizeof(imu_raw_t));
+                        memcpy(&data_ptr->imu_raw,&buffer[LISA_INDEX_MSG_LENGTH], sizeof(imu_raw_t));
                         scaled_to_protobuf(&(data_ptr->imu_raw.data), mag.data, mag_scale_unit_coef);
                         get_protbetty_timestamp(mag.timestamp);
                         sensors.mag = &mag;
@@ -340,7 +342,7 @@ int main(int argc __attribute__((unused)),
                                    mag.data->x, mag.data->y, mag.data->z);
                         break;
                     case AIRSPEED_ETS:
-                        memcpy(&data_ptr->airspeed_raw,&buffer[LISA_INDEX_SENDER_ID], sizeof(airspeed_t));
+                        memcpy(&data_ptr->airspeed_raw,&buffer[LISA_INDEX_MSG_LENGTH], sizeof(airspeed_t));
                         airspeed.scaled = data_ptr->airspeed_raw.scaled;
                         get_protbetty_timestamp(airspeed.timestamp);
                         sensors.airspeed = &airspeed;

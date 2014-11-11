@@ -96,12 +96,14 @@ typedef struct __attribute__((packed))
 }imu_all_raw_t;
 
 typedef struct __attribute__((packed)){
+    lisa_header_t header;
     quaternion_t imu;
     quaternion_t body;
     timestamp_t timestamp;
 }ahrs_int_t;
 
 typedef struct __attribute__((packed)){
+    lisa_header_t header;
     quaternion_double_t imu_converted;
     quaternion_double_t body_converted;
     timestamp_t timestamp;
@@ -111,11 +113,13 @@ typedef struct __attribute__((packed)){
 
 
 typedef struct __attribute__((packed)){
-    int8_t roll;
-    int8_t pitch;
-    int8_t yaw;
-    int8_t mode;
-    int8_t kill;
+    lisa_header_t header;
+    int16_t roll;
+    int16_t pitch;
+    int16_t yaw;
+    int16_t throttle;
+    int16_t mode;
+    int16_t kill;
     uint8_t status;
 } rc_t;
 
@@ -149,14 +153,18 @@ typedef struct __attribute__((packed)) {
 } servo_message_t;
 
 typedef struct __attribute__((packed)){
-    uint8_t startbyte;
-    uint8_t length;
-    uint8_t sender_id;
-    uint8_t message_id;
-    servo_message_t servos_msg;
     uint8_t checksum1;
     uint8_t checksum2;
+} checksum_t;
+
+typedef struct __attribute__((packed)){
+    uint8_t startbyte;
+    lisa_header_t header;
+    servo_message_t servos_msg;
+    checksum_t checksums;
 }lisa_message_t;
+
+
 
 #define LOG_MESSAGE_SENSORS 0
 #define LOG_MESSAGE_ESTIMATOR 1
