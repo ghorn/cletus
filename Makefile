@@ -95,7 +95,7 @@ debug: CFLAGS+= $(DEBUGFLAGS) $(C_FEATUREFLAGS)
 debug: build
 
 .PHONY: all
-debug: build
+all: build
 
 .PHONY: build
 build: $(PROTOS_C) $(PROTOS_CXX) $(PROTOS_PY) protos_cpp/messages.pb.o protos_c/messages.pb-c.o $(PROJ)
