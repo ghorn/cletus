@@ -1,8 +1,8 @@
 # What's the executable called?
 PROJ =  run_piksi
 
-C_SRC = run_piksi.c
-
+C_SRC = run_piksi.c \
+	piksi.c
 CXX_SRC = \
 #	main.cpp \
 #	parsing.cpp
