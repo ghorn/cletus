@@ -199,6 +199,13 @@ int main(int argc __attribute__((unused)),
     Protobetty__Timestamp airspeed_timestamp = PROTOBETTY__TIMESTAMP__INIT;
     airspeed.timestamp = &airspeed_timestamp;
 #endif
+#ifdef RC
+    //Initialize Protobuf for RC commands
+    Protobetty__Rc rc = PROTOBETTY__RC__INIT;
+    Protobetty__Timestamp rc_timestamp = PROTOBETTY__TIMESTAMP__INIT;
+    rc.timestamp = &rc_timestamp;
+#endif
+
     //#ifdef GPS    set_global_variables(poll_lisa, msg_buffer);
 
     //    //Initialize Protobuf for GPS
@@ -342,6 +349,20 @@ int main(int argc __attribute__((unused)),
                                    floating_ProtoTime(airspeed.timestamp),
                                    calcCurrentLatencyProto(airspeed.timestamp)*1e3);
                         break;
+                    case ROTORCRAFT_RADIO_CONTROL:
+                        memcpy(&data_ptr->rc,&buffer[LISA_INDEX_MSG_LENGTH], sizeof(rc_t));
+                        rc.rcyaw = data_ptr->rc.yaw;
+                        rc.rcthrottle = data_ptr->rc.throttle;
+                        rc.rcpitch = data_ptr->rc.pitch;
+                        rc.rcroll = data_ptr->rc.roll;
+                        rc.rckill = data_ptr->rc.kill;
+                        get_protbetty_timestamp(rc.timestamp);
+                        send_debug(zsock_print,TAG,"Received RC (ID:%u) and timestamp %f sec (Latency:%fms) ",
+                                   data_ptr->rc.header.msg_id,
+                                   floating_ProtoTime(rc.timestamp),
+                                   calcCurrentLatencyProto(rc.timestamp)*1e3);
+                        break;
+
                     default:
                         break;
                     }
