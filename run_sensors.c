@@ -122,6 +122,10 @@ int main(int argc __attribute__((unused)),
     int err = serial_port_setup();
     if (err != UART_ERR_NONE)
         printf("Error setting up UART \n");
+    //Init Piksi
+    const char * const portname = "/dev/ttyUSB0";
+    open_serial_port(portname, B1000000, 0, 1 ); // set speed to 1,000,000 bps, 8n1 (no parity) set blocking
+    init_message_processing();
 
 
     /* Confignals. */

@@ -21,7 +21,8 @@ C_SRC = run_uart.c \
 	tests/test_lisa_message.c \
 	tests/log_lisa.c \
 	sim_uart.c \
-	run_logger.c
+	run_logger.c \
+	piksi/piksi.c
 
 
 
@@ -29,7 +30,7 @@ CXX_SRC = \
 #	main.cpp \
 #	parsing.cpp
 
-LIBS = $(shell pkg-config --libs libzmq) $(shell pkg-config --libs libprotobuf-c)-lm -lrt -lprotobuf  -pthread
+LIBS = $(shell pkg-config --libs libzmq) $(shell pkg-config --libs libprotobuf-c)-lm -lrt -lprotobuf  -pthread -Lpiksi/libswiftnav/build/src -lswiftnav-static 
 
 Q ?= @
 
