@@ -22,7 +22,8 @@ C_SRC = run_uart.c \
 	tests/log_lisa.c \
 	sim_uart.c \
 	run_logger.c \
-	piksi/piksi.c
+        piksi/piksi.c \
+        piksi/fifo.c
 
 
 

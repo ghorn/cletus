@@ -2,10 +2,9 @@
 PROJ =  run_piksi
 
 C_SRC = run_piksi.c \
-	piksi.c
-CXX_SRC = \
-#	main.cpp \
-#	parsing.cpp
+        piksi.c \
+        fifo.c
+
 
 LIBS = -Llibswiftnav/build/src -lswiftnav-static
 

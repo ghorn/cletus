@@ -139,7 +139,7 @@ int main(int argc __attribute__((unused)),
     //Init Piksi
     const char * const portname = "/dev/ttyUSB0";
     open_serial_port(portname, B1000000, 0, 1 ); // set speed to 1,000,000 bps, 8n1 (no parity) set blocking
-    init_message_processing();
+    init_message_processing(512);
     register_velocity_ned_callback(&piksi_vel_ned_callback);
     register_baseline_ned_callback(&piksi_vel_ned_callback);
 

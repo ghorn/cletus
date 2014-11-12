@@ -7,6 +7,8 @@
 #include <stdio.h>
 #include <fcntl.h>
 #include <stdlib.h>
+#include <sys/ioctl.h>
+#include "fifo.h"
 
 
 
@@ -26,7 +28,9 @@ typedef struct {
 typedef struct {
     sbp_state_t state;
     piksi_nodes_t message_nodes;
+    fifo_t fifo;
     int fd;
+    void* buffer;
 } piksi_t;
 
 
@@ -49,7 +53,7 @@ sbp_heartbeat_t    heartbeat;
 
 int set_interface_attribs(int fd, int speed, int parity);
 void set_blocking (int fd, int should_block);
-u32 fifo_read(u8 *buff, u32 n, void *context __attribute__((unused)));
+u32 read_data(u8 *buff, u32 n, void *context __attribute__((unused)));
 
 /*
  * Set up SwiftNav Binary Protocol (SBP) nodes; the sbp_process function will
@@ -61,10 +65,13 @@ u32 fifo_read(u8 *buff, u32 n, void *context __attribute__((unused)));
  * to the FIFO, and then parsed by sbp_process, sbp_pos_llh_callback is called
  * with the data carried by that message.
  */
-void init_message_processing(void)
+void init_message_processing(int buffer_size)
 {
   /* SBP parser state must be initialized before sbp_process is called. */
   sbp_state_init(&piksi.state);
+  piksi.buffer = malloc(buffer_size);
+  fifo_init(&piksi.fifo, buffer_size);
+
 
 }
 
@@ -174,9 +181,9 @@ void set_blocking (int fd, int should_block)
 }
 
 
-u32 fifo_read(u8 *buff, u32 n, void *context __attribute__((unused))){
+u32 read_data(u8 *buff, u32 n, void *context __attribute__((unused))){
 //  printf("reading fifo thingy, length %d\n", n);
-  return read(piksi.fd, buff, n);
+  return fifo_read(&piksi.fifo, buff, n);
 }
 
 
@@ -200,6 +207,13 @@ int open_serial_port(const char* const device, int speed, int parity, int blocki
 
 int process_messages(void)
 {
-    return sbp_process(&piksi.state, &fifo_read);
+    int bytes_in_file = 0;
+    ioctl(piksi.fd, FIONREAD, bytes_in_file);
+    int ret = read(piksi.fd, piksi.buffer, bytes_in_file);
+    fifo_write(&piksi.fifo, piksi.buffer, bytes_in_file);
+    do{
+        ret = sbp_process(&piksi.state, &read_data);
+    } while (piksi.fifo.tail != piksi.fifo.head);
+    return ret;
 }
 

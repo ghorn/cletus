@@ -25,7 +25,7 @@ int register_dops_callback(void* callback);
 int open_serial_port(const char* const device, int speed, int parity, int blocking);
 void close_serial_port(void);
 int process_messages(void);
-void init_message_processing(void);
+void init_message_processing(int buffer_size);
 
 
 
