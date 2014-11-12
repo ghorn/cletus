@@ -37,6 +37,18 @@
 #define GPS
 #endif
 
+/*
+ * Callback functions to interpret SBP messages.
+ * Every message ID has a callback associated with it to
+ * receive and interpret the message payload.
+ */
+void piksi_pos_llh_callback(u_int16_t sender_id __attribute__((unused)), u_int8_t len __attribute__((unused)), u8 msg[], void *context __attribute__((unused)));
+void piksi_heartbeat_callback(u_int16_t sender_id __attribute__((unused)), u_int8_t len __attribute__((unused)), u8 msg[], void *context __attribute__((unused)));
+void piksi_baseline_ned_callback(u_int16_t sender_id __attribute__((unused)), u_int8_t len __attribute__((unused)), u8 msg[], void *context __attribute__((unused)));
+void piksi_vel_ned_callback(u_int16_t sender_id __attribute__((unused)), u_int8_t len __attribute__((unused)), u8 msg[], void *context __attribute__((unused)));
+void piksi_dops_callback(u_int16_t sender_id __attribute__((unused)), u_int8_t len __attribute__((unused)), u8 msg[], void *context __attribute__((unused)));
+void piksi_gps_time_callback(u_int16_t sender_id __attribute__((unused)), u_int8_t len __attribute__((unused)), u8 msg[], void *context __attribute__((unused)));
+void complete_gps_message(void);
 
 
 const double gyro_scale_unit_coef = 0.0139882;
@@ -54,7 +66,8 @@ static void *zsock_log = NULL;
 void *zsock_print = NULL;
 
 
-
+Protobetty__Sensors sensors;
+Protobetty__Gps gps;
 
 
 /* Error tracking. */
@@ -178,7 +191,7 @@ int main(int argc __attribute__((unused)),
  *the pointer will set to the corresponding submessages
  */
     //Initializing Protobuf messages main sensor message
-    Protobetty__Sensors sensors = PROTOBETTY__SENSORS__INIT;
+    protobetty__sensors__init(&sensors);
 #ifdef IMU
     //Initialize Protobuf for Gyro
     Protobetty__Gyro gyro =PROTOBETTY__GYRO__INIT;
@@ -211,18 +224,12 @@ int main(int argc __attribute__((unused)),
     Protobetty__Timestamp rc_timestamp = PROTOBETTY__TIMESTAMP__INIT;
     rc.timestamp = &rc_timestamp;
 #endif
-
-    //#ifdef GPS    set_global_variables(poll_lisa, msg_buffer);
-
-    //    //Initialize Protobuf for GPS
-    //    Protobetty__Gps gps = PROTOBETTY__GPS__INIT;
-    //    Protobetty__Timestamp gps_timestamp = PROTOBETTY__TIMESTAMP__INIT;
-    //    gps.timestamp = &gps_timestamp;
-    //    Protobetty__Xyz gps_pos = PROTOBETTY__XYZ__INIT;
-    //    gps.pos = &gps_pos;
-    //    Protobetty__Xyz gps_vel = PROTOBETTY__XYZ__INIT;
-    //    gps.vel = &gps_vel;
-    //#endif
+#ifdef GPS
+    //Initialize Protobuf for GPS
+    protobetty__gps__init(&gps);
+    Protobetty__Timestamp gps_timestamp = PROTOBETTY__TIMESTAMP__INIT;
+    gps.timestamp = &gps_timestamp;
+#endif
 
 
 
@@ -431,6 +438,78 @@ int main(int argc __attribute__((unused)),
 }
 
 
+
+/*
+ * Callback functions to interpret SBP messages.
+ * Every message ID has a callback associated with it to
+ * receive and interpret the message payload.
+ */
+void piksi_pos_llh_callback(u_int16_t sender_id __attribute__((unused)), u_int8_t len __attribute__((unused)), u8 msg[], void *context __attribute__((unused)))
+{
+    /* Structs that messages from Piksi will feed. */
+    static piksi_position_llh_t pos_llh;
+    pos_llh = *(piksi_position_llh_t *)msg;
+    printf("pos_llh: lat: %f, long: %f, height: %f \n", pos_llh.lat, pos_llh.lon, pos_llh.height);
+}
+void piksi_heartbeat_callback(u_int16_t sender_id __attribute__((unused)), u_int8_t len __attribute__((unused)), u8 msg[], void *context __attribute__((unused)))
+{
+    static piksi_heartbeat_t heartbeat;
+    heartbeat = *(piksi_heartbeat_t *)msg;
+    printf("heartbeat: %d\n", heartbeat.flags);
+}
+void piksi_baseline_ned_callback(u_int16_t sender_id __attribute__((unused)), u_int8_t len __attribute__((unused)), u8 msg[], void *context __attribute__((unused)))
+{
+    static piksi_baseline_ned_t baseline_ned;
+    static Protobetty__GpsData gps_pos = PROTOBETTY__GPS_DATA__INIT;
+    static Protobetty__Xyz xyz = PROTOBETTY__XYZ__INIT;
+    baseline_ned = *(piksi_baseline_ned_t *)msg;
+    gps_pos.h_accuracy = baseline_ned.h_accuracy * 1e-3;
+    gps_pos.v_accuracy = baseline_ned.v_accuracy * 1e-3;
+    gps_pos.n_satellites= baseline_ned.n_sats;
+    gps_pos.time = baseline_ned.tow;
+    xyz.x = baseline_ned.n* 1e-3;
+    xyz.y = baseline_ned.e* 1e-3;
+    xyz.z = baseline_ned.d* 1e-3;
+    gps_pos.data = &xyz;
+    gps.position = &gps_pos;
+}
+void piksi_vel_ned_callback(u_int16_t sender_id __attribute__((unused)), u_int8_t len __attribute__((unused)), u8 msg[], void *context __attribute__((unused)))
+{
+    static piksi_velocity_ned_t vel_ned;
+    static Protobetty__GpsData gps_vel = PROTOBETTY__GPS_DATA__INIT;
+    static Protobetty__Xyz xyz = PROTOBETTY__XYZ__INIT;
+    vel_ned = *(piksi_velocity_ned_t *)msg;
+    gps_vel.h_accuracy = vel_ned.h_accuracy;
+    gps_vel.v_accuracy = vel_ned.v_accuracy;
+    gps_vel.n_satellites= vel_ned.n_sats;
+    gps_vel.time = vel_ned.tow;
+    xyz.x = vel_ned.n;
+    xyz.y = vel_ned.e;
+    xyz.z = vel_ned.d;
+    gps_vel.data = &xyz;
+    gps.velocity = &gps_vel;
+}
+void piksi_dops_callback(u_int16_t sender_id __attribute__((unused)), u_int8_t len __attribute__((unused)), u8 msg[], void *context __attribute__((unused)))
+{
+    static piksi_dops_t dops;
+    dops = *(piksi_dops_t *)msg;
+    printf("dops tow: %u \n", dops.tow);
+}
+void piksi_gps_time_callback(u_int16_t sender_id __attribute__((unused)), u_int8_t len __attribute__((unused)), u8 msg[], void *context __attribute__((unused)))
+{
+    static piksi_time_t gps_time;
+    gps_time = *(piksi_time_t *)msg;
+    printf("time (%d, %d, %d)\n", gps_time.wn, gps_time.tow, gps_time.ns);
+}
+
+void complete_gps_message(void)
+{
+    if (gps.velocity != NULL && gps.position != NULL)
+    {
+        get_protbetty_timestamp(gps.timestamp);
+        sensors.gps = &gps;
+    }
+}
 
 
 

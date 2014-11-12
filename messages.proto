@@ -38,10 +38,20 @@ message Timestamp {
   required uint64 tnsec = 2;
 }
 
+message GpsData
+{
+    required uint32 time =1;
+    required Xyz data = 2;
+    required double v_accuracy = 3;
+    required double h_accuracy = 4;
+    required uint32 n_satellites = 5;
+}
+
+
 message Gps{
     required Timestamp timestamp = 1;
-    required Xyz pos = 2;
-    required Xyz vel = 3;
+    required GpsData position = 2;
+    required GpsData velocity = 3;
 }
 
 message Gyro{
