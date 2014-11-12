@@ -16,13 +16,14 @@ typedef sbp_heartbeat_t piksi_heartbeat_t;
 
 
 
-int register_position_callback(void* callback);
-int register_velocity_callback(void* callback);
-int register_baseline_callback(void* callback);
+int register_position_llh_callback(void* callback);
+int register_velocity_ned_callback(void* callback);
+int register_baseline_ned_callback(void* callback);
 int register_time_callback(void* callback);
 int register_heartbeat_callback(void* callback);
 int register_dops_callback(void* callback);
 int open_serial_port(const char* const device, int speed, int parity, int blocking);
+void close_serial_port(void);
 int process_messages(void);
 void init_message_processing(void);
 

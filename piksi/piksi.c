@@ -47,8 +47,6 @@ sbp_heartbeat_t    heartbeat;
 
 
 
-
-void close_serial_port(void);
 int set_interface_attribs(int fd, int speed, int parity);
 void set_blocking (int fd, int should_block);
 u32 fifo_read(u8 *buff, u32 n, void *context __attribute__((unused)));
@@ -70,21 +68,21 @@ void init_message_processing(void)
 
 }
 
-int register_position_callback(void* callback)
+int register_position_llh_callback(void* callback)
 {
     return sbp_register_callback(&piksi.state, SBP_POS_LLH, callback,
                                  NULL, &piksi.message_nodes.pos_llh_node);
 }
 
 
-int register_velocity_callback(void* callback)
+int register_velocity_ned_callback(void* callback)
 {
     return sbp_register_callback(&piksi.state, SBP_VEL_NED, callback,
                                  NULL, &piksi.message_nodes.vel_ned_node);
 }
 
 
-int register_baseline_callback(void* callback)
+int register_baseline_ned_callback(void* callback)
 {
     return sbp_register_callback(&piksi.state, SBP_BASELINE_NED, callback,
                                  NULL, &piksi.message_nodes.baseline_ned_node);
@@ -184,7 +182,7 @@ u32 fifo_read(u8 *buff, u32 n, void *context __attribute__((unused))){
 
 int open_serial_port(const char* const device, int speed, int parity, int blocking)
 {
-    piksi.fd = open(device, O_RDWR | O_NOCTTY | O_SYNC);
+    piksi.fd = open(device, O_RDWR | O_NOCTTY | O_SYNC | O_NONBLOCK);
     if (piksi.fd < 0)
     {
       printf("error %d opening %s: %s\n", errno, device, strerror (errno));
