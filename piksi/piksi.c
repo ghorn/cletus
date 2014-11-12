@@ -67,10 +67,10 @@ u32 read_data(u8 *buff, u32 n, void *context __attribute__((unused)));
  */
 void init_message_processing(int buffer_size)
 {
-  /* SBP parser state must be initialized before sbp_process is called. */
-  sbp_state_init(&piksi.state);
-  piksi.buffer = malloc(buffer_size);
-  fifo_init(&piksi.fifo, buffer_size);
+    /* SBP parser state must be initialized before sbp_process is called. */
+    sbp_state_init(&piksi.state);
+    piksi.buffer = malloc(buffer_size);
+    fifo_init(&piksi.fifo, buffer_size);
 
 
 }
@@ -98,7 +98,7 @@ int register_baseline_ned_callback(void* callback)
 int register_time_callback(void* callback)
 {
     return sbp_register_callback(&piksi.state, SBP_GPS_TIME, callback,
-                                NULL, &piksi.message_nodes.gps_time_node);
+                                 NULL, &piksi.message_nodes.gps_time_node);
 }
 
 
@@ -125,65 +125,65 @@ void close_serial_port(void)
 
 int set_interface_attribs(int fd, int speed, int parity)
 {
-  struct termios tty;
-  memset (&tty, 0, sizeof tty);
-  if (tcgetattr (fd, &tty) != 0)
-  {
-    printf("error %d from tcgetattr", errno);
-    return -1;
-  }
+    struct termios tty;
+    memset (&tty, 0, sizeof tty);
+    if (tcgetattr (fd, &tty) != 0)
+    {
+        printf("error %d from tcgetattr", errno);
+        return -1;
+    }
 
-  cfsetospeed (&tty, speed);
-  cfsetispeed (&tty, speed);
+    cfsetospeed (&tty, speed);
+    cfsetispeed (&tty, speed);
 
-  tty.c_cflag = (tty.c_cflag & ~CSIZE) | CS8;     // 8-bit chars
-  // disable IGNBRK for mismatched speed tests; otherwise receive break
-  // as \000 chars
-  tty.c_iflag &= ~IGNBRK;         // disable break processing
-  tty.c_lflag = 0;                // no signaling chars, no echo,
-  // no canonical processing
-  tty.c_oflag = 0;                // no remapping, no delays
-  tty.c_cc[VMIN]  = 0;            // read doesn't block
-  tty.c_cc[VTIME] = 5;            // 0.5 seconds read timeout
+    tty.c_cflag = (tty.c_cflag & ~CSIZE) | CS8;     // 8-bit chars
+    // disable IGNBRK for mismatched speed tests; otherwise receive break
+    // as \000 chars
+    tty.c_iflag &= ~IGNBRK;         // disable break processing
+    tty.c_lflag = 0;                // no signaling chars, no echo,
+    // no canonical processing
+    tty.c_oflag = 0;                // no remapping, no delays
+    tty.c_cc[VMIN]  = 0;            // read doesn't block
+    tty.c_cc[VTIME] = 5;            // 0.5 seconds read timeout
 
-  tty.c_iflag &= ~(IXON | IXOFF | IXANY); // shut off xon/xoff ctrl
+    tty.c_iflag &= ~(IXON | IXOFF | IXANY); // shut off xon/xoff ctrl
 
-  tty.c_cflag |= (CLOCAL | CREAD);// ignore modem controls,
-  // enable reading
-  tty.c_cflag &= ~(PARENB | PARODD);      // shut off parity
-  tty.c_cflag |= parity;
-  tty.c_cflag &= ~CSTOPB;
-  tty.c_cflag &= ~CRTSCTS;
+    tty.c_cflag |= (CLOCAL | CREAD);// ignore modem controls,
+    // enable reading
+    tty.c_cflag &= ~(PARENB | PARODD);      // shut off parity
+    tty.c_cflag |= parity;
+    tty.c_cflag &= ~CSTOPB;
+    tty.c_cflag &= ~CRTSCTS;
 
-  if (tcsetattr (fd, TCSANOW, &tty) != 0)
-  {
-    printf("error %d from tcsetattr", errno);
-    return -1;
-  }
-  return 0;
+    if (tcsetattr (fd, TCSANOW, &tty) != 0)
+    {
+        printf("error %d from tcsetattr", errno);
+        return -1;
+    }
+    return 0;
 }
 
 void set_blocking (int fd, int should_block)
 {
-  struct termios tty;
-  memset (&tty, 0, sizeof tty);
-  if (tcgetattr (fd, &tty) != 0)
-  {
-    printf("error %d from tggetattr", errno);
-    return;
-  }
+    struct termios tty;
+    memset (&tty, 0, sizeof tty);
+    if (tcgetattr (fd, &tty) != 0)
+    {
+        printf("error %d from tggetattr", errno);
+        return;
+    }
 
-  tty.c_cc[VMIN]  = should_block ? 1 : 0;
-  tty.c_cc[VTIME] = 5;            // 0.5 seconds read timeout
+    tty.c_cc[VMIN]  = should_block ? 1 : 0;
+    tty.c_cc[VTIME] = 5;            // 0.5 seconds read timeout
 
-  if (tcsetattr (fd, TCSANOW, &tty) != 0)
-    printf("error %d setting term attributes", errno);
+    if (tcsetattr (fd, TCSANOW, &tty) != 0)
+        printf("error %d setting term attributes", errno);
 }
 
 
 u32 read_data(u8 *buff, u32 n, void *context __attribute__((unused))){
-//  printf("reading fifo thingy, length %d\n", n);
-  return fifo_read(&piksi.fifo, buff, n);
+    //  printf("reading fifo thingy, length %d\n", n);
+    return fifo_read(&piksi.fifo, buff, n);
 }
 
 
@@ -192,8 +192,8 @@ int open_serial_port(const char* const device, int speed, int parity, int blocki
     piksi.fd = open(device, O_RDWR | O_NOCTTY | O_SYNC | O_NONBLOCK);
     if (piksi.fd < 0)
     {
-      printf("error %d opening %s: %s\n", errno, device, strerror (errno));
-      return -1;
+        printf("error %d opening %s: %s\n", errno, device, strerror (errno));
+        return -1;
     }
     printf("opened %s successfully, setting up usb read\n", device);
 
@@ -209,11 +209,15 @@ int process_messages(void)
 {
     int bytes_in_file = 0;
     ioctl(piksi.fd, FIONREAD, bytes_in_file);
-    int ret = read(piksi.fd, piksi.buffer, bytes_in_file);
-    fifo_write(&piksi.fifo, piksi.buffer, bytes_in_file);
-    do{
-        ret = sbp_process(&piksi.state, &read_data);
-    } while (piksi.fifo.tail != piksi.fifo.head);
-    return ret;
+    if (bytes_in_file > 0)
+    {
+        int ret = read(piksi.fd, piksi.buffer, bytes_in_file);
+        fifo_write(&piksi.fifo, piksi.buffer, bytes_in_file);
+        do{
+            ret = sbp_process(&piksi.state, &read_data);
+        } while (piksi.fifo.tail != piksi.fifo.head);
+        return ret;
+    }
+    return 0;
 }
 
