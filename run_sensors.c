@@ -81,6 +81,7 @@ static void __attribute__((noreturn)) die(int code) {
 
 
     serial_port_close();
+    close_serial_port();
 
 
     printf("%d TX fails; %d RX fails.\n", txfails, rxfails);
@@ -139,6 +140,8 @@ int main(int argc __attribute__((unused)),
     const char * const portname = "/dev/ttyUSB0";
     open_serial_port(portname, B1000000, 0, 1 ); // set speed to 1,000,000 bps, 8n1 (no parity) set blocking
     init_message_processing();
+    register_velocity_ned_callback(&piksi_vel_ned_callback);
+    register_baseline_ned_callback(&piksi_vel_ned_callback);
 
 
     /* Confignals. */
@@ -392,6 +395,11 @@ int main(int argc __attribute__((unused)),
         }
 
 
+        //Get piksi messages
+        process_messages();
+
+
+
 
 
         //********************************************
@@ -429,6 +437,12 @@ int main(int argc __attribute__((unused)),
                 send_debug(zsock_print,TAG,"IMU sent to controller!, size: %u\n", packed_length);
             }
             //Resetting
+            if (sensors.type == PROTOBETTY__SENSORS__TYPE__IMU_GPS
+                    ||sensors.type == PROTOBETTY__SENSORS__TYPE__IMU_GPS_AIRSPEED )
+            {
+                gps.position = NULL;
+                gps.velocity = NULL;
+            }
             protobetty__sensors__init(&sensors);
         }
     }
