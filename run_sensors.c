@@ -140,7 +140,7 @@ int main(int argc __attribute__((unused)),
     const char * const portname = "/dev/ttyUSB0";
     open_serial_port(portname, B1000000, 0, 1 ); // set speed to 1,000,000 bps, 8n1 (no parity) set blocking
     init_message_processing(512);
-    register_velocity_ned_callback(&piksi_vel_ned_callback);
+    register_velocity_ned_callback(&piksi_baseline_ned_callback);
     register_baseline_ned_callback(&piksi_vel_ned_callback);
 
 
@@ -491,6 +491,7 @@ void piksi_baseline_ned_callback(u_int16_t sender_id __attribute__((unused)), u_
     xyz.z = (double)baseline_ned.d* 1e-3;
     gps_pos.data = &xyz;
     gps.position = &gps_pos;
+    complete_gps_message();
 }
 void piksi_vel_ned_callback(u_int16_t sender_id __attribute__((unused)), u_int8_t len __attribute__((unused)), u8 msg[], void *context __attribute__((unused)))
 {
@@ -512,6 +513,7 @@ void piksi_vel_ned_callback(u_int16_t sender_id __attribute__((unused)), u_int8_
     xyz.z = (double)vel_ned.d;
     gps_vel.data = &xyz;
     gps.velocity = &gps_vel;
+    complete_gps_message();
 }
 void piksi_dops_callback(u_int16_t sender_id __attribute__((unused)), u_int8_t len __attribute__((unused)), u8 msg[], void *context __attribute__((unused)))
 {
