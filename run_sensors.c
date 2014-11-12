@@ -477,13 +477,18 @@ void piksi_baseline_ned_callback(u_int16_t sender_id __attribute__((unused)), u_
     static Protobetty__GpsData gps_pos = PROTOBETTY__GPS_DATA__INIT;
     static Protobetty__Xyz xyz = PROTOBETTY__XYZ__INIT;
     baseline_ned = *(piksi_baseline_ned_t *)msg;
+    send_debug(zsock_print,TAG,"Received PIKSI baseline NED (%u ms) N:%i,E:%i,D:%i",
+               baseline_ned.tow,
+               baseline_ned.n,
+               baseline_ned.e,
+               baseline_ned.d);
     gps_pos.h_accuracy = baseline_ned.h_accuracy * 1e-3;
     gps_pos.v_accuracy = baseline_ned.v_accuracy * 1e-3;
     gps_pos.n_satellites= baseline_ned.n_sats;
     gps_pos.time = baseline_ned.tow;
-    xyz.x = baseline_ned.n* 1e-3;
-    xyz.y = baseline_ned.e* 1e-3;
-    xyz.z = baseline_ned.d* 1e-3;
+    xyz.x = (double)baseline_ned.n* 1e-3;
+    xyz.y = (double)baseline_ned.e* 1e-3;
+    xyz.z = (double)baseline_ned.d* 1e-3;
     gps_pos.data = &xyz;
     gps.position = &gps_pos;
 }
@@ -493,13 +498,18 @@ void piksi_vel_ned_callback(u_int16_t sender_id __attribute__((unused)), u_int8_
     static Protobetty__GpsData gps_vel = PROTOBETTY__GPS_DATA__INIT;
     static Protobetty__Xyz xyz = PROTOBETTY__XYZ__INIT;
     vel_ned = *(piksi_velocity_ned_t *)msg;
+    send_debug(zsock_print,TAG,"Received PIKSI velocity NED (%u ms) N:%i,E:%i,D:%i",
+               vel_ned.tow,
+               vel_ned.n,
+               vel_ned.e,
+               vel_ned.d);
     gps_vel.h_accuracy = vel_ned.h_accuracy;
     gps_vel.v_accuracy = vel_ned.v_accuracy;
     gps_vel.n_satellites= vel_ned.n_sats;
     gps_vel.time = vel_ned.tow;
-    xyz.x = vel_ned.n;
-    xyz.y = vel_ned.e;
-    xyz.z = vel_ned.d;
+    xyz.x = (double)vel_ned.n;
+    xyz.y = (double)vel_ned.e;
+    xyz.z = (double)vel_ned.d;
     gps_vel.data = &xyz;
     gps.velocity = &gps_vel;
 }
