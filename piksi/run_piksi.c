@@ -10,9 +10,9 @@
 
 
 /* Structs that messages from Piksi will feed. */
-piksi_position_t      pos_llh;
-piksi_baseline_t baseline_ned;
-piksi_velocity_t      vel_ned;
+piksi_position_llh_t      pos_llh;
+piksi_baseline_ned_t baseline_ned;
+piksi_velocity_ned_t      vel_ned;
 piksi_dops_t         dops;
 piksi_time_t     gps_time;
 piksi_heartbeat_t    heartbeat;
@@ -66,18 +66,18 @@ int main(){
   const char * const portname = "/dev/ttyUSB0";
   open_serial_port(portname, B1000000, 0, 1 ); // set speed to 1,000,000 bps, 8n1 (no parity) set blocking
 
-  init_message_processing();
+  init_message_processing(512);
 
   /* Register a node and callback, and associate them with a specific message ID. */
   int ret = register_heartbeat_callback(&sbp_heartbeat_callback);
   if (0 != ret) {printf("sbp_register_callback error: %d\n", ret); exit(-1);}
   ret = register_time_callback(&sbp_gps_time_callback);
   if (0 != ret) {printf("sbp_register_callback error: %d\n", ret); exit(-1);}
-  ret = register_position_callback(&sbp_pos_llh_callback);
+  ret = register_position_llh_callback(&sbp_pos_llh_callback);
   if (0 != ret) {printf("sbp_register_callback error: %d\n", ret); exit(-1);}
-  ret = register_baseline_callback(&sbp_baseline_ned_callback);
+  ret = register_baseline_ned_callback(&sbp_baseline_ned_callback);
   if (0 != ret) {printf("sbp_register_callback error: %d\n", ret); exit(-1);}
-  ret = register_velocity_callback(&sbp_vel_ned_callback);
+  ret = register_velocity_ned_callback(&sbp_vel_ned_callback);
   if (0 != ret) {printf("sbp_register_callback error: %d\n", ret); exit(-1);}
   ret = register_dops_callback(&sbp_dops_callback);
   if (0 != ret) {printf("sbp_register_callback error: %d\n", ret); exit(-1);}
