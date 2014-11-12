@@ -208,7 +208,7 @@ int open_serial_port(const char* const device, int speed, int parity, int blocki
 int process_messages(void)
 {
     int bytes_in_file = 0;
-    ioctl(piksi.fd, FIONREAD, bytes_in_file);
+    ioctl(piksi.fd, FIONREAD, &bytes_in_file);
     if (bytes_in_file > 0)
     {
         int ret = read(piksi.fd, piksi.buffer, bytes_in_file);
