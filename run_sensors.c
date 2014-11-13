@@ -139,7 +139,7 @@ int main(int argc __attribute__((unused)),
     //Init Piksi
     const char * const portname = "/dev/ttyUSB0";
     open_serial_port(portname, B1000000, 0, 1 ); // set speed to 1,000,000 bps, 8n1 (no parity) set blocking
-    init_message_processing(512);
+    init_message_processing(8192);
     register_velocity_ned_callback(&piksi_baseline_ned_callback);
     register_baseline_ned_callback(&piksi_vel_ned_callback);
 
@@ -233,7 +233,6 @@ int main(int argc __attribute__((unused)),
     Protobetty__Timestamp gps_timestamp = PROTOBETTY__TIMESTAMP__INIT;
     gps.timestamp = &gps_timestamp;
 #endif
-
 
 
 
@@ -508,9 +507,9 @@ void piksi_vel_ned_callback(u_int16_t sender_id __attribute__((unused)), u_int8_
     gps_vel.v_accuracy = vel_ned.v_accuracy;
     gps_vel.n_satellites= vel_ned.n_sats;
     gps_vel.time = vel_ned.tow;
-    xyz.x = (double)vel_ned.n;
-    xyz.y = (double)vel_ned.e;
-    xyz.z = (double)vel_ned.d;
+    xyz.x = (double)vel_ned.n* 1e-3;
+    xyz.y = (double)vel_ned.e* 1e-3;
+    xyz.z = (double)vel_ned.d* 1e-3;
     gps_vel.data = &xyz;
     gps.velocity = &gps_vel;
     complete_gps_message();
