@@ -10,7 +10,7 @@
  */
 
 // Initializes the communication via i2c-1
-void Sensor::initI2C(char devAddress) {
+void Sensor::initI2C(char accel_gyro_address, char mag_address) {
     char i2c_filename[40];
     sprintf(i2c_filename, "/dev/i2c-1");
     // Open devicefile
@@ -20,7 +20,7 @@ void Sensor::initI2C(char devAddress) {
     }
 
     // Set up ak8975-device
-    if (ioctl(i2c_devfile, I2C_SLAVE, 0x0C) < 0) {
+    if (ioctl(i2c_devfile, I2C_SLAVE, mag_address) < 0) {
         printf("Failed to acquire bus: %s\n", strerror(errno));
         exit(1);
     }
@@ -30,17 +30,17 @@ void Sensor::initI2C(char devAddress) {
     writeRegister(0x0A, 0x00); //PowerDownMode
 
     // Set up mpu9150-i2c-device address
-    if (ioctl(i2c_devfile, I2C_SLAVE, devAddress) < 0) {
+    if (ioctl(i2c_devfile, I2C_SLAVE, accel_gyro_address) < 0) {
         printf("Failed to acquire bus: %s\n", strerror(errno));
         exit(1);
     }
 
     // Disable sleepmode of MPU9150
-    writeRegister(PWR_MGMT_1,0x00);
+    writeRegister(PWR_MGMT_1, 0x00);
     // Enable pass-through mode
-    writeRegister(0x37, 0x02);
+    writeRegister(INT_PIN_CFG, 0x02);
     // Disable master mode
-    writeRegister(0x6A, 0x00);
+    writeRegister(USER_CTRL, 0x00);
 }
 
 void Sensor::writeRegister(char regAddress, char value) {
@@ -83,29 +83,28 @@ SensorValues* Sensor::getSensorValues(char datatype) {
         gyro.compZ = readValue(GYRO_ZOUT_H, GYRO_ZOUT_L);
         return &gyro;
     } else if (datatype == MAG_TYPE) {    
-
-        // Set up ak8975-device
-        if (ioctl(i2c_devfile, I2C_SLAVE, 0x0C) < 0) {
+        // Change i2c-device-address to magnetometer
+        if (ioctl(i2c_devfile, I2C_SLAVE, MAG_DEVICE) < 0) {
             printf("Failed to acquire bus: %s\n", strerror(errno));
             exit(1);
         }
-        writeRegister(0x0A,0x01);
-        while(readRegister(0x02) == 0);
+        // Send measurement request to the magnetometer
+        writeRegister(MAG_CNTL,0x01);
+        // Wait for data_ready-flag
+        while(readRegister(MAG_ST1) == 0);
+        // read values of registers
         mag.compX = readValue(MAG_XOUT_H, MAG_XOUT_L);
         mag.compY = readValue(MAG_YOUT_H, MAG_YOUT_L);
         mag.compZ = readValue(MAG_ZOUT_H, MAG_ZOUT_L);
 
-        // Set up i2c-device
-        if (ioctl(i2c_devfile, I2C_SLAVE, 0x68) < 0) {
+        // Change i2c-device-address back to accel_gyro
+        if (ioctl(i2c_devfile, I2C_SLAVE, ACCEL_GYRO_DEVICE) < 0) {
             printf("Failed to acquire bus: %s\n", strerror(errno));
             exit(1);
         }
-
         return &mag;
     } else {
         printf("Error getting sensor values. Wrong datatype: %i\n", datatype);
         exit(1);
     }
 }
-
-

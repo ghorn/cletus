@@ -6,20 +6,27 @@
 
 int main (int argc, char** argv) {
     Sensor mpu9150;
-    mpu9150.initI2C(0x68);
+    mpu9150.initI2C(ACCEL_GYRO_DEVICE, MAG_DEVICE);
     for(int i = 0; ; i++) {
         SensorValues* sensorvalues;
+        // Read data from Accelerometer
         sensorvalues = mpu9150.getSensorValues(ACCEL_TYPE);
         printf("\nAccelerometer Values:\n");
         printf("x-component: %i\n", sensorvalues->compX);
         printf("y-component: %i\n", sensorvalues->compY);
         printf("z-component: %i\n", sensorvalues->compZ);
+        // Read data from Gyrometer
+        sensorvalues = mpu9150.getSensorValues(GYRO_TYPE);
+        printf("\nGyrometer Values:\n");
+        printf("x-component: %i\n", sensorvalues->compX);
+        printf("y-component: %i\n", sensorvalues->compY);
+        printf("z-component: %i\n", sensorvalues->compZ);
+        // Read data from Magnetometer
         sensorvalues = mpu9150.getSensorValues(MAG_TYPE);
         printf("\nMagnetometer Values:\n");
         printf("x-component: %i\n", sensorvalues->compX);
         printf("y-component: %i\n", sensorvalues->compY);
         printf("z-component: %i\n", sensorvalues->compZ);
-        //printf("%i\n",mpu9150.readValue(ACCEL_XOUT_H,ACCEL_XOUT_L));
     }
     return 0;
 }
