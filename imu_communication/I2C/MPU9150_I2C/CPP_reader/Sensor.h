@@ -1,15 +1,34 @@
 // Copyright 2014, University of Freiburg
-// Systemstheory Lab
+// Systemtheory Lab
 // Author: Elias Rosch <eliasrosch@googlemail.com>
 
 #ifndef CPP_READER_SENSOR_H
 #define CPP_READER_SENSOR_H
 
-#include "./AccelValues"
-#include "./GyroValues"
-#include "./MagValues"
+//#include<glib.h>
+//#include<glib/gprintf.h>
+#include<errno.h>
+#include<string.h>
+#include<stdio.h>
+#include<stdlib.h>
+#include<unistd.h>
+#include<stdint.h>
+#include<linux/i2c-dev.h>
+#include<sys/ioctl.h>
+#include<sys/types.h>
+#include<sys/stat.h>
+#include<fcntl.h>
 
+
+// Define i2c-device-addresses of MPU9150
+#define ACCEL_GYRO_DEVICE 0x68
+#define MAG_DEVICE 0x0C
+
+// Define register addresses of MPU9150 (Magnetometer registers are not included)
 #define PWR_MGMT_1 0x6B
+#define INT_PIN_CFG 0x37
+#define USER_CTRL 0x6A
+
 
 #define ACCEL_XOUT_H 0x3B
 #define ACCEL_XOUT_L 0x3C
@@ -25,12 +44,22 @@
 #define GYRO_ZOUT_H 0x47
 #define GYRO_ZOUT_L 0x48
 
+
+//Define Registers of Magnetometer device
+#define MAG_CNTL 0x0A
+#define MAG_ST1 0x02
 #define MAG_XOUT_H 0x04
 #define MAG_XOUT_L 0x03
 #define MAG_YOUT_H 0x06
 #define MAG_YOUT_L 0x05
 #define MAG_ZOUT_H 0x08
 #define MAG_ZOUT_L 0x07
+
+// Define datatypes of structs
+#define ACCEL_TYPE 0x00
+#define GYRO_TYPE 0x01
+#define MAG_TYPE 0x02
+
 
 /*
  * This struct stores the recent values of the three
@@ -41,7 +70,7 @@ struct SensorValues {
     int16_t compX;
     int16_t compY;
     int16_t compZ;
-}
+};
 
 /*
  * Class for reading/setting Registervalues of the 
@@ -50,8 +79,15 @@ struct SensorValues {
 class Sensor {
     public:
         // Functions to communicate with the Sensors
-        int readRegister(char regAdress);
-        void writeRegister(char regAdress, char value);
+        void initI2C(char accel_gyro_address, char mag_address);
+        char readRegister(char regAddress);
+        void writeRegister(char regAddress, char value);
+        int16_t readValue(char highByte, char lowByte);
+        SensorValues* getSensorValues(char datatype);
+        // This buffer is for error handling
+        char err_buffer;
+        // Stores our devicefile information
+        int i2c_devfile;
         // Variables storing the recent values of the Sensors
         struct SensorValues accel;
         struct SensorValues gyro;
