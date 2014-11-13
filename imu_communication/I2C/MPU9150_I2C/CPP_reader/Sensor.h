@@ -37,12 +37,12 @@
 #define GYRO_ZOUT_H 0x47
 #define GYRO_ZOUT_L 0x48
 
-#define MAG_XOUT_H 0x4B
-#define MAG_XOUT_L 0x4A
-#define MAG_YOUT_H 0x4D
-#define MAG_YOUT_L 0x4C
-#define MAG_ZOUT_H 0x4F
-#define MAG_ZOUT_L 0x4E
+#define MAG_XOUT_H 0x04
+#define MAG_XOUT_L 0x03
+#define MAG_YOUT_H 0x06
+#define MAG_YOUT_L 0x05
+#define MAG_ZOUT_H 0x08
+#define MAG_ZOUT_L 0x07
 
 // Define datatypes
 #define ACCEL_TYPE 0x00
