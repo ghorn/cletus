@@ -87,7 +87,7 @@ int main(int argc __attribute__((unused)),
     stack_prefault();
 
 
-    int err = serial_port_setup(NULL);
+    int err = serial_port_setup();
     if (err != UART_ERR_NONE)
         printf("Error setting up UART \n");
 
@@ -124,13 +124,13 @@ int main(int argc __attribute__((unused)),
     //create template for actuator message for lisa
     lisa_message_t output;
     output.startbyte = 0x99;
-    output.length = sizeof(lisa_message_t);
-    output.sender_id = SENDER_ID;
-    output.message_id = SERVO_COMMANDS;
+    output.header.length = sizeof(lisa_message_t);
+    output.header.sender_id = SENDER_ID;
+    output.header.msg_id = SERVO_COMMANDS;
 
 #ifdef DEBUG
     printf("Servo Message Header: Startbyte -> %x \n\t length -> %i \n\t SenderID -> %i \n\t MessageID -> %i \n",
-           output.startbyte,output.length,output.sender_id,output.message_id);
+           output.startbyte,output.header.length,output.header.sender_id,output.header.msg_id);
 
 #endif
 

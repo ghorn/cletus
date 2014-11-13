@@ -6,7 +6,7 @@ enum Mode3 {
 }
 
 enum Message_Constants{
-MAX_MESSAGE_SIZE = 256;
+MAX_MESSAGE_SIZE = 512;
 }
 
 enum UpDown {
@@ -15,14 +15,16 @@ enum UpDown {
 }
 
 message Rc {
-  required double rcThrottle = 1;
-  required double rcYaw = 2;
-  required double rcPitch = 3;
-  required double rcRoll = 4;
-  required UpDown rcGear = 5;
-  required Mode3  rcAux2 = 6;
-  required double rcRightTrim = 7;
-  required Mode3  rcFmode = 8;
+  required Timestamp timestamp = 1;
+  required int32 rcThrottle = 2;
+  required int32 rcYaw = 3;
+  required int32 rcPitch = 4;
+  required int32 rcRoll = 5;
+  required bool rcKill = 6;
+  optional UpDown rcGear = 7;
+  optional Mode3  rcAux2 = 8;
+  optional double rcRightTrim = 9;
+  optional Mode3  rcFmode = 10;
 }
 
 message Xyz {
@@ -36,10 +38,20 @@ message Timestamp {
   required uint64 tnsec = 2;
 }
 
+message GpsData
+{
+    required uint32 time =1;
+    required Xyz data = 2;
+    required double v_accuracy = 3;
+    required double h_accuracy = 4;
+    required uint32 n_satellites = 5;
+}
+
+
 message Gps{
     required Timestamp timestamp = 1;
-    required Xyz pos = 2;
-    required Xyz vel = 3;
+    required GpsData position = 2;
+    required GpsData velocity = 3;
 }
 
 message Gyro{

@@ -23,6 +23,8 @@
 #include "./lisa_messages.h"
 #include "./print_output.h"
 
+#include "./protos_c/messages.pb-c.h"
+
 
 
 //#define ALL
@@ -35,6 +37,18 @@
 #define GPS
 #endif
 
+/*
+ * Callback functions to interpret SBP messages.
+ * Every message ID has a callback associated with it to
+ * receive and interpret the message payload.
+ */
+void piksi_pos_llh_callback(u_int16_t sender_id __attribute__((unused)), u_int8_t len __attribute__((unused)), u8 msg[], void *context __attribute__((unused)));
+void piksi_heartbeat_callback(u_int16_t sender_id __attribute__((unused)), u_int8_t len __attribute__((unused)), u8 msg[], void *context __attribute__((unused)));
+void piksi_baseline_ned_callback(u_int16_t sender_id __attribute__((unused)), u_int8_t len __attribute__((unused)), u8 msg[], void *context __attribute__((unused)));
+void piksi_vel_ned_callback(u_int16_t sender_id __attribute__((unused)), u_int8_t len __attribute__((unused)), u8 msg[], void *context __attribute__((unused)));
+void piksi_dops_callback(u_int16_t sender_id __attribute__((unused)), u_int8_t len __attribute__((unused)), u8 msg[], void *context __attribute__((unused)));
+void piksi_gps_time_callback(u_int16_t sender_id __attribute__((unused)), u_int8_t len __attribute__((unused)), u8 msg[], void *context __attribute__((unused)));
+void complete_gps_message(void);
 
 
 const double gyro_scale_unit_coef = 0.0139882;
@@ -48,12 +62,12 @@ char* TAG = "RUN_SENSORS";
 static void *zctx = NULL;
 static void *zsock_sensors = NULL;
 static void *zsock_log = NULL;
+
 void *zsock_print = NULL;
 
-void signal_handler_IO (int status);
-CircularBuffer cb;
 
-
+Protobetty__Sensors sensors;
+Protobetty__Gps gps;
 
 
 /* Error tracking. */
@@ -62,9 +76,13 @@ int txfails = 0, rxfails = 0;
 static void __attribute__((noreturn)) die(int code) {
     zdestroy(zsock_log, zctx);
     zdestroy(zsock_sensors, NULL);
+
     zdestroy(zsock_print, NULL);
 
+
     serial_port_close();
+    close_serial_port();
+
 
     printf("%d TX fails; %d RX fails.\n", txfails, rxfails);
     printf("Moriturus te saluto!\n");
@@ -78,22 +96,8 @@ static void sigdie(int signum) {
     bail = signum;
 }
 
-
-
 int main(int argc __attribute__((unused)),
          char **argv __attribute__((unused))) {
-
-    /* Confignals. */
-    if (signal(SIGINT, &sigdie) == SIG_IGN)
-        signal(SIGINT, SIG_IGN);
-    if (signal(SIGTERM, &sigdie) == SIG_IGN)
-        signal(SIGTERM, SIG_IGN);
-    if (signal(SIGHUP, &sigdie) == SIG_IGN)
-        signal(SIGHUP, SIG_IGN);
-    if (signal(SIGABRT, &sigdie) == SIG_IGN)
-        signal(SIGABRT, SIG_IGN);
-
-
 
     struct timespec t;
     struct sched_param param;
@@ -116,7 +120,7 @@ int main(int argc __attribute__((unused)),
             printf("Failed to read passed frequency. Using DEFAULT value instead.\n");
             frequency = DEFAULT_RT_FREQUENCY;
         }
-        printf("Setting frequency to %li Hz.\n", frequency);
+        printf("Setting frequency to %li Hz. RT-interval: %i\n", frequency, rt_interval);
         rt_interval = (NSEC_PER_SEC/frequency);
     }
     else
@@ -126,24 +130,31 @@ int main(int argc __attribute__((unused)),
         set_priority(&param, DEFAULT_RT_PRIORITY);
         rt_interval = (NSEC_PER_SEC/DEFAULT_RT_FREQUENCY);
     }
-
     stack_prefault();
 
-    //set interrupt callback
-    irq_callback uart_callback;
-    uart_callback.sa_handler = signal_handler_IO;
-    uart_callback.sa_flags = 0;
-    uart_callback.sa_restorer = NULL;
     //Init serial port
-    int err = serial_port_setup(&uart_callback);
+    int err = serial_port_setup();
     if (err != UART_ERR_NONE)
-    {
         printf("Error setting up UART \n");
-        die(1);
-    }
+    //Init Piksi
+    const char * const portname = "/dev/ttyUSB0";
+    open_serial_port(portname, B1000000, 0, 1 ); // set speed to 1,000,000 bps, 8n1 (no parity) set blocking
+    init_message_processing(512);
+    register_velocity_ned_callback(&piksi_baseline_ned_callback);
+    register_baseline_ned_callback(&piksi_vel_ned_callback);
 
-    //Init circular buffer
-    cbInit(&cb, 64);
+
+    /* Confignals. */
+    if (signal(SIGINT, &sigdie) == SIG_IGN)
+        signal(SIGINT, SIG_IGN);
+    if (signal(SIGTERM, &sigdie) == SIG_IGN)
+        signal(SIGTERM, SIG_IGN);
+    if (signal(SIGHUP, &sigdie) == SIG_IGN)
+        signal(SIGHUP, SIG_IGN);
+    if (signal(SIGABRT, &sigdie) == SIG_IGN)
+        signal(SIGABRT, SIG_IGN);
+
+
 
     /* ZMQ setup first. */
 
@@ -165,6 +176,15 @@ int main(int argc __attribute__((unused)),
     if (NULL == zsock_print)
         die(1);
 
+    /* Use big buffers here.  We're just publishing the data for
+   * logging, so we don't mind saving some data until the logger can
+   * receive it. */
+    zsock_log = setup_zmq_sender(LOG_CHAN, &zctx, ZMQ_PUB, 1000, 100000);
+    if (NULL == zsock_log)
+        die(1);
+
+
+
 
 
     /*******************************************
@@ -174,7 +194,7 @@ int main(int argc __attribute__((unused)),
  *the pointer will set to the corresponding submessages
  */
     //Initializing Protobuf messages main sensor message
-    Protobetty__Sensors sensors = PROTOBETTY__SENSORS__INIT;
+    protobetty__sensors__init(&sensors);
 #ifdef IMU
     //Initialize Protobuf for Gyro
     Protobetty__Gyro gyro =PROTOBETTY__GYRO__INIT;
@@ -201,17 +221,20 @@ int main(int argc __attribute__((unused)),
     Protobetty__Timestamp airspeed_timestamp = PROTOBETTY__TIMESTAMP__INIT;
     airspeed.timestamp = &airspeed_timestamp;
 #endif
-    //#ifdef GPS    set_global_variables(poll_lisa, msg_buffer);
+#ifdef RC
+    //Initialize Protobuf for RC commands
+    Protobetty__Rc rc = PROTOBETTY__RC__INIT;
+    Protobetty__Timestamp rc_timestamp = PROTOBETTY__TIMESTAMP__INIT;
+    rc.timestamp = &rc_timestamp;
+#endif
+#ifdef GPS
+    //Initialize Protobuf for GPS
+    protobetty__gps__init(&gps);
+    Protobetty__Timestamp gps_timestamp = PROTOBETTY__TIMESTAMP__INIT;
+    gps.timestamp = &gps_timestamp;
+#endif
 
-    //    //Initialize Protobuf for GPS
-    //    Protobetty__Gps gps = PROTOBETTY__GPS__INIT;
-    //    Protobetty__Timestamp gps_timestamp = PROTOBETTY__TIMESTAMP__INIT;
-    //    gps.timestamp = &gps_timestamp;
-    //    Protobetty__Xyz gps_pos = PROTOBETTY__XYZ__INIT;
-    //    gps.pos = &gps_pos;
-    //    Protobetty__Xyz gps_vel = PROTOBETTY__XYZ__INIT;
-    //    gps.vel = &gps_vel;
-    //#endif
+
 
 
     uint8_t* zmq_buffer = calloc(sizeof(uint8_t),PROTOBETTY__MESSAGE__CONSTANTS__MAX_MESSAGE_SIZE);
@@ -220,8 +243,6 @@ int main(int argc __attribute__((unused)),
 
     lisa_messages_t data_container;
     lisa_messages_t* const data_ptr = &data_container;
-
-    ElemType element;
     uint8_t msg_length;
 
 
@@ -240,112 +261,144 @@ int main(int argc __attribute__((unused)),
    * you'd want to pull most of the actual handling out into functions
    * and simply loop over your polls; I've left it all inline here
    * mostly out of laziness. */
-    for (;;) {
+    if (bail) die(bail);
 
-        /* wait until next shot */
-        clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, &t, NULL);
+    int epolldescriptor =  epoll_create1(0);
+    if (epolldescriptor == -1)
+    {
+        perror ("epoll_create");
+        abort ();
+    }
+    epoll_event_t event;
+    event.data.fd = serial_stream->fd;
+    event.events = EPOLLIN | EPOLLET;
+    if (epoll_ctl (epolldescriptor, EPOLL_CTL_ADD, serial_stream->fd, &event) == -1)
+    {
+        perror ("epoll_ctl");
+        abort ();
+    }
+    uint8_t buffer[256];
+
+
+
+
+
+    //When sensor data is in circular buffer
+    while (1)
+    {
+        msg_length = read_lisa_message(epolldescriptor,&event, buffer);
         if (bail) die(bail);
-
-        //When sensor data is in circular buffer
-        while (!cbIsEmpty(&cb))
+        //messages are never longer than 64 bytes
+        if ((msg_length < LISA_MAX_MSG_LENGTH) && (msg_length > 0))
         {
-            //get sensor message elment
-            cbRead(&cb, &element);
-            //first byte is length of message
-            //startbyte already stripped in signal handler
-            msg_length = element.message[0];
-            //messages are never longer than 64 bytes
-            if ((msg_length < LISA_MAX_MSG_LENGTH) && (msg_length > 0))
+            //Check 1: Sender ID must be correct.
+            if (buffer[LISA_INDEX_SENDER_ID] == SENDER_ID)
             {
-                //Check 1: Sender ID must be correct.
-                if (element.message[LISA_INDEX_SENDER_ID] == SENDER_ID)
+                //Check 2: Checksum must be correct
+                if (check_checksum(&buffer[LISA_INDEX_MSG_LENGTH]) == UART_ERR_NONE)
                 {
-                    //Check 2: Checksum must be correct
-                    if (check_checksum(element.message) == UART_ERR_NONE)
+                    send_debug(zsock_print,TAG,"Passed Checksum test. Sending Message [%u bytes] with ID %i\n",
+                               msg_length, buffer[LISA_INDEX_MSG_ID]);
+                    //Depending on message type copy data and set it to protobuf message
+                    switch (buffer[LISA_INDEX_MSG_ID])
                     {
+                    case IMU_ALL_SCALED:
+                        memcpy(&data_ptr->imu_all,&buffer[LISA_INDEX_MSG_LENGTH], sizeof(imu_all_raw_t));
+                        scaled_to_protobuf(&(data_ptr->imu_all.accel), accel.data, acc_scale_unit_coef);
+                        scaled_to_protobuf(&(data_ptr->imu_all.gyro), gyro.data, gyro_scale_unit_coef);
+                        scaled_to_protobuf(&(data_ptr->imu_all.mag), mag.data, mag_scale_unit_coef);
+                        get_protbetty_timestamp(accel.timestamp);
+                        gyro.timestamp = mag.timestamp= accel.timestamp;
+                        sensors.accel = &accel;
+                        sensors.gyro = &gyro;
+                        sensors.mag = &mag;
+                        send_debug(zsock_print,TAG,"Received IMU_ALL (ID:%u; SeqNo: %u) and timestamp %f sec (Latency:%fms)\nACCEL: X: %f\t Y: %f\t Z: %f \nGYRO: X: %f\t Y: %f\t Z: %f \nMAG: X: %f\t Y: %f\t Z: %f ",
+                                   data_ptr->imu_all.header.msg_id,
+                                   data_ptr->imu_all.sequence_number,
+                                   floating_ProtoTime(accel.timestamp),
+                                   calcCurrentLatencyProto(accel.timestamp)*1e3,
+                                   accel.data->x, accel.data->y, accel.data->z,
+                                   gyro.data->x, gyro.data->y, gyro.data->z,
+                                   mag.data->x, mag.data->y, mag.data->z);
+                        break;
+                    case IMU_ACCEL_SCALED:
+                        memcpy(&data_ptr->imu_raw,&buffer[LISA_INDEX_MSG_LENGTH], sizeof(imu_raw_t));
+                        scaled_to_protobuf(&(data_ptr->imu_raw.data), accel.data, acc_scale_unit_coef);
+                        get_protbetty_timestamp(accel.timestamp);
+                        sensors.accel = &accel;
+                        send_debug(zsock_print,TAG,"Received ACCEL (ID:%u) and timestamp %f sec (Latency:%fms)\n X: %f\t Y: %f\t Z: %f ",
+                                   data_ptr->imu_raw.header.msg_id,
+                                   floating_ProtoTime(accel.timestamp),
+                                   calcCurrentLatencyProto(accel.timestamp)*1e3,
+                                   accel.data->x, accel.data->y, accel.data->z);
+                        break;
+                    case IMU_GYRO_SCALED:
+                        memcpy(&data_ptr->imu_raw,&buffer[LISA_INDEX_MSG_LENGTH], sizeof(imu_raw_t));
+                        scaled_to_protobuf(&(data_ptr->imu_raw.data), gyro.data, gyro_scale_unit_coef);
+                        get_protbetty_timestamp(gyro.timestamp);
+                        sensors.gyro = &gyro;
+                        send_debug(zsock_print,TAG,"Received GYRO (ID:%u) and timestamp %f sec (Latency:%fms)\n X: %f\t Y: %f\t Z: %f ",
+                                   data_ptr->imu_raw.header.msg_id,
+                                   floating_ProtoTime(gyro.timestamp),
+                                   calcCurrentLatencyProto(gyro.timestamp)*1e3,
+                                   gyro.data->x, gyro.data->y, gyro.data->z);
+                        break;
 
-                        send_debug(zsock_print,TAG,"Passed Checksum test. Sending Message [%u bytes] with ID %i\n",
-                                   msg_length, element.message[LISA_INDEX_MSG_ID]);
-                        //Depending on message type copy data and set it to protobuf message
-                        switch (element.message[LISA_INDEX_MSG_ID])
-                        {
-                        case IMU_ALL_SCALED:
-                            memcpy(&data_ptr->imu_all,&element.message, sizeof(imu_all_raw_t));
-                            scaled_to_protobuf(&(data_ptr->imu_all.accel), accel.data, acc_scale_unit_coef);
-                            scaled_to_protobuf(&(data_ptr->imu_all.gyro), gyro.data, gyro_scale_unit_coef);
-                            scaled_to_protobuf(&(data_ptr->imu_all.mag), mag.data, mag_scale_unit_coef);
-                            get_protbetty_timestamp(accel.timestamp);
-                            get_protbetty_timestamp(gyro.timestamp);
-                            get_protbetty_timestamp(mag.timestamp);
-                            sensors.accel = &accel;
-                            sensors.gyro = &gyro;
-                            sensors.mag = &mag;
-                            send_debug(zsock_print,TAG,"Received IMU_ALL (ID:%u; Seq: %u) and timestamp %f sec (Latency:%fms)\n X: %f\t Y: %f\t Z: %f ",
-                                       data_ptr->imu_all.header.msg_id,
-                                       data_ptr->imu_all.sequence_number,
-                                       floating_ProtoTime(accel.timestamp),
-                                       calcCurrentLatencyProto(accel.timestamp)*1e3,
-                                       accel.data->x, accel.data->y, accel.data->z);
-                            break;
-                        case IMU_ACCEL_SCALED:
-                            memcpy(&data_ptr->imu_raw,&element.message, sizeof(imu_raw_t));
-                            scaled_to_protobuf(&(data_ptr->imu_raw.data), accel.data, acc_scale_unit_coef);
-                            get_protbetty_timestamp(accel.timestamp);
-                            sensors.accel = &accel;
-                            send_debug(zsock_print,TAG,"Received ACCEL (ID:%u) and timestamp %f sec (Latency:%fms)\n X: %f\t Y: %f\t Z: %f ",
-                                       data_ptr->imu_raw.header.msg_id,
-                                       floating_ProtoTime(accel.timestamp),
-                                       calcCurrentLatencyProto(accel.timestamp)*1e3,
-                                       accel.data->x, accel.data->y, accel.data->z);
-                            break;
-                        case IMU_GYRO_SCALED:
-                            memcpy(&data_ptr->imu_raw,&element.message, sizeof(imu_raw_t));
-                            scaled_to_protobuf(&(data_ptr->imu_raw.data), gyro.data, gyro_scale_unit_coef);
-                            get_protbetty_timestamp(gyro.timestamp);
-                            sensors.gyro = &gyro;
-                            send_debug(zsock_print,TAG,"Received GYRO (ID:%u) and timestamp %f sec (Latency:%fms)\n X: %f\t Y: %f\t Z: %f ",
-                                       data_ptr->imu_raw.header.msg_id,
-                                       floating_ProtoTime(gyro.timestamp),
-                                       calcCurrentLatencyProto(gyro.timestamp)*1e3,
-                                       gyro.data->x, gyro.data->y, gyro.data->z);
-                            break;
+                    case IMU_MAG_SCALED:
+                        memcpy(&data_ptr->imu_raw,&buffer[LISA_INDEX_MSG_LENGTH], sizeof(imu_raw_t));
+                        scaled_to_protobuf(&(data_ptr->imu_raw.data), mag.data, mag_scale_unit_coef);
+                        get_protbetty_timestamp(mag.timestamp);
+                        sensors.mag = &mag;
+                        send_debug(zsock_print,TAG,"Received MAG (ID:%u) and timestamp %f sec (Latency:%fms)\n X: %f\t Y: %f\t Z: %f",
+                                   data_ptr->imu_raw.header.msg_id,
+                                   floating_ProtoTime(gyro.timestamp),
+                                   calcCurrentLatencyProto(gyro.timestamp)*1e3,
+                                   mag.data->x, mag.data->y, mag.data->z);
+                        break;
+                    case AIRSPEED_ETS:
+                        memcpy(&data_ptr->airspeed_raw,&buffer[LISA_INDEX_MSG_LENGTH], sizeof(airspeed_t));
+                        airspeed.scaled = data_ptr->airspeed_raw.scaled;
+                        get_protbetty_timestamp(airspeed.timestamp);
+                        sensors.airspeed = &airspeed;
+                        send_debug(zsock_print,TAG,"Received AIRSPEED (ID:%u) and timestamp %f sec (Latency:%fms) ",
+                                   data_ptr->airspeed_raw.header.msg_id,
+                                   floating_ProtoTime(airspeed.timestamp),
+                                   calcCurrentLatencyProto(airspeed.timestamp)*1e3);
+                        break;
+                    case ROTORCRAFT_RADIO_CONTROL:
+                        memcpy(&data_ptr->rc,&buffer[LISA_INDEX_MSG_LENGTH], sizeof(rc_t));
+                        rc.rcyaw = data_ptr->rc.yaw;
+                        rc.rcthrottle = data_ptr->rc.throttle;
+                        rc.rcpitch = data_ptr->rc.pitch;
+                        rc.rcroll = data_ptr->rc.roll;
+                        rc.rckill = data_ptr->rc.kill;
+                        get_protbetty_timestamp(rc.timestamp);
+                        send_debug(zsock_print,TAG,"Received RC (ID:%u) and timestamp %f sec (Latency:%fms) ",
+                                   data_ptr->rc.header.msg_id,
+                                   floating_ProtoTime(rc.timestamp),
+                                   calcCurrentLatencyProto(rc.timestamp)*1e3);
+                        break;
 
-                        case IMU_MAG_SCALED:
-                            memcpy(&data_ptr->imu_raw,&element.message, sizeof(imu_raw_t));
-                            scaled_to_protobuf(&(data_ptr->imu_raw.data), mag.data, mag_scale_unit_coef);
-                            get_protbetty_timestamp(mag.timestamp);
-                            sensors.mag = &mag;
-                            send_debug(zsock_print,TAG,"Received MAG (ID:%u) and timestamp %f sec (Latency:%fms)\n X: %f\t Y: %f\t Z: %f",
-                                       data_ptr->imu_raw.header.msg_id,
-                                       floating_ProtoTime(gyro.timestamp),
-                                       calcCurrentLatencyProto(gyro.timestamp)*1e3,
-                                       mag.data->x, mag.data->y, mag.data->z);
-                            break;
-                        case AIRSPEED_ETS:
-                            memcpy(&data_ptr->airspeed_raw,&element.message, sizeof(airspeed_t));
-                            airspeed.scaled = data_ptr->airspeed_raw.scaled;
-                            get_protbetty_timestamp(airspeed.timestamp);
-                            sensors.airspeed = &airspeed;
-                            send_debug(zsock_print,TAG,"Received AIRSPEED (ID:%u) and timestamp %f sec (Latency:%fms) ",
-                                       data_ptr->airspeed_raw.header.msg_id,
-                                       floating_ProtoTime(airspeed.timestamp),
-                                       calcCurrentLatencyProto(airspeed.timestamp)*1e3);
-                            break;
-                        default:
-                            break;
-                        }
-                    }
-                    else
-                    {
-                        send_warning(zsock_print,TAG,"ERROR Checksum test failed for id %i\n",element.message[LISA_INDEX_MSG_ID]);
+                    default:
+                        break;
                     }
                 }
                 else
                 {
-                    send_warning(zsock_print,TAG,"ERROR wrong SENDER ID %i\n",element.message[LISA_INDEX_SENDER_ID]);
+                    send_warning(zsock_print,TAG,"ERROR Checksum test failed for id %i\n",buffer[LISA_INDEX_MSG_ID]);
                 }
             }
+            else
+            {
+                send_warning(zsock_print,TAG,"ERROR wrong SENDER ID %i\n",buffer[LISA_INDEX_SENDER_ID]);
+            }
         }
+
+
+        //Get piksi messages
+        process_messages();
+
+
 
 
 
@@ -384,9 +437,14 @@ int main(int argc __attribute__((unused)),
                 send_debug(zsock_print,TAG,"IMU sent to controller!, size: %u\n", packed_length);
             }
             //Resetting
+            if (sensors.type == PROTOBETTY__SENSORS__TYPE__IMU_GPS
+                    ||sensors.type == PROTOBETTY__SENSORS__TYPE__IMU_GPS_AIRSPEED )
+            {
+                gps.position = NULL;
+                gps.velocity = NULL;
+            }
             protobetty__sensors__init(&sensors);
         }
-        calc_next_shot(&t,rt_interval);
     }
 
     /* Shouldn't get here. */
@@ -395,67 +453,96 @@ int main(int argc __attribute__((unused)),
 
 
 
-
 /*
- *The signal handler is invoked by a interrupt on the UART port
- *After detecting the startbyte the message from LISA is read
- *and written to the circular buffer which is emptied in the mainloop
+ * Callback functions to interpret SBP messages.
+ * Every message ID has a callback associated with it to
+ * receive and interpret the message payload.
  */
-void signal_handler_IO (int status)
+void piksi_pos_llh_callback(u_int16_t sender_id __attribute__((unused)), u_int8_t len __attribute__((unused)), u8 msg[], void *context __attribute__((unused)))
 {
-    static uint8_t irq_msg_length;
-    static int irq_readbytes;
-    static uint8_t irq_msg_buffer[256];
-    static ElemType buffer_element;
-    static int uart_stage;
+    /* Structs that messages from Piksi will feed. */
+    static piksi_position_llh_t pos_llh;
+    pos_llh = *(piksi_position_llh_t *)msg;
+    printf("pos_llh: lat: %f, long: %f, height: %f \n", pos_llh.lat, pos_llh.lon, pos_llh.height);
+}
+void piksi_heartbeat_callback(u_int16_t sender_id __attribute__((unused)), u_int8_t len __attribute__((unused)), u8 msg[], void *context __attribute__((unused)))
+{
+    static piksi_heartbeat_t heartbeat;
+    heartbeat = *(piksi_heartbeat_t *)msg;
+    printf("heartbeat: %d\n", heartbeat.flags);
+}
+void piksi_baseline_ned_callback(u_int16_t sender_id __attribute__((unused)), u_int8_t len __attribute__((unused)), u8 msg[], void *context __attribute__((unused)))
+{
+    static piksi_baseline_ned_t baseline_ned;
+    static Protobetty__GpsData gps_pos = PROTOBETTY__GPS_DATA__INIT;
+    static Protobetty__Xyz xyz = PROTOBETTY__XYZ__INIT;
+    baseline_ned = *(piksi_baseline_ned_t *)msg;
+    send_debug(zsock_print,TAG,"Received PIKSI baseline NED (%u ms) N:%i,E:%i,D:%i",
+               baseline_ned.tow,
+               baseline_ned.n,
+               baseline_ned.e,
+               baseline_ned.d);
+    gps_pos.h_accuracy = baseline_ned.h_accuracy * 1e-3;
+    gps_pos.v_accuracy = baseline_ned.v_accuracy * 1e-3;
+    gps_pos.n_satellites= baseline_ned.n_sats;
+    gps_pos.time = baseline_ned.tow;
+    xyz.x = (double)baseline_ned.n* 1e-3;
+    xyz.y = (double)baseline_ned.e* 1e-3;
+    xyz.z = (double)baseline_ned.d* 1e-3;
+    gps_pos.data = &xyz;
+    gps.position = &gps_pos;
+    complete_gps_message();
+}
+void piksi_vel_ned_callback(u_int16_t sender_id __attribute__((unused)), u_int8_t len __attribute__((unused)), u8 msg[], void *context __attribute__((unused)))
+{
+    static piksi_velocity_ned_t vel_ned;
+    static Protobetty__GpsData gps_vel = PROTOBETTY__GPS_DATA__INIT;
+    static Protobetty__Xyz xyz = PROTOBETTY__XYZ__INIT;
+    vel_ned = *(piksi_velocity_ned_t *)msg;
+    send_debug(zsock_print,TAG,"Received PIKSI velocity NED (%u ms) N:%i,E:%i,D:%i",
+               vel_ned.tow,
+               vel_ned.n,
+               vel_ned.e,
+               vel_ned.d);
+    gps_vel.h_accuracy = vel_ned.h_accuracy;
+    gps_vel.v_accuracy = vel_ned.v_accuracy;
+    gps_vel.n_satellites= vel_ned.n_sats;
+    gps_vel.time = vel_ned.tow;
+    xyz.x = (double)vel_ned.n;
+    xyz.y = (double)vel_ned.e;
+    xyz.z = (double)vel_ned.d;
+    gps_vel.data = &xyz;
+    gps.velocity = &gps_vel;
+    complete_gps_message();
+}
+void piksi_dops_callback(u_int16_t sender_id __attribute__((unused)), u_int8_t len __attribute__((unused)), u8 msg[], void *context __attribute__((unused)))
+{
+    static piksi_dops_t dops;
+    dops = *(piksi_dops_t *)msg;
+    printf("dops tow: %u \n", dops.tow);
+}
+void piksi_gps_time_callback(u_int16_t sender_id __attribute__((unused)), u_int8_t len __attribute__((unused)), u8 msg[], void *context __attribute__((unused)))
+{
+    static piksi_time_t gps_time;
+    gps_time = *(piksi_time_t *)msg;
+    printf("time (%d, %d, %d)\n", gps_time.wn, gps_time.tow, gps_time.ns);
+}
 
-
-    if (status == SIGIO)
+void complete_gps_message(void)
+{
+    if (gps.velocity != NULL && gps.position != NULL)
     {
-        switch (uart_stage)
-        {
-        case STARTBYTE_SEARCH:
-            irq_readbytes = 0;
-            ioctl(serial_stream->fd, FIONREAD,&irq_readbytes); //set to number of bytes in buffer
-            read_uart(irq_msg_buffer,1);
-            if (irq_msg_buffer[0] == LISA_STARTBYTE)
-            {
-                uart_stage = MESSAGE_LENGTH;
-            }
-            break;
-        case MESSAGE_LENGTH:
-            ioctl(serial_stream->fd, FIONREAD,&irq_readbytes); //set to number of bytes in buffer
-            read_uart(buffer_element.message,1);
-            irq_msg_length = buffer_element.message[0];
-            if ((irq_msg_length < LISA_MAX_MSG_LENGTH) && (irq_msg_length > 0))
-                uart_stage = MESSAGE_READING;
-            else
-                uart_stage = STARTBYTE_SEARCH;
-            break;
-        case MESSAGE_READING:
-            ioctl(serial_stream->fd, FIONREAD, &irq_readbytes); //set to number of bytes in buffer
-            if (!(irq_readbytes < irq_msg_length))
-            {
-                read_uart(&(buffer_element.message[1]),irq_msg_length-2);
-#ifdef DEBUG
-                //                printf("Received message ");
-                //                for (int i = 0; i < irq_msg_length-1; i++)
-                //                {
-                //                    printf(" %i ", buffer_element.message[i]);
-                //                }
-                //                printf("\n");
-#endif
-                //Write message to buffer and start over
-                if (cb.elems != NULL)
-                    cbWrite(&cb,&buffer_element);
-                uart_stage = STARTBYTE_SEARCH;
-            }
-            break;
-        default:
-            break;
-        }
+        get_protbetty_timestamp(gps.timestamp);
+        sensors.gps = &gps;
     }
 }
+
+
+
+
+
+
+
 
 
 

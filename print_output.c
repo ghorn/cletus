@@ -8,7 +8,7 @@
 #include "./protos_c/messages.pb-c.h"
 
 
-const uint16_t MAX_PRINT_MSG_SIZE = 256;
+const uint16_t MAX_PRINT_MSG_SIZE = 512;
 
 
 void send_printf(void* zmq_sockit,char * toprint, int type, char* const tag)

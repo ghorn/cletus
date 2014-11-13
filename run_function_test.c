@@ -53,7 +53,7 @@ int main(int argc __attribute__((unused)),
   if (signal(SIGABRT, &sigdie) == SIG_IGN)
     signal(SIGABRT, SIG_IGN);
 
-  int errRet = serial_port_setup(0);
+  int errRet = serial_port_setup();
   if(errRet!=UART_ERR_NONE){
       err("couldn't initialize serial port");
       die(SIGABRT);
@@ -62,9 +62,9 @@ int main(int argc __attribute__((unused)),
 
   lisa_message_t output;
   output.startbyte = 0x99;
-  output.length = sizeof(lisa_message_t);
-  output.sender_id = SENDER_ID;
-  output.message_id = SERVO_COMMANDS;
+  output.header.length = sizeof(lisa_message_t);
+  output.header.sender_id = SENDER_ID;
+  output.header.msg_id = SERVO_COMMANDS;
 
 
   for (value=0;value < 9600; value++) {
