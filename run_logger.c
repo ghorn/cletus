@@ -38,7 +38,7 @@ uint8_t *ptr_temp_memory;
 //counter of elements received
 static uint64_t counter_log_messages = 0;
 //maximum limit of logs
-const uint64_t NUMBER_OF_LOGS = 1000000;
+const uint64_t NUMBER_OF_LOGS = 10000;
 char* TAG = "RUN_LOGGER";
 Protobetty__LogMessage **log_messages = NULL;
 
@@ -122,7 +122,7 @@ int main(int argc __attribute__((unused)),
         signal(SIGABRT, SIG_IGN);
 
 
-    zsock_logs = setup_zmq_receiver(LOG_CHAN, &zctx, ZMQ_SUB, NULL, 1000, 500);
+    zsock_logs = setup_zmq_receiver(LOG_CHAN, &zctx, ZMQ_PULL, NULL, 1000, 500);
     if (NULL == zsock_logs)
         die(1);
     zsock_print = setup_zmq_sender(PRINT_CHAN, &zctx, ZMQ_PUSH, 100, 500);
@@ -142,7 +142,17 @@ int main(int argc __attribute__((unused)),
 
 
     ptr_temp_memory = alloc_workbuf(NUMBER_OF_LOGS*PROTOBETTY__MESSAGE__CONSTANTS__MAX_MESSAGE_SIZE);
+    if (ptr_temp_memory == NULL)
+    {
+        printf("Error allocating memory!\n");
+        die(1);
+    }
     log_messages = alloc_workbuf(sizeof(Protobetty__LogMessage*)*NUMBER_OF_LOGS);
+    if (log_messages == NULL)
+    {
+        printf("Error allocating memory!\n");
+        die(1);
+    }
 
     uint64_t byte_counter = 0;
 
