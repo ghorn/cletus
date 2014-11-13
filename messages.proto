@@ -54,6 +54,11 @@ message Gps{
     required GpsData velocity = 3;
 }
 
+message GpsLLH{
+    required Timestamp timestamb = 1;
+    required GpsData position = 2;
+}
+
 message Gyro{
     required Timestamp timestamp = 1;
     required Xyz data = 2;
@@ -152,15 +157,14 @@ enum Type {
   required string tag=4 [default=""];
  }
 
-message LogSensors {
-  repeated Sensors data = 1;
+message LogMessage {
+  optional Sensors sensors = 1;
+  optional Actuators actuators = 2;
+  optional Rc rc = 3;
+  optional GpsLLH gps_llh = 4;
 }
 
-message LogActuators {
-  repeated Actuators data = 1;
-}
 
-message LogData {
-  optional LogSensors sensor_data = 1;
-  optional LogActuators actuator_data = 2;
+message LogContainer {
+  repeated LogMessage log_data = 1;
   }
