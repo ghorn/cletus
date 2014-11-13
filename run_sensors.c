@@ -488,9 +488,11 @@ void piksi_pos_llh_callback(u_int16_t sender_id __attribute__((unused)), u_int8_
     /* Structs that messages from Piksi will feed. */
     static piksi_position_llh_t pos_llh;
     static Protobetty__GpsLLH gps_llh = PROTOBETTY__GPS_LLH__INIT;
+    static Protobetty__GpsData gps_pos = PROTOBETTY__GPS_DATA__INIT;
     static Protobetty__Timestamp gps_time = PROTOBETTY__TIMESTAMP__INIT;
     static Protobetty__Xyz xyz = PROTOBETTY__XYZ__INIT;
     pos_llh = *(piksi_position_llh_t *)msg;
+    gps_llh.position = &gps_pos;
     gps_llh.position->time = pos_llh.tow;
     gps_llh.position->n_satellites = pos_llh.n_sats;
     gps_llh.position->h_accuracy = pos_llh.h_accuracy;
