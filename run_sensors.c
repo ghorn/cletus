@@ -68,15 +68,15 @@ void *zsock_print = NULL;
 
 Protobetty__Sensors sensors;
 Protobetty__Gps gps;
+Protobetty__LogMessage log_data;
 
 
 /* Error tracking. */
 int txfails = 0, rxfails = 0;
 
 static void __attribute__((noreturn)) die(int code) {
-    zdestroy(zsock_log, zctx);
+    zdestroy(zsock_log, NULL);
     zdestroy(zsock_sensors, NULL);
-
     zdestroy(zsock_print, NULL);
 
 
@@ -142,6 +142,8 @@ int main(int argc __attribute__((unused)),
     init_message_processing(8192);
     register_velocity_ned_callback(&piksi_baseline_ned_callback);
     register_baseline_ned_callback(&piksi_vel_ned_callback);
+    register_position_llh_callback(&piksi_pos_llh_callback);
+
 
 
     /* Confignals. */
@@ -175,14 +177,9 @@ int main(int argc __attribute__((unused)),
     zsock_print = setup_zmq_sender(PRINT_CHAN, &zctx, ZMQ_PUSH, 100, 500);
     if (NULL == zsock_print)
         die(1);
-
-    /* Use big buffers here.  We're just publishing the data for
-   * logging, so we don't mind saving some data until the logger can
-   * receive it. */
-    zsock_log = setup_zmq_sender(LOG_CHAN, &zctx, ZMQ_PUB, 1000, 100000);
+    zsock_log = setup_zmq_sender(LOG_CHAN, &zctx, ZMQ_PUSH, 100, 500);
     if (NULL == zsock_log)
         die(1);
-
 
 
 
@@ -233,6 +230,11 @@ int main(int argc __attribute__((unused)),
     Protobetty__Timestamp gps_timestamp = PROTOBETTY__TIMESTAMP__INIT;
     gps.timestamp = &gps_timestamp;
 #endif
+    protobetty__log_message__init(&log_data);
+    Protobetty__Servos servos = PROTOBETTY__SERVOS__INIT;
+    Protobetty__Timestamp servo_timestamp = PROTOBETTY__TIMESTAMP__INIT;
+    servos.timestamp = &servo_timestamp;
+
 
 
 
@@ -372,12 +374,24 @@ int main(int argc __attribute__((unused)),
                         rc.rcroll = data_ptr->rc.roll;
                         rc.rckill = data_ptr->rc.kill;
                         get_protbetty_timestamp(rc.timestamp);
+                        log_data.rc = &rc;
                         send_debug(zsock_print,TAG,"Received RC (ID:%u) and timestamp %f sec (Latency:%fms) ",
                                    data_ptr->rc.header.msg_id,
                                    floating_ProtoTime(rc.timestamp),
                                    calcCurrentLatencyProto(rc.timestamp)*1e3);
                         break;
-
+                    case SERVO_COMMANDS:
+                        memcpy(&data_ptr->servos_raw,&buffer[LISA_INDEX_MSG_LENGTH], sizeof(servos_t));
+                        servos.servo1 = data_ptr->servos_raw.servo_1;
+                        servos.servo2 = data_ptr->servos_raw.servo_2;
+                        servos.servo3 = data_ptr->servos_raw.servo_3;
+                        servos.servo4 = data_ptr->servos_raw.servo_4;
+                        servos.servo5 = data_ptr->servos_raw.servo_5;
+                        servos.servo6 = data_ptr->servos_raw.servo_6;
+                        servos.servo7 = data_ptr->servos_raw.servo_7;
+                        get_protbetty_timestamp(servos.timestamp);
+                        log_data.servos = &servos;
+                        break;
                     default:
                         break;
                     }
@@ -428,8 +442,19 @@ int main(int argc __attribute__((unused)),
             packed_length = protobetty__sensors__get_packed_size(&sensors);
             //pack data to buffer
             protobetty__sensors__pack(&sensors,zmq_buffer);
-            //sending sensor message over zmq
-            const int zs = zmq_send(zsock_sensors, zmq_buffer, packed_length, 0);
+            //sending sensor message over zmq            
+            int zs = zmq_send(zsock_sensors, zmq_buffer, packed_length, 0);
+            if (zs < 0) {
+                txfails++;
+            } else {
+                send_debug(zsock_print,TAG,"IMU sent to controller!, size: %u\n", packed_length);
+            }
+            log_data.sensors = &sensors;
+            //get size of packed data
+            packed_length = protobetty__log_message__get_packed_size(&log_data);
+            //pack data to buffer
+            protobetty__log_message__pack(&log_data,zmq_buffer);
+            zs = zmq_send(zsock_log, zmq_buffer, packed_length, ZMQ_NOBLOCK);
             if (zs < 0) {
                 txfails++;
             } else {
@@ -443,6 +468,7 @@ int main(int argc __attribute__((unused)),
                 gps.velocity = NULL;
             }
             protobetty__sensors__init(&sensors);
+            protobetty__log_message__init(&log_data);
         }
     }
 
@@ -461,7 +487,21 @@ void piksi_pos_llh_callback(u_int16_t sender_id __attribute__((unused)), u_int8_
 {
     /* Structs that messages from Piksi will feed. */
     static piksi_position_llh_t pos_llh;
+    static Protobetty__GpsLLH gps_llh = PROTOBETTY__GPS_LLH__INIT;
+    static Protobetty__Timestamp gps_time = PROTOBETTY__TIMESTAMP__INIT;
+    static Protobetty__Xyz xyz = PROTOBETTY__XYZ__INIT;
     pos_llh = *(piksi_position_llh_t *)msg;
+    gps_llh.position->time = pos_llh.tow;
+    gps_llh.position->n_satellites = pos_llh.n_sats;
+    gps_llh.position->h_accuracy = pos_llh.h_accuracy;
+    gps_llh.position->v_accuracy = pos_llh.v_accuracy;
+    xyz.x = pos_llh.lat;
+    xyz.y = pos_llh.lon;
+    xyz.z = pos_llh.height;
+    gps_llh.position->data = &xyz;
+    get_protbetty_timestamp(&gps_time);
+    gps_llh.timestamp = &gps_time;
+    log_data.gps_llh = &gps_llh;
     printf("pos_llh: lat: %f, long: %f, height: %f \n", pos_llh.lat, pos_llh.lon, pos_llh.height);
 }
 void piksi_heartbeat_callback(u_int16_t sender_id __attribute__((unused)), u_int8_t len __attribute__((unused)), u8 msg[], void *context __attribute__((unused)))
