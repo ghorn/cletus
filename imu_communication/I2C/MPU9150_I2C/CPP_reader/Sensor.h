@@ -55,10 +55,10 @@
 #define MAG_ZOUT_H 0x08
 #define MAG_ZOUT_L 0x07
 
-// Define datatypes of structs
-#define ACCEL_TYPE 0x00
-#define GYRO_TYPE 0x01
-#define MAG_TYPE 0x02
+// Define datatypes as the starting address for that type of data
+#define ACCEL_TYPE ACCEL_XOUT_H
+#define GYRO_TYPE GYRO_XOUT_H
+#define MAG_TYPE MAG_XOUT_L
 
 
 /*
@@ -80,14 +80,30 @@ class Sensor {
     public:
         // Functions to communicate with the Sensors
         void initI2C(char accel_gyro_address, char mag_address);
+        
+        // Reads the value of the register with given address
         char readRegister(char regAddress);
+        
+        // Writes a value to the register with given address
         void writeRegister(char regAddress, char value);
-        int16_t readValue(char highByte, char lowByte);
+        
+        // Reads 2 bytes starting at given address
+        int16_t readComp(char regAddress);
+
+        /* Reads 6 Bytes starting at given address
+         * So information of all spacial components 
+         * of one type of sensor are fetched at the same time.
+         * Parameter is either the type of sensor 
+         * or starting address of specific sensor register
+         */
         SensorValues* getSensorValues(char datatype);
+        
         // This buffer is for error handling
         char err_buffer;
+        
         // Stores our devicefile information
         int i2c_devfile;
+        
         // Variables storing the recent values of the Sensors
         struct SensorValues accel;
         struct SensorValues gyro;
