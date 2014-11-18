@@ -28,6 +28,15 @@ typedef struct timespec timespec;
 #define DEFAULT_RT_PRIORITY 48
 #define DEFAULT_RT_FREQUENCY 100
 
+#define LED_PATH_0 "/sys/class/leds/beaglebone:green:usr0"
+#define LED_PATH_1 "/sys/class/leds/beaglebone:green:usr1"
+#define LED_PATH_2 "/sys/class/leds/beaglebone:green:usr2"
+#define LED_PATH_3 "/sys/class/leds/beaglebone:green:usr3"
+#define LED_ON '1'
+#define LED_OFF '0'
+
+
+
 
 double floating_time(const timestamp_t * const t);
 void gettime(timestamp_t * const t);
@@ -41,6 +50,7 @@ double calcCurrentLatency(timestamp_t * const ref);
 double calcCurrentLatencyProto(Protobetty__Timestamp * const ref);
 void *alloc_workbuf(int size);
 void  free_workbuf(void *ptr, int size);
+void set_beaglebone_LED(const char* const led, const char value);
 
 
 
