@@ -216,13 +216,23 @@ int flush_serial_port(void)
 int process_messages(void)
 {
     int bytes_in_file = 0;
+    int ret;
     ioctl(piksi.fd, FIONREAD, &bytes_in_file);
     if (bytes_in_file > 0)
     {
-        int ret = read(piksi.fd, piksi.buffer, bytes_in_file);
+        if (bytes_in_file < piksi.fifo.size)
+        {
+            ret = read(piksi.fd, piksi.buffer, bytes_in_file);
+        }
+        else
+        {
+            ret = read(piksi.fd, piksi.buffer, piksi.fifo.size);
+        }
         fifo_write(&piksi.fifo, piksi.buffer, bytes_in_file);
         do{
             ret = sbp_process(&piksi.state, &read_data);
+            if (ret< 0)
+                printf("Piksi process error %i", ret);
         } while (piksi.fifo.tail != piksi.fifo.head);
         return ret;
     }
