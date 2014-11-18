@@ -517,6 +517,8 @@ void piksi_baseline_ned_callback(u_int16_t sender_id __attribute__((unused)), u_
     static piksi_baseline_ned_t baseline_ned;
     static Protobetty__GpsData gps_pos = PROTOBETTY__GPS_DATA__INIT;
     static Protobetty__Xyz xyz = PROTOBETTY__XYZ__INIT;
+    static piksi_baseline_status_t status;
+    static u_int8_t old_status =9;
     baseline_ned = *(piksi_baseline_ned_t *)msg;
     send_debug(zsock_print,TAG,"Received PIKSI baseline NED (%u ms) N:%i,E:%i,D:%i",
                baseline_ned.tow,
@@ -532,6 +534,21 @@ void piksi_baseline_ned_callback(u_int16_t sender_id __attribute__((unused)), u_
     xyz.z = (double)baseline_ned.d* 1e-3;
     gps_pos.data = &xyz;
     gps.position = &gps_pos;
+    //Check status
+    memcpy(&status, &baseline_ned.flags, sizeof(piksi_baseline_status_t));
+    if (status.fix_status != old_status)
+    {
+        switch (status.fix_status) {
+        case PIKSI_STATUS_FIXED_RTK:
+            set_beaglebone_LED(LED_PATH_3,LED_ON);
+            break;
+        case PIKSI_STATUS_FLOAT:
+            set_beaglebone_LED(LED_PATH_3,LED_OFF);
+            break;
+        default:
+            break;
+        }
+    }
     complete_gps_message();
 }
 void piksi_vel_ned_callback(u_int16_t sender_id __attribute__((unused)), u_int8_t len __attribute__((unused)), u8 msg[], void *context __attribute__((unused)))
@@ -577,6 +594,7 @@ void complete_gps_message(void)
         sensors.gps = &gps;
     }
 }
+
 
 
 
