@@ -64,23 +64,39 @@ char Sensor::readRegister(char regAddress) {
     return buf[0];
 }
 
-int16_t Sensor::readValue(char highByte, char lowByte) {
+int16_t Sensor::readValue(char regAddress) {
+    char buf[2] = {regAddress};
+    if (write(i2c_devfile, buf, 1) != 1) {
+        printf("Error writing to i2c bus: %s\n", strerror(errno));
+        printf("\n\n");
+    }
+    if (read(i2c_devfile, buf, 2) != 2) {
+        printf("Error reading from i2c bus: %s\n", strerror(errno));
+        printf("\n\n");
+    }
+    int16_t retValue = buf[0];
+    retValue = retValue << 8;
+    retValue = retValue + buf[1];
+    return retValue;
+
+    /*
     int16_t retValue = readRegister(highByte);
     retValue = retValue << 8;
     retValue = retValue + readRegister(lowByte);
     return retValue;
+    */
 }
 
 SensorValues* Sensor::getSensorValues(char datatype) {
     if (datatype == ACCEL_TYPE) {
-        accel.compX = readValue(ACCEL_XOUT_H, ACCEL_XOUT_L);
-        accel.compY = readValue(ACCEL_YOUT_H, ACCEL_YOUT_L);
-        accel.compZ = readValue(ACCEL_ZOUT_H, ACCEL_ZOUT_L);
+        accel.compX = readValue(ACCEL_XOUT_H);
+        accel.compY = readValue(ACCEL_YOUT_H);
+        accel.compZ = readValue(ACCEL_ZOUT_H);
         return &accel;
     } else if (datatype == GYRO_TYPE) {
-        gyro.compX = readValue(GYRO_XOUT_H, GYRO_XOUT_L);
-        gyro.compY = readValue(GYRO_YOUT_H, GYRO_YOUT_L);
-        gyro.compZ = readValue(GYRO_ZOUT_H, GYRO_ZOUT_L);
+        gyro.compX = readValue(GYRO_XOUT_H);
+        gyro.compY = readValue(GYRO_YOUT_H);
+        gyro.compZ = readValue(GYRO_ZOUT_H);
         return &gyro;
     } else if (datatype == MAG_TYPE) {    
         // Change i2c-device-address to magnetometer
@@ -93,9 +109,17 @@ SensorValues* Sensor::getSensorValues(char datatype) {
         // Wait for data_ready-flag
         while(readRegister(MAG_ST1) == 0);
         // read values of registers
-        mag.compX = readValue(MAG_XOUT_H, MAG_XOUT_L);
-        mag.compY = readValue(MAG_YOUT_H, MAG_YOUT_L);
-        mag.compZ = readValue(MAG_ZOUT_H, MAG_ZOUT_L);
+        int16_t helper = readValue(MAG_XOUT_L);
+        mag.compX = (helper & 0xFF00) >> 8;
+        mag.compX = mag.compX + ((helper & 0x00FF) << 8);
+        
+        helper = readValue(MAG_YOUT_L);
+        mag.compY = (helper & 0xFF00) >> 8;
+        mag.compY = mag.compY + ((helper & 0x00FF) << 8);
+
+        helper = readValue(MAG_ZOUT_L);
+        mag.compZ = (helper & 0xFF00) >> 8;
+        mag.compZ = mag.compZ + ((helper & 0x00FF) << 8);
 
         // Change i2c-device-address back to accel_gyro
         if (ioctl(i2c_devfile, I2C_SLAVE, ACCEL_GYRO_DEVICE) < 0) {

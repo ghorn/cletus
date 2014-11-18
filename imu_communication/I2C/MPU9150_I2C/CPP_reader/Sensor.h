@@ -80,9 +80,12 @@ class Sensor {
     public:
         // Functions to communicate with the Sensors
         void initI2C(char accel_gyro_address, char mag_address);
+        // Reads the value of the register with given address
         char readRegister(char regAddress);
+        // Writes a value to the register with given address
         void writeRegister(char regAddress, char value);
-        int16_t readValue(char highByte, char lowByte);
+        // Reads 2 bytes starting at given address
+        int16_t readValue(char regAddress);
         SensorValues* getSensorValues(char datatype);
         // This buffer is for error handling
         char err_buffer;
