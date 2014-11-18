@@ -36,12 +36,15 @@ void sbp_heartbeat_callback(u_int16_t sender_id __attribute__((unused)), u_int8_
 }
 void sbp_baseline_ned_callback(u_int16_t sender_id __attribute__((unused)), u_int8_t len __attribute__((unused)), u8 msg[], void *context __attribute__((unused)))
 {
+    static piksi_baseline_status_t status;
     baseline_ned = *(sbp_baseline_ned_t *)msg;
     printf("baseline_ned (%.3f, %.4f, %.4f, %.4f)\n",
            1e-3*((double)baseline_ned.tow),
            1e-3*((double)baseline_ned.n),
            1e-3*((double)baseline_ned.e),
            1e-3*((double)baseline_ned.d));
+    memcpy(&status, &baseline_ned.flags, sizeof(piksi_baseline_status_t));
+    printf("Status: %i \n", status.fix_status);
 }
 void sbp_vel_ned_callback(u_int16_t sender_id __attribute__((unused)), u_int8_t len __attribute__((unused)), u8 msg[], void *context __attribute__((unused)))
 {
