@@ -80,18 +80,31 @@ int16_t Sensor::readComp(char regAddress) {
     return retValue;
 }
 
-SensorValues* Sensor::getSensorValues(char datatype) {
-    if (datatype == ACCEL_TYPE) {
-        accel.compX = readComp(ACCEL_XOUT_H);
-        accel.compY = readComp(ACCEL_YOUT_H);
-        accel.compZ = readComp(ACCEL_ZOUT_H);
-        return &accel;
-    } else if (datatype == GYRO_TYPE) {
-        gyro.compX = readComp(GYRO_XOUT_H);
-        gyro.compY = readComp(GYRO_YOUT_H);
-        gyro.compZ = readComp(GYRO_ZOUT_H);
-        return &gyro;
-    } else if (datatype == MAG_TYPE) {    
+SensorValues* Sensor::getSensorValues(char regAddress) {
+    char buf[6] = {regAddress};
+    if ((regAddress == ACCEL_TYPE) || (regAddress == GYRO_TYPE)) {
+        if (write(i2c_devfile, buf, 1) != 1) {
+           printf("Error writing to i2c bus: %s\n", strerror(errno));
+           printf("\n\n");
+        }
+        if (read(i2c_devfile, buf, 6) != 6) {
+            printf("Error reading from i2c bus: %s\n", strerror(errno));
+            printf("\n\n");
+        }
+        if (regAddress == ACCEL_TYPE) {
+            // Copy the contents into the structure
+            accel.compX = (buf[0] << 8) + buf[1];
+            accel.compY = (buf[2] << 8) + buf[3];
+            accel.compZ = (buf[4] << 8) + buf[5];
+            return &accel;
+        } else {
+            // Copy the contents into the structure
+            gyro.compX = (buf[0] << 8) + buf[1];
+            gyro.compY = (buf[2] << 8) + buf[3];
+            gyro.compZ = (buf[4] << 8) + buf[5];
+            return &gyro;
+        }
+    } else if (regAddress == MAG_TYPE) {
         // Change i2c-device-address to magnetometer
         if (ioctl(i2c_devfile, I2C_SLAVE, MAG_DEVICE) < 0) {
             printf("Failed to acquire bus: %s\n", strerror(errno));
@@ -102,18 +115,18 @@ SensorValues* Sensor::getSensorValues(char datatype) {
         // Wait for data_ready-flag
         while(readRegister(MAG_ST1) == 0);
         // read values of registers
-        int16_t helper = readComp(MAG_XOUT_L);
-        mag.compX = (helper & 0xFF00) >> 8;
-        mag.compX = mag.compX + ((helper & 0x00FF) << 8);
-        
-        helper = readComp(MAG_YOUT_L);
-        mag.compY = (helper & 0xFF00) >> 8;
-        mag.compY = mag.compY + ((helper & 0x00FF) << 8);
-
-        helper = readComp(MAG_ZOUT_L);
-        mag.compZ = (helper & 0xFF00) >> 8;
-        mag.compZ = mag.compZ + ((helper & 0x00FF) << 8);
-
+        if (write(i2c_devfile, buf, 1) != 1) {
+           printf("Error writing to i2c bus: %s\n", strerror(errno));
+           printf("\n\n");
+        }
+        if (read(i2c_devfile, buf, 6) != 6) {
+            printf("Error reading from i2c bus: %s\n", strerror(errno));
+            printf("\n\n");
+        }
+        // Copy the contents into the structure
+        mag.compX = (buf[1] << 8) + buf[0];
+        mag.compY = (buf[3] << 8) + buf[2];
+        mag.compZ = (buf[5] << 8) + buf[4];
         // Change i2c-device-address back to accel_gyro
         if (ioctl(i2c_devfile, I2C_SLAVE, ACCEL_GYRO_DEVICE) < 0) {
             printf("Failed to acquire bus: %s\n", strerror(errno));
@@ -121,7 +134,7 @@ SensorValues* Sensor::getSensorValues(char datatype) {
         }
         return &mag;
     } else {
-        printf("Error getting sensor values. Wrong datatype: %i\n", datatype);
+        printf("Error getting sensor values (Address is not of type {accel, gyro, mag}). Address: %i\n", regAddress);
         exit(1);
     }
 }
