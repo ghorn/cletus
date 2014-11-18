@@ -47,6 +47,7 @@ int open_serial_port(const char* const device, int speed, int parity, int blocki
 void close_serial_port(void);
 int process_messages(void);
 void init_message_processing(int buffer_size);
+int flush_serial_port(void);
 
 
 

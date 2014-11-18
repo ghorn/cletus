@@ -139,10 +139,8 @@ int main(int argc __attribute__((unused)),
     //Init Piksi
     const char * const portname = "/dev/ttyUSB0";
     open_serial_port(portname, B1000000, 0, 1 ); // set speed to 1,000,000 bps, 8n1 (no parity) set blocking
-    init_message_processing(8192);
-    register_velocity_ned_callback(&piksi_baseline_ned_callback);
-    register_baseline_ned_callback(&piksi_vel_ned_callback);
-    register_position_llh_callback(&piksi_pos_llh_callback);
+    init_message_processing(PROTOBETTY__MESSAGE__CONSTANTS__MAX_MESSAGE_SIZE);
+
 
 
 
@@ -278,11 +276,12 @@ int main(int argc __attribute__((unused)),
         perror ("epoll_ctl");
         abort ();
     }
-    uint8_t buffer[256];
+    uint8_t buffer[PROTOBETTY__MESSAGE__CONSTANTS__MAX_MESSAGE_SIZE];
 
 
-
-
+    register_velocity_ned_callback(&piksi_baseline_ned_callback);
+    register_baseline_ned_callback(&piksi_vel_ned_callback);
+    register_position_llh_callback(&piksi_pos_llh_callback);
 
     //When sensor data is in circular buffer
     while (1)
