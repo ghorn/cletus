@@ -278,10 +278,9 @@ int main(int argc __attribute__((unused)),
     }
     uint8_t buffer[PROTOBETTY__MESSAGE__CONSTANTS__MAX_MESSAGE_SIZE];
 
-
-    register_velocity_ned_callback(&piksi_baseline_ned_callback);
-    register_baseline_ned_callback(&piksi_vel_ned_callback);
     flush_serial_port();
+    register_velocity_ned_callback(&piksi_vel_ned_callback);
+    register_baseline_ned_callback(&piksi_baseline_ned_callback);
     register_position_llh_callback(&piksi_pos_llh_callback);
 
     //When sensor data is in circular buffer
