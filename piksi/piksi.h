@@ -15,6 +15,27 @@ typedef sbp_gps_time_t piksi_time_t;
 typedef sbp_heartbeat_t piksi_heartbeat_t;
 
 
+typedef struct __attribute__((packed)){
+    uint8_t reserved:5;
+    uint8_t fix_status:3;
+} piksi_baseline_status_t;
+
+
+typedef struct __attribute__((packed)){
+    uint8_t reserved:4;
+    uint8_t height_status:1;
+    uint8_t fix_status:3;
+} piksi_position_status_t;
+
+#define PIKSI_STATUS_FLOAT 0
+#define PIKSI_STATUS_FIXED_RTK 1
+#define PIKSI_STATUS_HEIGHT_ELLIPSOID 0
+#define PIKSI_STATUS_HEIGHT_SEA_LEVEL 1
+
+
+
+
+
 
 int register_position_llh_callback(void* callback);
 int register_velocity_ned_callback(void* callback);
