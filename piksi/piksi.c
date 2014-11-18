@@ -199,6 +199,9 @@ int open_serial_port(const char* const device, int speed, int parity, int blocki
 
     int ret = set_interface_attribs(piksi.fd, speed, parity);
     set_blocking(piksi.fd,blocking);
+    ret = tcflush(piksi.fd, TCOFLUSH);
+    ret = tcflush(piksi.fd, TCIFLUSH);
+
     return ret;
 
 }

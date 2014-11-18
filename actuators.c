@@ -26,7 +26,7 @@
 const double coef = 1.0;
 const int LENGTH_INDEX = 1;
 
-void convert_for_lisa(const Protobetty__Actuators * const actuators, lisa_message_t* const msg)
+void convert_for_lisa(const Protobetty__Actuators * const actuators, lisa_actuators_t* const msg)
 {
   msg->servos_msg.servo_1 = (int16_t)(actuators->ail * coef);
   msg->servos_msg.servo_2 = (int16_t)(actuators->ail * coef);

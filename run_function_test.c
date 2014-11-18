@@ -60,11 +60,11 @@ int main(int argc __attribute__((unused)),
     }
   sleep(2);
 
-  lisa_message_t output;
+  lisa_actuators_t output;
   output.startbyte = 0x99;
-  output.header.length = sizeof(lisa_message_t);
-  output.header.sender_id = SENDER_ID;
-  output.header.msg_id = SERVO_COMMANDS;
+  output.servos_msg.header.length = sizeof(lisa_actuators_t);
+  output.servos_msg.header.sender_id = SENDER_ID;
+  output.servos_msg.header.msg_id = SERVO_COMMANDS;
 
 
   for (value=0;value < 9600; value++) {

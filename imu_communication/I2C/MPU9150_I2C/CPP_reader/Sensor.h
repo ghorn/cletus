@@ -1,5 +1,5 @@
 // Copyright 2014, University of Freiburg
-// Systemstheory Lab
+// Systemtheory Lab
 // Author: Elias Rosch <eliasrosch@googlemail.com>
 
 #ifndef CPP_READER_SENSOR_H
@@ -19,7 +19,16 @@
 #include<sys/stat.h>
 #include<fcntl.h>
 
+
+// Define i2c-device-addresses of MPU9150
+#define ACCEL_GYRO_DEVICE 0x68
+#define MAG_DEVICE 0x0C
+
+// Define register addresses of MPU9150 (Magnetometer registers are not included)
 #define PWR_MGMT_1 0x6B
+#define INT_PIN_CFG 0x37
+#define USER_CTRL 0x6A
+
 
 #define ACCEL_XOUT_H 0x3B
 #define ACCEL_XOUT_L 0x3C
@@ -35,6 +44,10 @@
 #define GYRO_ZOUT_H 0x47
 #define GYRO_ZOUT_L 0x48
 
+
+//Define Registers of Magnetometer device
+#define MAG_CNTL 0x0A
+#define MAG_ST1 0x02
 #define MAG_XOUT_H 0x04
 #define MAG_XOUT_L 0x03
 #define MAG_YOUT_H 0x06
@@ -42,6 +55,10 @@
 #define MAG_ZOUT_H 0x08
 #define MAG_ZOUT_L 0x07
 
+// Define datatypes of structs
+#define ACCEL_TYPE 0x00
+#define GYRO_TYPE 0x01
+#define MAG_TYPE 0x02
 
 
 /*
@@ -62,10 +79,14 @@ struct SensorValues {
 class Sensor {
     public:
         // Functions to communicate with the Sensors
-        void initI2C(char devAddress);
+        void initI2C(char accel_gyro_address, char mag_address);
+        // Reads the value of the register with given address
         char readRegister(char regAddress);
+        // Writes a value to the register with given address
         void writeRegister(char regAddress, char value);
-        int16_t readValue(char highByte, char lowByte);
+        // Reads 2 bytes starting at given address
+        int16_t readComp(char regAddress);
+        SensorValues* getSensorValues(char datatype);
         // This buffer is for error handling
         char err_buffer;
         // Stores our devicefile information
