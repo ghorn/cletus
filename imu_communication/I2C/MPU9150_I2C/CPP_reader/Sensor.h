@@ -85,7 +85,7 @@ class Sensor {
         // Writes a value to the register with given address
         void writeRegister(char regAddress, char value);
         // Reads 2 bytes starting at given address
-        int16_t readValue(char regAddress);
+        int16_t readComp(char regAddress);
         SensorValues* getSensorValues(char datatype);
         // This buffer is for error handling
         char err_buffer;
