@@ -537,6 +537,7 @@ void piksi_baseline_ned_callback(u_int16_t sender_id __attribute__((unused)), u_
     memcpy(&status, &baseline_ned.flags, sizeof(piksi_baseline_status_t));
     if (status.fix_status != old_status)
     {
+        old_status = status.fix_status;
         switch (status.fix_status) {
         case PIKSI_STATUS_FIXED_RTK:
             set_beaglebone_LED(LED_PATH_3,LED_ON);

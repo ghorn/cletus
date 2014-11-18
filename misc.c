@@ -121,8 +121,13 @@ void  free_workbuf(void *ptr, int size)
 void set_beaglebone_LED(const char* const led, const char value)
 {
     FILE *fp = fopen(led, "w");
-    fputc(value, fp);
-    fclose(fp);
+    if (fp == NULL)
+        printf("Error setting LED");
+    else
+    {
+        fputc(value, fp);
+        fclose(fp);
+    }
 }
 
 
