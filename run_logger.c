@@ -133,15 +133,16 @@ int main(int argc __attribute__((unused)),
 
 
     zmq_pollitem_t poll_logs = {
-            .socket=zsock_logs,
-            .fd=-1,
-            .events= ZMQ_POLLIN,
-            .revents=0
+        .socket=zsock_logs,
+        .fd=-1,
+        .events= ZMQ_POLLIN,
+        .revents=0
     };
 
 
 
-    ptr_temp_memory = alloc_workbuf(NUMBER_OF_LOGS*PROTOBETTY__MESSAGE__CONSTANTS__MAX_MESSAGE_SIZE);
+    const long max_mem_size = NUMBER_OF_LOGS*PROTOBETTY__MESSAGE__CONSTANTS__MAX_MESSAGE_SIZE;
+    ptr_temp_memory = alloc_workbuf(max_mem_size);
     if (ptr_temp_memory == NULL)
     {
         printf("Error allocating memory!\n");
@@ -194,7 +195,7 @@ int main(int argc __attribute__((unused)),
 
 
         if (bail) die(bail);
-        if ((counter_log_messages) < NUMBER_OF_LOGS)
+        if ((byte_counter) < (max_mem_size - PROTOBETTY__MESSAGE__CONSTANTS__MAX_MESSAGE_SIZE))
         {
             if (poll_logs.revents & ZMQ_POLLIN)
             {
