@@ -26,26 +26,21 @@
 #include "./protos_c/messages.pb-c.h"
 
 
-
-#define MAX_MSG_SIZE 512
 static long safe_to_file(void);
 
 
 /* ZMQ resources */
 static void *zctx = NULL;
-static void *zsock_sensors = NULL;
-static void *zsock_actuators = NULL;
+static void *zsock_logs = NULL;
 void *zsock_print = NULL;
 //pointer to temporal memory in ram
 uint8_t *ptr_temp_memory;
 //counter of elements received
-static uint64_t counter_sensors = 0;
-static uint64_t counter_actuators = 0;
+static uint64_t counter_log_messages = 0;
 //maximum limit of logs
-const uint64_t NUMBER_OF_LOGS = 1000000;
+const uint64_t NUMBER_OF_LOGS = 10000;
 char* TAG = "RUN_LOGGER";
-Protobetty__Sensors **sensors = NULL;
-Protobetty__Actuators **actuators = NULL;
+Protobetty__LogMessage **log_messages = NULL;
 
 
 
@@ -60,7 +55,7 @@ static void __attribute__((noreturn)) die(int code) {
 
     free_workbuf(ptr_temp_memory, NUMBER_OF_LOGS*PROTOBETTY__MESSAGE__CONSTANTS__MAX_MESSAGE_SIZE);
     zdestroy(zsock_print, NULL);
-    zdestroy(zsock_sensors, NULL);
+    zdestroy(zsock_logs, NULL);
     printf("%d TX fails; %d RX fails.\n", txfails, rxfails);
     printf("Moriturus te saluto!\n");
     exit(code);
@@ -127,12 +122,9 @@ int main(int argc __attribute__((unused)),
         signal(SIGABRT, SIG_IGN);
 
 
-    zsock_sensors = setup_zmq_receiver(SENSORS_CHAN, &zctx, ZMQ_SUB, NULL, 1000, 500);
-    if (NULL == zsock_sensors)
-        return 1;
-    zsock_actuators = setup_zmq_receiver(ACTUATORS_CHAN, &zctx, ZMQ_SUB, NULL, 1000, 500);
-    if (NULL == zsock_actuators)
-        return 1;
+    zsock_logs = setup_zmq_receiver(LOG_CHAN, &zctx, ZMQ_PULL, NULL, 1000, 500);
+    if (NULL == zsock_logs)
+        die(1);
     zsock_print = setup_zmq_sender(PRINT_CHAN, &zctx, ZMQ_PUSH, 100, 500);
     if (NULL == zsock_print)
         die(1);
@@ -140,37 +132,29 @@ int main(int argc __attribute__((unused)),
 
 
 
-    zmq_pollitem_t polls[] = {
-
-        {
-            .socket=zsock_sensors,
+    zmq_pollitem_t poll_logs = {
+            .socket=zsock_logs,
             .fd=-1,
             .events= ZMQ_POLLIN,
             .revents=0
-        },
-        {
-            .socket=zsock_actuators,
-            .fd=-1,
-            .events= ZMQ_POLLIN,
-            .revents=0
-        }
     };
-
-    //Pollitem for sensors
-    zmq_pollitem_t* poll_sensors = &polls[0];
-    zmq_pollitem_t* poll_actuators = &polls[1];
-
 
 
 
     ptr_temp_memory = alloc_workbuf(NUMBER_OF_LOGS*PROTOBETTY__MESSAGE__CONSTANTS__MAX_MESSAGE_SIZE);
-    sensors = alloc_workbuf(sizeof(Protobetty__Sensors*)*NUMBER_OF_LOGS);
-    actuators = alloc_workbuf(sizeof(Protobetty__Actuators*)*NUMBER_OF_LOGS);
+    if (ptr_temp_memory == NULL)
+    {
+        printf("Error allocating memory!\n");
+        die(1);
+    }
+    log_messages = alloc_workbuf(sizeof(Protobetty__LogMessage*)*NUMBER_OF_LOGS);
+    if (log_messages == NULL)
+    {
+        printf("Error allocating memory!\n");
+        die(1);
+    }
 
     uint64_t byte_counter = 0;
-
-
-    const u_int8_t npolls = sizeof(polls) / sizeof(polls[0]);
 
     clock_gettime(CLOCK_MONOTONIC ,&t);
     /* start after one second */
@@ -192,7 +176,7 @@ int main(int argc __attribute__((unused)),
         /* wait until next shot */
         clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, &t, NULL);
         /* Poll for activity; time out after 10 milliseconds. */
-        const int polled = zmq_poll(polls, npolls, 1000);
+        const int polled = zmq_poll(&poll_logs, 1, 1000);
         if (polled < 0) {
             if (bail) die(bail);
             zerr("while polling");
@@ -210,52 +194,30 @@ int main(int argc __attribute__((unused)),
 
 
         if (bail) die(bail);
-        if ((counter_actuators + counter_sensors) < NUMBER_OF_LOGS)
+        if ((counter_log_messages) < NUMBER_OF_LOGS)
         {
-            if (poll_sensors->revents & ZMQ_POLLIN)
+            if (poll_logs.revents & ZMQ_POLLIN)
             {
-                const int zmq_received = zmq_recvm(zsock_sensors,
+                const int zmq_received = zmq_recvm(zsock_logs,
                                                    (uint8_t*) &ptr_temp_memory[byte_counter],
                                                    PROTOBETTY__MESSAGE__CONSTANTS__MAX_MESSAGE_SIZE);
                 if (zmq_received > 0)
                 {
-                    sensors[counter_sensors] = protobetty__sensors__unpack(NULL, zmq_received, &ptr_temp_memory[byte_counter]);
+                    log_messages[counter_log_messages] = protobetty__log_message__unpack(NULL, zmq_received, &ptr_temp_memory[byte_counter]);
                     byte_counter += zmq_received;
-                    counter_sensors++;
+                    counter_log_messages++;
                 }
                 /* Clear the poll state. */
-                poll_sensors->revents = 0;
-            }
-
-
-            if (poll_actuators->revents & ZMQ_POLLIN)
-            {
-
-                const int zmq_received = zmq_recvm(zsock_actuators,
-                                                   (uint8_t*) &ptr_temp_memory[byte_counter],
-                                                   PROTOBETTY__MESSAGE__CONSTANTS__MAX_MESSAGE_SIZE);
-                if (zmq_received > 0)
-                {
-                    actuators[counter_actuators] = protobetty__actuators__unpack(NULL, zmq_received, &ptr_temp_memory[byte_counter]);
-                    byte_counter += zmq_received;
-                    counter_actuators++;
-                }
-                /* Clear the poll state. */
-                poll_actuators->revents = 0;
-
+                poll_logs.revents = 0;
             }
         }
         else
         {
             //stop polling for new messages beacuse we reached limit
-            poll_sensors->events = 0;
-            poll_actuators->events = 0;
+            poll_logs.events = 0;
         }
         calc_next_shot(&t,rt_interval);
-
     }
-
-
     /* Shouldn't get here. */
     return 0;
 }
@@ -275,21 +237,13 @@ static long safe_to_file(void)
         return -1;
     }
     //Allocate protobuf structure for sensors and set data
-    Protobetty__LogSensors log_sensors = PROTOBETTY__LOG_SENSORS__INIT;
-    log_sensors.n_data = counter_sensors;
-    log_sensors.data = sensors;
-    //Allocate protobuf structure for actuators and set data
-    Protobetty__LogActuators log_actuators = PROTOBETTY__LOG_ACTUATORS__INIT;
-    log_actuators.n_data = counter_actuators;
-    log_actuators.data = actuators;
-    //set data to final log messages
-    Protobetty__LogData log = PROTOBETTY__LOG_DATA__INIT;
-    log.actuator_data = &log_actuators;
-    log.sensor_data = &log_sensors;
+    Protobetty__LogContainer log_container = PROTOBETTY__LOG_CONTAINER__INIT;
+    log_container.n_log_data = counter_log_messages;
+    log_container.log_data = log_messages;
     // back it to buffer
-    const uint64_t packed_size = protobetty__log_data__get_packed_size(&log);
+    const uint64_t packed_size = protobetty__log_container__get_packed_size(&log_container);
     uint8_t* buffer = alloc_workbuf(packed_size);
-    protobetty__log_data__pack(&log,buffer);
+    protobetty__log_container__pack(&log_container,buffer);
     //write bytewise data to file
     send_debug(zsock_print, TAG, "Writing data to file ...\n");
     printf("Writing data to file ...");

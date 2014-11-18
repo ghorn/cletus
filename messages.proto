@@ -54,6 +54,11 @@ message Gps{
     required GpsData velocity = 3;
 }
 
+message GpsLLH{
+    required Timestamp timestamp = 1;
+    required GpsData position = 2;
+}
+
 message Gyro{
     required Timestamp timestamp = 1;
     required Xyz data = 2;
@@ -74,8 +79,20 @@ message Airspeed{
     required double scaled = 2;
     optional uint32 raw = 3;
     optional uint32 offset = 4;
-
 }
+
+message Servos {
+    required int32 servo1 = 1;
+    required int32 servo2 = 2;
+    required int32 servo3 = 3;
+    required int32 servo4 = 4;
+    required int32 servo5 = 5;
+    required int32 servo6 = 6;
+    required int32 servo7 = 7;
+    required Timestamp timestamp = 8;
+}
+
+
 
 
 message Sensors {
@@ -152,15 +169,15 @@ enum Type {
   required string tag=4 [default=""];
  }
 
-message LogSensors {
-  repeated Sensors data = 1;
+message LogMessage {
+  optional Sensors sensors = 1;
+  optional Actuators actuators = 2;
+  optional Rc rc = 3;
+  optional GpsLLH gps_llh = 4;
+  optional Servos servos = 5;
 }
 
-message LogActuators {
-  repeated Actuators data = 1;
-}
 
-message LogData {
-  optional LogSensors sensor_data = 1;
-  optional LogActuators actuator_data = 2;
+message LogContainer {
+  repeated LogMessage log_data = 1;
   }

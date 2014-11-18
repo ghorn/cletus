@@ -122,15 +122,15 @@ int main(int argc __attribute__((unused)),
     /* Actuator data storage. */
     Protobetty__Actuators* incoming;
     //create template for actuator message for lisa
-    lisa_message_t output;
+    lisa_actuators_t output;
     output.startbyte = 0x99;
-    output.header.length = sizeof(lisa_message_t);
-    output.header.sender_id = SENDER_ID;
-    output.header.msg_id = SERVO_COMMANDS;
+    output.servos_msg.header.length = sizeof(lisa_actuators_t);
+    output.servos_msg.header.sender_id = SENDER_ID;
+    output.servos_msg.header.msg_id = SERVO_COMMANDS;
 
 #ifdef DEBUG
     printf("Servo Message Header: Startbyte -> %x \n\t length -> %i \n\t SenderID -> %i \n\t MessageID -> %i \n",
-           output.startbyte,output.header.length,output.header.sender_id,output.header.msg_id);
+           output.startbyte,output.servos_msg.header.length,output.servos_msg.header.sender_id,output.servos_msg.header.msg_id);
 
 #endif
 

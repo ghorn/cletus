@@ -124,6 +124,17 @@ typedef struct __attribute__((packed)){
 } rc_t;
 
 typedef struct __attribute__((packed)) {
+    lisa_header_t header;
+    int16_t servo_1;
+    int16_t servo_2;
+    int16_t servo_3;
+    int16_t servo_4;
+    int16_t servo_5;
+    int16_t servo_6;
+    int16_t servo_7;
+} servos_t;
+
+typedef struct __attribute__((packed)) {
     imu_raw_t imu_raw;
     imu_all_raw_t imu_all;
     gps_t gps;
@@ -131,6 +142,7 @@ typedef struct __attribute__((packed)) {
     ahrs_double_t ahrs_double;
     rc_t rc;
     airspeed_t airspeed_raw;
+    servos_t servos_raw;
 } lisa_messages_t;
 
 typedef struct __attribute__((packed)) {
@@ -142,15 +154,7 @@ typedef struct __attribute__((packed)) {
     double elev;
 } actuators_t;
 
-typedef struct __attribute__((packed)) {
-    int16_t servo_1;
-    int16_t servo_2;
-    int16_t servo_3;
-    int16_t servo_4;
-    int16_t servo_5;
-    int16_t servo_6;
-    int16_t servo_7;
-} servo_message_t;
+
 
 typedef struct __attribute__((packed)){
     uint8_t checksum1;
@@ -159,10 +163,9 @@ typedef struct __attribute__((packed)){
 
 typedef struct __attribute__((packed)){
     uint8_t startbyte;
-    lisa_header_t header;
-    servo_message_t servos_msg;
+    servos_t servos_msg;
     checksum_t checksums;
-}lisa_message_t;
+}lisa_actuators_t;
 
 
 
