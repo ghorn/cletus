@@ -16,15 +16,15 @@ typedef sbp_heartbeat_t piksi_heartbeat_t;
 
 
 typedef struct __attribute__((packed)){
-    uint8_t reserved:5;
     uint8_t fix_status:3;
+    uint8_t reserved:5;
 } piksi_baseline_status_t;
 
 
 typedef struct __attribute__((packed)){
-    uint8_t reserved:4;
-    uint8_t height_status:1;
     uint8_t fix_status:3;
+    uint8_t height_status:1;
+    uint8_t reserved:4;
 } piksi_position_status_t;
 
 #define PIKSI_STATUS_FLOAT 0

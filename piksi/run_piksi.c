@@ -26,8 +26,8 @@ piksi_heartbeat_t    heartbeat;
 void sbp_pos_llh_callback(u_int16_t sender_id __attribute__((unused)), u_int8_t len __attribute__((unused)), u8 msg[], void *context __attribute__((unused)))
 {
     pos_llh = *(sbp_pos_llh_t *)msg;
-    printf("pos_llh  %.3f\n",
-           1e-3*((double)pos_llh.tow));
+    printf("pos_llh  %.3f, %d\n",
+           1e-3*((double)pos_llh.tow), pos_llh.flags);
 }
 void sbp_heartbeat_callback(u_int16_t sender_id __attribute__((unused)), u_int8_t len __attribute__((unused)), u8 msg[], void *context __attribute__((unused)))
 {
