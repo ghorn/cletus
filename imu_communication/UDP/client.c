@@ -15,7 +15,7 @@
  
 #define SERVER_IP "10.42.0.1"
 #define MAXBUF 512  //Max length of buffer
-#define PORT 8888   //The port on which to send data
+#define PORT 8080   //The port on which to send data
  
 int main(void) {
     struct sockaddr_in addr_other;
@@ -47,7 +47,8 @@ int main(void) {
             printf("Failed to send message to host: %s\n", strerror(errno));
             exit(1);
         }
-         
+
+        /*
         //receive a reply and print it
         //clear the buffer by filling null, it might have previously received data
         memset(buf,'\0', MAXBUF);
@@ -57,6 +58,7 @@ int main(void) {
             exit(1);
         } 
         puts(buf);
+        */
     } 
     close(udp_socket);
     return 0;
