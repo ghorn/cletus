@@ -21,12 +21,12 @@ int main (int argc, char** argv) {
     for(int i = 0;i < numOfSamples ; i++) {
         // Do one measurement
         sensorvalues = mpu9150.getSensorValues(ACCEL_TYPE);
-        /*
         // Measure the interval between 2 samples
         gettimeofday(&endTime, 0);
         float neededSeconds = (endTime.tv_sec - startTime.tv_sec) + 0.000001 * (endTime.tv_usec - startTime.tv_usec);
         printf("%f;%i;%i;%i\n", neededSeconds, sensorvalues->compX, sensorvalues->compY, sensorvalues->compZ);
 
+        /*
         // Read data from Accelerometer
         sensorvalues = mpu9150.getSensorValues(ACCEL_TYPE);
         printf("\nAccelerometer Values:\n");
