@@ -15,8 +15,7 @@ int main (int argc, char** argv) {
     // Variables for time measurement
     timeval startTime, endTime;
     // Start time measure
-    gettimeofday(&startTime, 0);
-    
+    gettimeofday(&startTime, 0); 
     for(int i = 0;i < numOfSamples ; i++) {
         // Do one receive operation
         int16_t value = my_udp.receiveUDP();

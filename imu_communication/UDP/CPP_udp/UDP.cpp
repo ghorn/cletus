@@ -35,17 +35,21 @@ void UDP::initUDP() {
     printf("Failed to bind socket to port: %s\n", strerror(errno));
     exit(1);
     }
+    printf("Socket initialized\n");
 }
 
 int16_t UDP::receiveUDP() {
     char buf[MAXBUF] = {0};
-     // try to receive some data ( blocking! )
-     if ((_recv_len = recvfrom(_udp_socket, buf, MAXBUF, 0, (struct sockaddr *)&_addr_other, (socklen_t*)&_socketlen)) == -1) {
+    // try to receive some data ( blocking! )
+    printf("Trying to receive message...");
+    fflush(stdout);
+
+    if ((_recv_len = recvfrom(_udp_socket, buf, MAXBUF, 0, (struct sockaddr *)&_addr_other, (socklen_t*)&_socketlen)) == -1) {
         printf("Failed to receive udp data: %s\n", strerror(errno));
         exit(1);
      }
      //if (inet_ntoa(_addr_other.sin_addr) == SENDER_IP) {
-        printf("Received packet: %i", atoi(buf));
+     //printf("Received packet: %i", atoi(buf));
      //} else {
      //   printf("Received from wrong IP-Address: %s\n", inet_ntoa(_addr_other.sin_addr));
      //}

@@ -49,6 +49,8 @@ int main(void)
         printf("Waiting for data...");
         fflush(stdout);
          
+        // Erase the content of the buffer
+        memset(buf,'\0', MAXBUF);
         // try to receive some data ( blocking! )
         if ((recv_len = recvfrom(udp_socket, buf, MAXBUF, 0, (struct sockaddr *)&addr_other, &socketlen)) == -1)
         {
