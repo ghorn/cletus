@@ -26,7 +26,7 @@ typedef struct timespec timespec;
 
 #define NSEC_PER_SEC    (1000000000) /* The number of nsecs per sec. */
 #define DEFAULT_RT_PRIORITY 48
-#define DEFAULT_RT_FREQUENCY 100
+#define DEFAULT_RT_FREQUENCY 400
 
 #define LED_PATH_0 "/sys/class/leds/beaglebone:green:usr0/brightness"
 #define LED_PATH_1 "/sys/class/leds/beaglebone:green:usr1/brightness"
