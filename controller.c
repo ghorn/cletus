@@ -55,7 +55,7 @@ void run_demo_controller(const Protobetty__Sensors* const y, Protobetty__Actuato
     }
     Protobetty__Timestamp timestamp;
     get_protbetty_timestamp(&timestamp);
-    u->timestamp_actuators = &timestamp;
+    u->timestamp = &timestamp;
 
 }
 
