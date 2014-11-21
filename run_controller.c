@@ -136,11 +136,11 @@ int main(int argc __attribute__((unused)),
     zsock_sensors = setup_zmq_receiver(SENSORS_CHAN, &zctx, ZMQ_SUB, NULL, 1, 500);
 #endif
     if (NULL == zsock_sensors)
-        return 1;
+        die(1);
     zsock_actuators = setup_zmq_sender(ACTUATORS_CHAN, &zctx, ZMQ_PUB, 1, 500);
     if (NULL == zsock_actuators)
         die(1);
-    zsock_log = setup_zmq_sender(LOG_CHAN, &zctx, ZMQ_PUB, 1000, 100000);
+    zsock_log = setup_zmq_sender(LOG_CHAN, &zctx, ZMQ_PUSH, 1000, 100000);
     if (NULL == zsock_log)
         die(1);
     zsock_print = setup_zmq_sender(PRINT_CHAN, &zctx, ZMQ_PUSH, 100, 500);
@@ -150,53 +150,25 @@ int main(int argc __attribute__((unused)),
 
 
 
-    zmq_pollitem_t polls[] = {
-
-        {
-            .socket=zsock_sensors,
-            .fd=-1,
-            .events= ZMQ_POLLIN,
-            .revents=0
-        },
-        {
-            /* Outputs (our socket to send data to the actuators and the
-                                                                               * logger socket) */
-            .socket = zsock_actuators,
-            .fd = -1,
-            /* 'events' would be ZMQ_POLLOUT, but we'll wait till we have
-                                                                                   * something to send*/
-            .events = 0,
-            .revents = 0
-        },
-        {
-            .socket = zsock_log,
-            .fd = -1,
-            .events = 0,
-            .revents = 0
-        }
+    zmq_pollitem_t poll_sensors = {
+        .socket=zsock_sensors,
+        .fd=-1,
+        .events= ZMQ_POLLIN,
+        .revents=0
     };
-
-    //Pollitem for sensors
-    zmq_pollitem_t* poll_sensors = &polls[0];
-    //Pollitem for actuators
-    zmq_pollitem_t* poll_actuators = &polls[1];
-    //Pollitem flor logging
-    zmq_pollitem_t* poll_log = &polls[2];
-
 
     uint8_t* zmq_buffer = alloc_workbuf(PROTOBETTY__MESSAGE__CONSTANTS__MAX_MESSAGE_SIZE); // Input data container for bytes
 
     //Placeholders for PROTOBUF data
+    Protobetty__LogMessage log_msg = PROTOBETTY__LOG_MESSAGE__INIT;
+    log_msg.process = PROTOBETTY__LOG_MESSAGE__PROCESS__Controller;
     Protobetty__Sensors *sensors_ptr;         // Sensors
     Protobetty__Actuators actuators = PROTOBETTY__ACTUATORS__INIT;
     Protobetty__Timestamp actuators_timstamp = PROTOBETTY__TIMESTAMP__INIT;
-    //    TimestampProto actuators_timstamp_stop = TIMESTAMP_PROTO__INIT;
-    actuators.timestamp_actuators = &actuators_timstamp;
-    //    actuators.stop = &actuators_timstamp_stop;
+    actuators.timestamp = &actuators_timstamp;
 
 
 
-    const u_int8_t npolls = sizeof(polls) / sizeof(polls[0]);
     unsigned int packed_length;
 
     clock_gettime(CLOCK_MONOTONIC ,&t);
@@ -218,7 +190,7 @@ int main(int argc __attribute__((unused)),
         /* wait until next shot */
         clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, &t, NULL);
         /* Poll for activity; time out after 10 milliseconds. */
-        const int polled = zmq_poll(polls, npolls, 10);
+        const int polled = zmq_poll(&poll_sensors, 1, 10);
         if (polled < 0) {
             if (bail) die(bail);
             zerr("while polling");
@@ -233,10 +205,9 @@ int main(int argc __attribute__((unused)),
 
 
         if (bail) die(bail);
-        if (poll_sensors->revents & ZMQ_POLLIN) {
+        if (poll_sensors.revents & ZMQ_POLLIN) {
             const int zmq_received = zmq_recvm(zsock_sensors, zmq_buffer,
                                                PROTOBETTY__MESSAGE__CONSTANTS__MAX_MESSAGE_SIZE);
-
             sensors_ptr = protobetty__sensors__unpack(NULL, zmq_received, zmq_buffer);
             if (sensors_ptr != NULL)
             {
@@ -291,33 +262,30 @@ int main(int argc __attribute__((unused)),
                            actuators.ail,
                            actuators.elev);
 #endif
-                poll_actuators->events = ZMQ_POLLOUT;
-                poll_log->events = ZMQ_POLLOUT;
             }
             /* Clear the poll state. */
-            poll_sensors->revents = 0;
-        }
+            poll_sensors.revents = 0;
 
-        if (bail) die(bail);
-        if (poll_actuators->revents & ZMQ_POLLOUT) {
-            get_protbetty_timestamp(actuators.timestamp_actuators);
+            if (bail) die(bail);
+            get_protbetty_timestamp(actuators.timestamp);
             packed_length = protobetty__actuators__get_packed_size(&actuators); //
             protobetty__actuators__pack(&actuators, zmq_buffer);
-            const int zs = zmq_send(zsock_actuators,zmq_buffer, packed_length,0);
-            if (zs < 0) {
+            const int zs_act = zmq_send(zsock_actuators,zmq_buffer, packed_length,0);
+            if (zs_act < 0) {
                 txfails++;
             } else {
 #ifdef DEBUG
                 send_debug(zsock_print,TAG,"Sent to actuators wit timestamp %f",
-                           floating_ProtoTime(actuators.timestamp_actuators));
-#endif
-                /* Clear the events flag so we won't try to send until we
-                   * have more data. */
-                poll_actuators->events = 0;
-                /* calculate next shot */
-
+                           floating_ProtoTime(actuators.timestamp));
+#endif                
             }
-            poll_actuators->revents = 0;
+            log_msg.actuators = &actuators;
+            packed_length = protobetty__log_message__get_packed_size(&log_msg); //
+            protobetty__log_message__pack(&log_msg, zmq_buffer);
+            const int zs_log = zmq_send(zsock_log,zmq_buffer, packed_length,ZMQ_NOBLOCK);
+            if (zs_log < 0) {
+                txfails++;
+            }
         }
         calc_next_shot(&t,rt_interval);
 
