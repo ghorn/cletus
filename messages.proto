@@ -82,6 +82,10 @@ message Airspeed{
 }
 
 message Servos {
+enum Direction {
+  BONE2LISA = 1;
+  LISA2BONE = 2;
+  }
     required int32 servo1 = 1;
     required int32 servo2 = 2;
     required int32 servo3 = 3;
@@ -90,6 +94,8 @@ message Servos {
     required int32 servo6 = 6;
     required int32 servo7 = 7;
     required Timestamp timestamp = 8;
+    optional Timestamp timestamp_controller = 9;
+    required Direction direction = 10;
 }
 
 

@@ -231,6 +231,7 @@ int main(int argc __attribute__((unused)),
     protobetty__log_message__init(&log_data);
     Protobetty__Servos servos = PROTOBETTY__SERVOS__INIT;
     Protobetty__Timestamp servo_timestamp = PROTOBETTY__TIMESTAMP__INIT;
+    servos.direction = PROTOBETTY__SERVOS__DIRECTION__LISA2BONE;
     servos.timestamp = &servo_timestamp;
 
 
