@@ -176,11 +176,19 @@ enum Type {
  }
 
 message LogMessage {
-  optional Sensors sensors = 1;
-  optional Actuators actuators = 2;
-  optional Rc rc = 3;
-  optional GpsLLH gps_llh = 4;
-  optional Servos servos = 5;
+enum Process
+{
+    Sensors = 1;
+    Controller = 2;
+    Estimator = 3;
+    Actuators = 4;
+}
+  required Process process = 1 [default = Sensors];
+  optional Sensors sensors = 2;
+  optional Actuators actuators = 3;
+  optional Rc rc = 4;
+  optional GpsLLH gps_llh = 5;
+  optional Servos servos = 6;
 }
 
 
