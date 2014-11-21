@@ -1,5 +1,5 @@
 // Copyright 2014, University of Freiburg
-// Systemtheory Lab
+// Systems Theory Lab
 // Author: Elias Rosch <eliasrosch@googlemail.com>
 
 #include <sys/time.h>

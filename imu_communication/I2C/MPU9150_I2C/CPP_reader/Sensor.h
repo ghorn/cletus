@@ -1,5 +1,5 @@
 // Copyright 2014, University of Freiburg
-// Systemtheory Lab
+// Systems Theory Lab
 // Author: Elias Rosch <eliasrosch@googlemail.com>
 
 #ifndef CPP_READER_SENSOR_H
@@ -78,6 +78,9 @@ struct SensorValues {
  */
 class Sensor {
     public:
+        // Constructor/Destructor
+        Sensor();
+        ~Sensor();
         // Functions to communicate with the Sensors
         void initI2C(char accel_gyro_address, char mag_address);
         
