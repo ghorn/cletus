@@ -121,7 +121,7 @@ required Type type = 1;
 }
 
 message Actuators {
-  required Timestamp timestamp_actuators = 1;
+  required Timestamp timestamp = 1;
   optional Timestamp timestamp_sensors = 2;
   required double flaps = 3;
   required double ail = 4;
