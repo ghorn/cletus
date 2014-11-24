@@ -24,7 +24,8 @@ C_SRC = run_uart.c \
 	run_logger.c \
         piksi/piksi.c \
         piksi/fifo.c \
-        ftdi_device.c
+        ftdi_device.c \
+        lisa.c
 
 
 
