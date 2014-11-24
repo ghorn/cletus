@@ -233,11 +233,6 @@ int main(int argc __attribute__((unused)),
     unsigned int packed_length;
 
 
-    lisa_messages_t data_container;
-    lisa_messages_t* const data_ptr = &data_container;
-
-
-
     clock_gettime(CLOCK_MONOTONIC ,&t);
     /* start after one second */
     t.tv_sec++;
@@ -268,6 +263,7 @@ int main(int argc __attribute__((unused)),
     piksi_register_position_llh_callback(&piksi_pos_llh_callback);
 
 
+
     lisa_flush_buffers();
     piksi_flush_buffers();
     //When sensor data is in circular buffer
@@ -278,7 +274,7 @@ int main(int argc __attribute__((unused)),
         if (bail) die(bail);
         if (retval > 0)
         {
-             uint8_t msg_length = buffer[LISA_INDEX_MSG_LENGTH];
+            uint8_t msg_length = buffer[LISA_INDEX_MSG_LENGTH];
             if (bail) die(bail);
             //messages are never longer than 64 bytes
             if ((msg_length < LISA_MAX_MSG_LENGTH) && (msg_length > 0))
@@ -295,94 +291,107 @@ int main(int argc __attribute__((unused)),
                         switch (buffer[LISA_INDEX_MSG_ID])
                         {
                         case IMU_ALL_SCALED:
-                            memcpy(&data_ptr->imu_all,&buffer[LISA_INDEX_MSG_LENGTH], sizeof(imu_all_raw_t));
-                            scaled_to_protobuf(&(data_ptr->imu_all.accel), accel.data, acc_scale_unit_coef);
-                            scaled_to_protobuf(&(data_ptr->imu_all.gyro), gyro.data, gyro_scale_unit_coef);
-                            scaled_to_protobuf(&(data_ptr->imu_all.mag), mag.data, mag_scale_unit_coef);
+                        {
+                            const imu_all_raw_t* data_ptr = (imu_all_raw_t*)(&buffer[LISA_INDEX_MSG_LENGTH]);
+                            scaled_to_protobuf(&(data_ptr->accel), accel.data, acc_scale_unit_coef);
+                            scaled_to_protobuf(&(data_ptr->gyro), gyro.data, gyro_scale_unit_coef);
+                            scaled_to_protobuf(&(data_ptr->mag), mag.data, mag_scale_unit_coef);
                             get_protbetty_timestamp(accel.timestamp);
                             gyro.timestamp = mag.timestamp= accel.timestamp;
                             sensors.accel = &accel;
                             sensors.gyro = &gyro;
                             sensors.mag = &mag;
                             send_debug(zsock_print,TAG,"Received IMU_ALL (ID:%u; SeqNo: %u) and timestamp %f sec (Latency:%fms)\nACCEL: X: %f\t Y: %f\t Z: %f \nGYRO: X: %f\t Y: %f\t Z: %f \nMAG: X: %f\t Y: %f\t Z: %f ",
-                                       data_ptr->imu_all.header.msg_id,
-                                       data_ptr->imu_all.sequence_number,
+                                       data_ptr->header.msg_id,
+                                       data_ptr->sequence_number,
                                        floating_ProtoTime(accel.timestamp),
                                        calcCurrentLatencyProto(accel.timestamp)*1e3,
                                        accel.data->x, accel.data->y, accel.data->z,
                                        gyro.data->x, gyro.data->y, gyro.data->z,
                                        mag.data->x, mag.data->y, mag.data->z);
                             break;
+                        }
                         case IMU_ACCEL_SCALED:
-                            memcpy(&data_ptr->imu_raw,&buffer[LISA_INDEX_MSG_LENGTH], sizeof(imu_raw_t));
-                            scaled_to_protobuf(&(data_ptr->imu_raw.data), accel.data, acc_scale_unit_coef);
+                        {
+                            const imu_raw_t* data_ptr = (imu_raw_t*)&buffer[LISA_INDEX_MSG_LENGTH];
+                            scaled_to_protobuf(&(data_ptr->data), accel.data, acc_scale_unit_coef);
                             get_protbetty_timestamp(accel.timestamp);
                             sensors.accel = &accel;
                             send_debug(zsock_print,TAG,"Received ACCEL (ID:%u) and timestamp %f sec (Latency:%fms)\n X: %f\t Y: %f\t Z: %f ",
-                                       data_ptr->imu_raw.header.msg_id,
+                                       data_ptr->header.msg_id,
                                        floating_ProtoTime(accel.timestamp),
                                        calcCurrentLatencyProto(accel.timestamp)*1e3,
                                        accel.data->x, accel.data->y, accel.data->z);
                             break;
+                        }
                         case IMU_GYRO_SCALED:
-                            memcpy(&data_ptr->imu_raw,&buffer[LISA_INDEX_MSG_LENGTH], sizeof(imu_raw_t));
-                            scaled_to_protobuf(&(data_ptr->imu_raw.data), gyro.data, gyro_scale_unit_coef);
+                        {
+                            const imu_raw_t* data_ptr = (imu_raw_t*)&buffer[LISA_INDEX_MSG_LENGTH];
+                            scaled_to_protobuf(&(data_ptr->data), gyro.data, gyro_scale_unit_coef);
                             get_protbetty_timestamp(gyro.timestamp);
                             sensors.gyro = &gyro;
                             send_debug(zsock_print,TAG,"Received GYRO (ID:%u) and timestamp %f sec (Latency:%fms)\n X: %f\t Y: %f\t Z: %f ",
-                                       data_ptr->imu_raw.header.msg_id,
+                                       data_ptr->header.msg_id,
                                        floating_ProtoTime(gyro.timestamp),
                                        calcCurrentLatencyProto(gyro.timestamp)*1e3,
                                        gyro.data->x, gyro.data->y, gyro.data->z);
                             break;
-
+}
                         case IMU_MAG_SCALED:
-                            memcpy(&data_ptr->imu_raw,&buffer[LISA_INDEX_MSG_LENGTH], sizeof(imu_raw_t));
-                            scaled_to_protobuf(&(data_ptr->imu_raw.data), mag.data, mag_scale_unit_coef);
+                        {
+                            const imu_raw_t* data_ptr = (imu_raw_t*)&buffer[LISA_INDEX_MSG_LENGTH];
+                            scaled_to_protobuf(&(data_ptr->data), mag.data, mag_scale_unit_coef);
                             get_protbetty_timestamp(mag.timestamp);
                             sensors.mag = &mag;
                             send_debug(zsock_print,TAG,"Received MAG (ID:%u) and timestamp %f sec (Latency:%fms)\n X: %f\t Y: %f\t Z: %f",
-                                       data_ptr->imu_raw.header.msg_id,
+                                       data_ptr->header.msg_id,
                                        floating_ProtoTime(gyro.timestamp),
                                        calcCurrentLatencyProto(gyro.timestamp)*1e3,
                                        mag.data->x, mag.data->y, mag.data->z);
                             break;
+                        }
                         case AIRSPEED_ETS:
-                            memcpy(&data_ptr->airspeed_raw,&buffer[LISA_INDEX_MSG_LENGTH], sizeof(airspeed_t));
-                            airspeed.scaled = data_ptr->airspeed_raw.scaled;
+                        {
+                            const airspeed_t* data_ptr = (airspeed_t*)&buffer[LISA_INDEX_MSG_LENGTH];
+                            airspeed.scaled = data_ptr->scaled;
                             get_protbetty_timestamp(airspeed.timestamp);
                             sensors.airspeed = &airspeed;
                             send_debug(zsock_print,TAG,"Received AIRSPEED (ID:%u) and timestamp %f sec (Latency:%fms) ",
-                                       data_ptr->airspeed_raw.header.msg_id,
+                                       data_ptr->header.msg_id,
                                        floating_ProtoTime(airspeed.timestamp),
                                        calcCurrentLatencyProto(airspeed.timestamp)*1e3);
                             break;
+                        }
                         case ROTORCRAFT_RADIO_CONTROL:
-                            memcpy(&data_ptr->rc,&buffer[LISA_INDEX_MSG_LENGTH], sizeof(rc_t));
-                            rc.rcyaw = data_ptr->rc.yaw;
-                            rc.rcthrottle = data_ptr->rc.throttle;
-                            rc.rcpitch = data_ptr->rc.pitch;
-                            rc.rcroll = data_ptr->rc.roll;
-                            rc.rckill = data_ptr->rc.kill;
+                        {
+                            const rc_t* data_ptr = (rc_t*) &buffer[LISA_INDEX_MSG_LENGTH];
+                            rc.rcyaw = data_ptr->yaw;
+                            rc.rcthrottle = data_ptr->throttle;
+                            rc.rcpitch = data_ptr->pitch;
+                            rc.rcroll = data_ptr->roll;
+                            rc.rckill = data_ptr->kill;
                             get_protbetty_timestamp(rc.timestamp);
                             log_data.rc = &rc;
                             send_debug(zsock_print,TAG,"Received RC (ID:%u) and timestamp %f sec (Latency:%fms) ",
-                                       data_ptr->rc.header.msg_id,
+                                       data_ptr->header.msg_id,
                                        floating_ProtoTime(rc.timestamp),
                                        calcCurrentLatencyProto(rc.timestamp)*1e3);
                             break;
+                        }
                         case SERVO_COMMANDS:
-                            memcpy(&data_ptr->servos_raw,&buffer[LISA_INDEX_MSG_LENGTH], sizeof(servos_t));
-                            servos.servo1 = data_ptr->servos_raw.servo_1;
-                            servos.servo2 = data_ptr->servos_raw.servo_2;
-                            servos.servo3 = data_ptr->servos_raw.servo_3;
-                            servos.servo4 = data_ptr->servos_raw.servo_4;
-                            servos.servo5 = data_ptr->servos_raw.servo_5;
-                            servos.servo6 = data_ptr->servos_raw.servo_6;
-                            servos.servo7 = data_ptr->servos_raw.servo_7;
+                        {
+                            const servos_t* data_ptr =(servos_t*) &buffer[LISA_INDEX_MSG_LENGTH];
+                            servos.servo1 = data_ptr->servo_1;
+                            servos.servo2 = data_ptr->servo_2;
+                            servos.servo3 = data_ptr->servo_3;
+                            servos.servo4 = data_ptr->servo_4;
+                            servos.servo5 = data_ptr->servo_5;
+                            servos.servo6 = data_ptr->servo_6;
+                            servos.servo7 = data_ptr->servo_7;
                             get_protbetty_timestamp(servos.timestamp);
                             log_data.servos = &servos;
                             break;
+                        }
                         default:
                             break;
                         }
