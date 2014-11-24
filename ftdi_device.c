@@ -1,7 +1,7 @@
 #include "ftdi_device.h"
 #include <stdio.h>
 #include <stdlib.h>
-#include <libftdi1/ftdi.h>
+#include "libftdi/src/ftdi.h"
 
 typedef struct ftdi_context* ftdi_ptr;
 
