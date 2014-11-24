@@ -3,10 +3,12 @@ PROJ =  run_piksi
 
 C_SRC = run_piksi.c \
         piksi.c \
-        fifo.c
+        fifo.c \
+        ../ftdi_device.c
 
 
-LIBS = -Llibswiftnav/build/src -lswiftnav-static
+
+LIBS = -Llibswiftnav/build/src -lswiftnav-static -L../libftdi/build/src -lftdi1
 
 Q ?= @
 
@@ -16,7 +18,7 @@ Q ?= @
 UNAME := $(shell uname)
 
 LDFLAGS = $(LIBS)
-INCLUDES = -Ilibswiftnav/include
+INCLUDES = -Ilibswiftnav/include -I../libftdi/include
 
 #CFLAGS = -O3 -Wall -Wextra -Werror -std=gnu99 -Wimplicit -Wshadow -Wswitch-default -Wswitch-enum -Wundef -Wuninitialized -Wpointer-arith -Wstrict-prototypes -Wmissing-prototypes -Wcast-align -Wformat=2 -Wimplicit-function-declaration -Wredundant-decls -Wformat-security  -Werror -Os -march=native -ftree-vectorize -flto -fPIC -D_FORTIFY_SOURCE=2 -fstack-protector-all -fno-strict-overflow   -g -ftrapv
 

@@ -81,7 +81,7 @@ static void __attribute__((noreturn)) die(int code) {
 
 
     serial_port_close();
-    close_serial_port();
+    close_piksi_connection();
 
 
     printf("%d TX fails; %d RX fails.\n", txfails, rxfails);
@@ -137,8 +137,7 @@ int main(int argc __attribute__((unused)),
     if (err != UART_ERR_NONE)
         printf("Error setting up UART \n");
     //Init Piksi
-    const char * const portname = "/dev/ttyUSB0";
-    open_serial_port(portname, B1000000, 0, 1 ); // set speed to 1,000,000 bps, 8n1 (no parity) set blocking
+    open_piksi_connection();
     init_message_processing(PROTOBETTY__MESSAGE__CONSTANTS__MAX_MESSAGE_SIZE);
 
 

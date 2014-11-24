@@ -23,7 +23,8 @@ C_SRC = run_uart.c \
 	sim_uart.c \
 	run_logger.c \
         piksi/piksi.c \
-        piksi/fifo.c
+        piksi/fifo.c \
+        ftdi_device.c
 
 
 
@@ -31,7 +32,7 @@ CXX_SRC = \
 #	main.cpp \
 #	parsing.cpp
 
-LIBS = $(shell pkg-config --libs libzmq) $(shell pkg-config --libs libprotobuf-c)-lm -lrt -lprotobuf  -pthread -Lpiksi/libswiftnav/build/src -lswiftnav-static 
+LIBS = $(shell pkg-config --libs libzmq) $(shell pkg-config --libs libprotobuf-c)-lm -lrt -lprotobuf  -pthread -Lpiksi/libswiftnav/build/src -lswiftnav-static -Llibftdi/build/src -lftdi1
 
 Q ?= @
 
@@ -51,7 +52,7 @@ HS_PROTOS = hs/src/Messages.hs
 UNAME := $(shell uname)
 
 LDFLAGS = $(LIBS)
-INCLUDES = -I./protos_c
+INCLUDES = -I./protos_c -I./libftdi/include
 
 
 ifeq ($(UNAME),Darwin)
