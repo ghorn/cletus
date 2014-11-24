@@ -14,7 +14,7 @@
 #define PIKSI_DEVICE 1
 #define PIKSI_BIT_TYPE 8
 #define PIKSI_PARITY 0
-#define PIKSI_LATENCY 2
+#define PIKSI_LATENCY 1
 #define PIKSI_READ_CHUNKSIZE 512
 #define PIKSI_WRITE_CHUNKSIZE 512
 
@@ -182,8 +182,12 @@ int piksi_read_message(int* exit)
 
     int ret;
     do {
-    ret = sbp_process(&piksi.state, &piksi_read_data);
-    } while (ret != 0);
+        ret = sbp_process(&piksi.state, &piksi_read_data);
+        if (*exit)
+            return 0;
+    } while (ret == 0);
+    if (ret < 0)
+        printf("Piksi process Error %d", ret);
     return ret;
 }
 
