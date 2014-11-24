@@ -128,7 +128,7 @@ int main(){
             printf("sbp_process error: %d\n", (int)ret);
             //return ret;
         }
-        sleep(2);
+        usleep(2);
         if (bail) die(bail);
 
     }

@@ -10,13 +10,13 @@
 #include "../ftdi_device.h"
 #include "fifo.h"
 
-#define PIKSI_BAUDRATE B115200
+#define PIKSI_BAUDRATE 115200
 #define PIKSI_DEVICE 1
 #define PIKSI_BIT_TYPE 8
 #define PIKSI_PARITY 0
-#define PIKSI_LATENCY 1
-#define PIKSI_READ_CHUNKSIZE 4096
-#define PIKSI_WRITE_CHUNKSIZE 4096
+#define PIKSI_LATENCY 2
+#define PIKSI_READ_CHUNKSIZE 512
+#define PIKSI_WRITE_CHUNKSIZE 512
 
 /*
  * SBP callback nodes must be statically allocated. Each message ID / callback
