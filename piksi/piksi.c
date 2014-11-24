@@ -177,7 +177,7 @@ int piksi_flush_buffers(void)
 }
 
 
-int piksi_read_message(void)
+int piksi_read_message(int* exit)
 {
 
     int ret;

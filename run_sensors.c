@@ -401,7 +401,7 @@ int main(int argc __attribute__((unused)),
 
 
         //Get piksi messages
-        piksi_read_message();
+        piksi_read_message(&bail);
 
 
 

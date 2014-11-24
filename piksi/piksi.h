@@ -45,7 +45,7 @@ int piksi_register_heartbeat_callback(void* callback);
 int piksi_register_dops_callback(void* callback);
 int piksi_open_connection(void);
 void piksi_close_connection(void);
-int piksi_read_message(void);
+int piksi_read_message(int *exit);
 void piksi_init_message_processing(int buffer_size);
 int piksi_flush_buffers(void);
 
