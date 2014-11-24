@@ -16,8 +16,12 @@ double floating_time(const timestamp_t * const t) {
     return (double)t->tsec + ((double)t->tnsec)/1e9;
 }
 
-double floating_ProtoTime(const Protobetty__Timestamp * const t) {
+double floating_ProtoTime(const Protobetty__Timestamp * const t __attribute__((unused))) {
+#ifdef DEBUG
     return (double)t->tsec + ((double)t->tnsec)/1e9;
+#else
+    return 0;
+#endif
 }
 
 void gettime(timestamp_t * const t) {
@@ -40,10 +44,14 @@ double calcCurrentLatency(timestamp_t * const ref) {
     return floating_time(&current) - floating_time(ref);
 }
 
-double calcCurrentLatencyProto(Protobetty__Timestamp * const ref) {
+double calcCurrentLatencyProto(Protobetty__Timestamp * const ref __attribute__((unused))) {
+#ifdef DEBUG
     timestamp_t current;
     gettime(&current);
     return floating_time(&current) - floating_ProtoTime(ref);
+#else
+    return 0;
+#endif
 }
 
 
