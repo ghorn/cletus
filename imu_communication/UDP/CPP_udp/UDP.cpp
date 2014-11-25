@@ -50,27 +50,30 @@ void UDP::initUDP(const char* other_ip, unsigned short other_port, unsigned shor
 }
 
 int16_t UDP::receiveUDP() {
-    char buf[MAXBUF] = {0};
+    int16_t value = 0;
     // try to receive some data ( blocking! )
     printf("Trying to receive message...");
     fflush(stdout);
 
 
-    if ((_recv_len = recvfrom(_udp_socket, buf, MAXBUF, 0, (struct sockaddr *)&_recv_addr, (socklen_t*)&_socketlen)) == -1) {
+    if ((_recv_len = recvfrom(_udp_socket, &value, sizeof(value), 0, (struct sockaddr *)&_recv_addr, (socklen_t*)&_socketlen)) == -1) {
         printf("Failed to receive udp data: %s\n", strerror(errno));
         exit(1);
      }
      if (inet_ntoa(_recv_addr.sin_addr) != inet_ntoa(_addr_other.sin_addr)) {
         printf("Received from wrong IP-Address: %s\n", inet_ntoa(_recv_addr.sin_addr));
      }
-     return (int16_t) atoi(buf);
+     // return (int16_t) atoi(buf);
+     return ntohs(value);
 }
 
 void UDP::sendUDP(int16_t value) {
-    char buf[MAXBUF];
-    sprintf(buf, "%i", value);
-    printf("Socket: %i, Length: %i, Socketlength: %i \n", _udp_socket, strlen(buf), _socketlen);
-    if (sendto(_udp_socket, buf, strlen(buf), 0, (struct sockaddr*)&_addr_other, _socketlen) == -1) {
+    value = htons(value);
+    //char buf[MAXBUF];
+    //*((int16_t*)buf) = value;
+    // sprintf(buf, "%i", value);
+    //printf("Socket: %i, Length: %i, Socketlength: %i \n", _udp_socket, strlen(buf), _socketlen);
+    if (sendto(_udp_socket, &value, sizeof(value), 0, (struct sockaddr*)&_addr_other, _socketlen) == -1) {
         printf("Failed to send udp data: %s\n", strerror(errno));
         exit(1);
     }
