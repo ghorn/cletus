@@ -23,9 +23,6 @@
 #include "./protos_c/messages.pb-c.h"
 
 
-#define MAX_MSG_SIZE 512
-
-
 /* ZMQ resources */
 static void *zctx = NULL;
 static void *zsock_sensors = NULL;
@@ -65,7 +62,6 @@ int main(int argc __attribute__((unused)),
     struct timespec t;
     struct sched_param param;
     int rt_interval= 0;
-    printf("%i", argc);
     if (argc == 7)
     {
         char* arg_ptr;
@@ -187,6 +183,7 @@ int main(int argc __attribute__((unused)),
     for (;;) {
         if (bail) die(bail);
 
+
         /* wait until next shot */
         clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, &t, NULL);
         /* Poll for activity; time out after 10 milliseconds. */
@@ -202,6 +199,7 @@ int main(int argc __attribute__((unused)),
             continue;
         }
 
+        printf("test\n");
 
 
         if (bail) die(bail);

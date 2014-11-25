@@ -106,10 +106,14 @@ void * alloc_workbuf(int size)
 
     /* return NULL on failure */
     if (ptr == NULL)
+    {
+        printf("Error in malloc\n");
         return NULL;
+    }
 
     /* lock this buffer into RAM */
     if (mlock(ptr, size)) {
+        printf("Error in mlock\n");
         free(ptr);
         return NULL;
     }

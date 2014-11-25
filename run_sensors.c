@@ -441,7 +441,7 @@ int main(int argc __attribute__((unused)),
             if (zs < 0) {
                 txfails++;
             } else {
-                send_debug(zsock_print,TAG,"IMU sent to controller!, size: %u\n", packed_length);
+                send_debug(zsock_print,TAG,"Message sent to controller!, size: %u\n", packed_length);
             }
             log_data.sensors = &sensors;
             //get size of packed data
@@ -452,7 +452,7 @@ int main(int argc __attribute__((unused)),
             if (zs < 0) {
                 txfails++;
             } else {
-                send_debug(zsock_print,TAG,"IMU sent to controller!, size: %u\n", packed_length);
+                send_debug(zsock_print,TAG,"Message sent to logger!, size: %u\n", packed_length);
             }
             //Resetting
             if (sensors.type == PROTOBETTY__SENSORS__TYPE__IMU_GPS

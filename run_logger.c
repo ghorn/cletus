@@ -145,13 +145,13 @@ int main(int argc __attribute__((unused)),
     ptr_temp_memory = alloc_workbuf(max_mem_size);
     if (ptr_temp_memory == NULL)
     {
-        printf("Error allocating memory!\n");
+        printf("Error allocating memory for logging!\n");
         die(1);
     }
     log_messages = alloc_workbuf(sizeof(Protobetty__LogMessage*)*NUMBER_OF_LOGS);
     if (log_messages == NULL)
     {
-        printf("Error allocating memory!\n");
+        printf("Error allocating memory for receiving messages!\n");
         die(1);
     }
 
