@@ -1,5 +1,5 @@
 CXX = g++ -O3 -Wall -L/usr/local/lib
-MAIN_BINARIES = $(basename $(wildcard *Client.cpp))
+MAIN_BINARIES = $(basename $(wildcard *Client.cpp)) $(basename $(wildcard *Server.cpp))
 TEST_BINARIES = $(basename $(wildcard *Test.cpp))
 HEADER = $(wildcard *.h)
 OBJECTS = $(addsuffix .o, $(basename $(filter-out %Server.cpp %Client.cpp, $(wildcard *.cpp))))
@@ -28,7 +28,7 @@ clean:
 %Client: %Client.o $(OBJECTS)
 	$(CXX) -o $@ $^
 
-%iServer: %Server.o $(OBJECTS)
+%Server: %Server.o $(OBJECTS)
 	$(CXX) -o $@ $^
 
 %Test: %Test.o $(OBJECTS)
