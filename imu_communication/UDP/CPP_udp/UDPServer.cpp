@@ -11,7 +11,7 @@ int main (int argc, char** argv) {
     int numOfSamples = 2000;
     // Declare and initialize the Sensordevice
     UDP my_udp;
-    my_udp.initUDP();
+    my_udp.initUDPServer();
     // Variables for time measurement
     timeval startTime, endTime;
     // Start time measure

@@ -8,6 +8,7 @@
 #include<stdio.h>
 #include<string.h>
 #include<stdlib.h>
+#include<unistd.h>
 #include<errno.h>
 #include<sys/socket.h>
 #include<arpa/inet.h>
@@ -28,7 +29,9 @@ class UDP {
         ~UDP();
 
         // Functions to initialize the UDP communication
-        void initUDP();
+        // Initializes udp-socket that communicates only with
+        // the specified IP-Address and Port
+        void initUDP(const char* other_ip, unsigned short other_port, unsigned short own_port);
         
         // Send 16-Bit-integer via UDP
         void sendUDP(int16_t value);
@@ -37,11 +40,15 @@ class UDP {
         int16_t receiveUDP();
 
         // Close the udp-socket
-        //void closeUDP();
+        void closeUDP();
 
     private:
         struct sockaddr_in _addr_me;
         struct sockaddr_in _addr_other;
+        // A helper is needed to be able to compare the 
+        // address from which the message came with
+        // the address we're listening to
+        struct sockaddr_in _recv_addr;
         int _udp_socket;
         int _socketlen;
         int _recv_len;

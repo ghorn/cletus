@@ -1,8 +1,8 @@
 CXX = g++ -O3 -Wall -L/usr/local/lib
-MAIN_BINARIES = $(basename $(wildcard *Main.cpp))
+MAIN_BINARIES = $(basename $(wildcard *Client.cpp))
 TEST_BINARIES = $(basename $(wildcard *Test.cpp))
 HEADER = $(wildcard *.h)
-OBJECTS = $(addsuffix .o, $(basename $(filter-out %Main.cpp %Test.cpp, $(wildcard *.cpp))))
+OBJECTS = $(addsuffix .o, $(basename $(filter-out %Server.cpp %Client.cpp, $(wildcard *.cpp))))
 CPPLINT_PATH = ../lib/cpplint.py
 
 .PRECIOUS: %.o
@@ -25,7 +25,10 @@ clean:
 	rm -f *Test.TMP.*
 	rm -f core
 
-%Main: %Main.o $(OBJECTS)
+%Client: %Client.o $(OBJECTS)
+	$(CXX) -o $@ $^
+
+%iServer: %Server.o $(OBJECTS)
 	$(CXX) -o $@ $^
 
 %Test: %Test.o $(OBJECTS)

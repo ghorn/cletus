@@ -6,12 +6,16 @@
 #include <iostream>
 #include "./UDP.h"
 
+#define OTHER_IP "10.42.0.1"
+#define OTHER_PORT 8080
+#define OWN_PORT 8080
+
 int main (int argc, char** argv) {
     // Define number of samples
     int numOfSamples = 2000;
     // Declare and initialize the Sensordevice
     UDP my_udp;
-    my_udp.initUDP();
+    my_udp.initUDP(OTHER_IP, OTHER_PORT, OWN_PORT);
     // Variables for time measurement
     timeval startTime, endTime;
     // Start time measure
