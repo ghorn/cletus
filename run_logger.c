@@ -256,6 +256,11 @@ static long safe_to_file(void)
         }
     }
     protobetty__log_container__pack(&log_container,buffer);
+    //Free unpacked memory
+    for (uint64_t i = 0; i < counter_log_messages; i++)
+    {
+        protobetty__log_message__free_unpacked(log_messages[i], NULL);
+    }
     //write bytewise data to file
     send_debug(zsock_print, TAG, "Writing data to file ...\n");
     printf("Writing data to file ...");
@@ -268,6 +273,7 @@ static long safe_to_file(void)
     send_debug(zsock_print, TAG, "Finsihed writing. Closing File.");
     printf("Finsihed writing. Closing File.\n");
     free_workbuf(buffer,packed_size);
+
 
     fclose(ptr_myfile);
 
