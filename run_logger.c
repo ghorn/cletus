@@ -49,11 +49,15 @@ int txfails = 0, rxfails = 0;
 
 static void __attribute__((noreturn)) die(int code) {
 
-    send_info(zsock_print,TAG,"Starting Logging now....");
-    safe_to_file();
-    send_info(zsock_print,TAG,"Finished Logging");
+    if (counter_log_messages > 0)
+    {
+        send_info(zsock_print,TAG,"Starting Logging now....");
+        safe_to_file();
+        send_info(zsock_print,TAG,"Finished Logging");
+    }
 
     free_workbuf(ptr_temp_memory, NUMBER_OF_LOGS*PROTOBETTY__MESSAGE__CONSTANTS__MAX_MESSAGE_SIZE);
+    free_workbuf(log_messages,sizeof(Protobetty__LogMessage*)*NUMBER_OF_LOGS);
     zdestroy(zsock_print, NULL);
     zdestroy(zsock_logs, NULL);
     printf("%d TX fails; %d RX fails.\n", txfails, rxfails);
@@ -104,10 +108,6 @@ int main(int argc __attribute__((unused)),
         rt_interval = (NSEC_PER_SEC/DEFAULT_RT_FREQUENCY);
     }
     stack_prefault();
-
-
-
-
 
 
     setbuf(stdin, NULL);
@@ -230,7 +230,7 @@ static long safe_to_file(void)
     timestamp_t timestamp;
     gettime(&timestamp);
     char filename[50];
-    snprintf(filename, sizeof(filename),"%"PRIu64"_logdata.bin",timestamp.tsec);
+    snprintf(filename, sizeof(filename),"cletus_logdata_%"PRIu64".bin",timestamp.tsec);
     ptr_myfile=fopen(filename,"wb");
     if (!ptr_myfile)
     {
@@ -244,6 +244,17 @@ static long safe_to_file(void)
     // back it to buffer
     const uint64_t packed_size = protobetty__log_container__get_packed_size(&log_container);
     uint8_t* buffer = alloc_workbuf(packed_size);
+    if (buffer == NULL)
+    {
+        printf("Could not allocate enough memory.\nClose all application and press return!\n");
+        getchar();
+        buffer = alloc_workbuf(packed_size);
+        if (buffer == NULL)
+        {
+            printf("Still not enough space. Exiting!\n");
+            exit(EXIT_FAILURE);
+        }
+    }
     protobetty__log_container__pack(&log_container,buffer);
     //write bytewise data to file
     send_debug(zsock_print, TAG, "Writing data to file ...\n");
@@ -259,6 +270,14 @@ static long safe_to_file(void)
     free_workbuf(buffer,packed_size);
 
     fclose(ptr_myfile);
+
+
+    printf("----------------------------\n");
+    printf("Number of messages: \t %"PRIu64" \n", counter_log_messages);
+    printf("Filename: \t %s \n", filename);
+
+
+
 
     return packed_size;
 
