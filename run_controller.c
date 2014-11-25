@@ -199,9 +199,6 @@ int main(int argc __attribute__((unused)),
             continue;
         }
 
-        printf("test\n");
-
-
         if (bail) die(bail);
         if (poll_sensors.revents & ZMQ_POLLIN) {
             const int zmq_received = zmq_recvm(zsock_sensors, zmq_buffer,
