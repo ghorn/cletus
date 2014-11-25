@@ -12,8 +12,9 @@
 #include<sys/socket.h>
 #include<arpa/inet.h>
 
-#define MAXBUF 10
+#define MAXBUF 512
 #define PORT 8080
+#define SERVER_IP "10.42.0.1"
 
 /*
  * Class for using UDP as transmission protocol

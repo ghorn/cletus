@@ -19,7 +19,7 @@ UDP::~UDP(){
 void UDP::initUDP() {
     //create a UDP socket
     if ((_udp_socket=socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP)) == -1) {
-        printf("Failed to create udp socket: %s\n", strerror(errno));
+        printf("Failed to create own udp socket: %s\n", strerror(errno));
         exit(1);
     }
     
@@ -35,6 +35,16 @@ void UDP::initUDP() {
     printf("Failed to bind socket to port: %s\n", strerror(errno));
     exit(1);
     }
+
+    //Set the contents of the other address struct
+    memset((char *) &_addr_other, 0, sizeof(_addr_other));
+    _addr_other.sin_family = AF_INET;
+    _addr_other.sin_port = htons(PORT);
+    if (inet_aton(SERVER_IP, &_addr_other.sin_addr) == 0) {
+        printf("Failed to create other udp socket: %s\n", strerror(errno));
+        exit(1);
+    }
+    _socketlen = sizeof(_addr_other);
 }
 
 int16_t UDP::receiveUDP() {
@@ -53,9 +63,10 @@ int16_t UDP::receiveUDP() {
 }
 
 void UDP::sendUDP(int16_t value) {
-    char buf[MAXBUF] = {0};
+    char buf[MAXBUF];
     sprintf(buf, "%i", value);
-    if (sendto(_udp_socket, buf, _recv_len, 0, (struct sockaddr*)&_addr_other, _socketlen) == -1) {
+    printf("Socket: %i, Length: %i, Socketlength: %i \n", _udp_socket, strlen(buf), _socketlen);
+    if (sendto(_udp_socket, buf, strlen(buf), 0, (struct sockaddr*)&_addr_other, _socketlen) == -1) {
         printf("Failed to send udp data: %s\n", strerror(errno));
         exit(1);
     }
