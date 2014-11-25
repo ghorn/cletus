@@ -6,6 +6,7 @@
 #include <iostream>
 #include "./UDP.h"
 
+// OTHER_IP should be the address of the BeagleBone Black
 #define OTHER_IP "10.42.0.42"
 #define OTHER_PORT 8080
 #define OWN_PORT 8080
