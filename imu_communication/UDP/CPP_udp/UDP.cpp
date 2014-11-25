@@ -67,18 +67,35 @@ int16_t UDP::receiveUDP() {
      return ntohs(value);
 }
 
+SensorValues* UDP::receiveUDPstruct() {
+    // try to receive some data ( blocking! )
+    printf("Trying to receive message...");
+    fflush(stdout);
+
+    if ((_recv_len = recvfrom(_udp_socket, &_values, sizeof(struct SensorValues), 0, (struct sockaddr *)&_recv_addr, (socklen_t*)&_socketlen)) == -1) {
+        printf("Failed to receive udp data: %s\n", strerror(errno));
+        exit(1);
+     }
+     if (inet_ntoa(_recv_addr.sin_addr) != inet_ntoa(_addr_other.sin_addr)) {
+        printf("Received from wrong IP-Address: %s\n", inet_ntoa(_recv_addr.sin_addr));
+     }
+     return &_values;
+}
+
 void UDP::sendUDP(int16_t value) {
     value = htons(value);
-    //char buf[MAXBUF];
-    //*((int16_t*)buf) = value;
-    // sprintf(buf, "%i", value);
-    //printf("Socket: %i, Length: %i, Socketlength: %i \n", _udp_socket, strlen(buf), _socketlen);
     if (sendto(_udp_socket, &value, sizeof(value), 0, (struct sockaddr*)&_addr_other, _socketlen) == -1) {
         printf("Failed to send udp data: %s\n", strerror(errno));
         exit(1);
     }
 }
 
+void UDP::sendUDPstruct(SensorValues *values) {
+    if (sendto(_udp_socket, &values, sizeof(struct SensorValues), 0, (struct sockaddr*)&_addr_other, _socketlen) == -1) {
+        printf("Failed to send udp data: %s\n", strerror(errno));
+        exit(1);
+    }
+}
 
 void UDP::closeUDP() {
     close(_udp_socket);

@@ -12,6 +12,7 @@
 #include<errno.h>
 #include<sys/socket.h>
 #include<arpa/inet.h>
+#include "./Sensor.h"
 
 #define MAXBUF 2
 #define PORT 8080
@@ -35,14 +36,19 @@ class UDP {
         
         // Send 16-Bit-integer via UDP
         void sendUDP(int16_t value);
+        // Sends one Structure of Sensorvalues
+        void sendUDPstruct(SensorValues *values);
 
         // Receive 16-Bit integer via UDP
         int16_t receiveUDP();
+        
+        SensorValues* receiveUDPstruct();
 
         // Close the udp-socket
         void closeUDP();
 
     private:
+        struct SensorValues _values;
         struct sockaddr_in _addr_me;
         struct sockaddr_in _addr_other;
         // A helper is needed to be able to compare the 

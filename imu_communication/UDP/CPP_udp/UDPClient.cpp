@@ -15,6 +15,11 @@ int main (int argc, char** argv) {
     // Define number of samples
     int numOfSamples = 2000;
     // Declare and initialize the Sensordevice
+    SensorValues my_values;
+    my_values.compX = 1;
+    my_values.compY = 2;
+    my_values.compZ = 3;
+    // Declare and initialize the UDP-Socket
     UDP my_udp;
     my_udp.initUDP(OTHER_IP, OTHER_PORT, OWN_PORT);
     // Variables for time measurement
@@ -24,7 +29,8 @@ int main (int argc, char** argv) {
     
     for(int16_t i = 0;i < numOfSamples ; i++) {
         // Do one send operation
-        my_udp.sendUDP(i);
+        //my_udp.sendUDP(i);
+        my_udp.sendUDPstruct(&my_values);
         //int16_t value = my_udp.receiveUDP();
         //printf("The received value is: %i\n", value);
         // Measure the interval between 2 samples

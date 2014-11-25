@@ -23,8 +23,12 @@ int main (int argc, char** argv) {
     gettimeofday(&startTime, 0); 
     for(int i = 0;i < numOfSamples ; i++) {
         // Do one receive operation
-        int16_t value = my_udp.receiveUDP();
-        printf("The received value is: %i\n", value);
+        SensorValues *my_values = my_udp.receiveUDPstruct();
+        printf("The received value is:\n");
+        printf("compX: %i\n", my_values->compX);
+        printf("compY: %i\n", my_values->compY);
+        printf("compZ: %i\n", my_values->compZ);
+
         // Measure the interval between 2 samples
         //gettimeofday(&endTime, 0);
         //float neededSeconds = (endTime.tv_sec - startTime.tv_sec) + 0.000001 * (endTime.tv_usec - startTime.tv_usec);
