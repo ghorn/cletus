@@ -184,23 +184,17 @@ int main(int argc __attribute__((unused)),
     protobetty__sensors__init(&sensors);
 #ifdef IMU
     //Initialize Protobuf for Gyro
-    Protobetty__Gyro gyro =PROTOBETTY__GYRO__INIT;
-    Protobetty__Timestamp gyro_timestamp = PROTOBETTY__TIMESTAMP__INIT;
+    Protobetty__IMU imu = PROTOBETTY__IMU__INIT;
+    Protobetty__Timestamp imu_timestamp = PROTOBETTY__TIMESTAMP__INIT;
+    imu.timestamp = &imu_timestamp;
     Protobetty__Xyz gyro_data = PROTOBETTY__XYZ__INIT;
-    gyro.data = &gyro_data;
-    gyro.timestamp = &gyro_timestamp;
+    imu.gyro = &gyro_data;
     //Initialize Protobuf for Accelerometer
-    Protobetty__Accel accel = PROTOBETTY__ACCEL__INIT;
-    Protobetty__Timestamp accel_timestamp = PROTOBETTY__TIMESTAMP__INIT;
     Protobetty__Xyz accel_data = PROTOBETTY__XYZ__INIT;
-    accel.data = &accel_data;
-    accel.timestamp = &accel_timestamp;
+    imu.accel = &accel_data;
     //Initialize Protobuf for Magnetometer
-    Protobetty__Mag mag = PROTOBETTY__MAG__INIT;
-    Protobetty__Timestamp mag_timestamp = PROTOBETTY__TIMESTAMP__INIT;
     Protobetty__Xyz mag_data = PROTOBETTY__XYZ__INIT;
-    mag.data = &mag_data;
-    mag.timestamp = &mag_timestamp;
+    imu.mag = &mag_data;
 #endif
 #ifdef AIRSPEED
     //Initialize Protobuf for Airspeed
@@ -293,24 +287,22 @@ int main(int argc __attribute__((unused)),
                         case IMU_ALL_SCALED:
                         {
                             const imu_all_raw_t* data_ptr = (imu_all_raw_t*)(&buffer[LISA_INDEX_MSG_LENGTH]);
-                            scaled_to_protobuf(&(data_ptr->accel), accel.data, acc_scale_unit_coef);
-                            scaled_to_protobuf(&(data_ptr->gyro), gyro.data, gyro_scale_unit_coef);
-                            scaled_to_protobuf(&(data_ptr->mag), mag.data, mag_scale_unit_coef);
-                            get_protbetty_timestamp(accel.timestamp);
-                            gyro.timestamp = mag.timestamp= accel.timestamp;
-                            sensors.accel = &accel;
-                            sensors.gyro = &gyro;
-                            sensors.mag = &mag;
+                            scaled_to_protobuf(&(data_ptr->accel), imu.accel, acc_scale_unit_coef);
+                            scaled_to_protobuf(&(data_ptr->gyro), imu.gyro, gyro_scale_unit_coef);
+                            scaled_to_protobuf(&(data_ptr->mag), imu.mag, mag_scale_unit_coef);
+                            get_protbetty_timestamp(imu.timestamp);
+                            sensors.imu = &imu;
                             send_debug(zsock_print,TAG,"Received IMU_ALL (ID:%u; SeqNo: %u) and timestamp %f sec (Latency:%fms)\nACCEL: X: %f\t Y: %f\t Z: %f \nGYRO: X: %f\t Y: %f\t Z: %f \nMAG: X: %f\t Y: %f\t Z: %f ",
                                        data_ptr->header.msg_id,
                                        data_ptr->sequence_number,
-                                       floating_ProtoTime(accel.timestamp),
-                                       calcCurrentLatencyProto(accel.timestamp)*1e3,
-                                       accel.data->x, accel.data->y, accel.data->z,
-                                       gyro.data->x, gyro.data->y, gyro.data->z,
-                                       mag.data->x, mag.data->y, mag.data->z);
+                                       floating_ProtoTime(imu.timestamp),
+                                       calcCurrentLatencyProto(imu.timestamp)*1e3,
+                                       imu.accel->x, imu.accel->y, imu.accel->z,
+                                       imu.gyro->x, imu.gyro->y, imu.gyro->z,
+                                       imu.mag->x, imu.mag->y, imu.mag->z);
                             break;
                         }
+#ifdef UNUSED
                         case IMU_ACCEL_SCALED:
                         {
                             const imu_raw_t* data_ptr = (imu_raw_t*)&buffer[LISA_INDEX_MSG_LENGTH];
@@ -350,6 +342,7 @@ int main(int argc __attribute__((unused)),
                                        mag.data->x, mag.data->y, mag.data->z);
                             break;
                         }
+#endif
                         case AIRSPEED_ETS:
                         {
                             const airspeed_t* data_ptr = (airspeed_t*)&buffer[LISA_INDEX_MSG_LENGTH];
@@ -420,7 +413,7 @@ int main(int argc __attribute__((unused)),
         // SENDING IMU DATA to Controller
         //********************************************
         //If we have all IMU messages we send data to controller
-        if ((sensors.mag  != NULL) && (sensors.gyro  != NULL)  && (sensors.accel  != NULL))
+        if (sensors.imu  != NULL)
         {
             //set message type corresponding to the data currently available
             if ((sensors.gps != NULL) && (sensors.airspeed != NULL))
