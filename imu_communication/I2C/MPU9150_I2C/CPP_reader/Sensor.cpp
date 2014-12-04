@@ -1,5 +1,5 @@
 // Copyright 2014, University of Freiburg
-// Systemtheory Lab
+// Systems Theory Lab
 // Author: Elias Rosch <eliasrosch@googlemail.com>
 
 #include "./Sensor.h"
@@ -8,6 +8,14 @@
  * Class for reading/setting Registervalues of the 
  * MPU9150 using I2C
  */
+
+// Constructor
+Sensor::Sensor() {
+}
+
+// Destructor
+Sensor::~Sensor() {
+}
 
 // Initializes the communication via i2c-1
 void Sensor::initI2C(char accel_gyro_address, char mag_address) {
