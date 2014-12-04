@@ -239,7 +239,7 @@ static long safe_to_file(void)
 
 
     Protobetty__LogMessage **log_messages = NULL;
-    log_messages = alloc_workbuf(sizeof(Protobetty__LogMessage*)*MAX_NUMBER_OF_MESSAGES);
+    log_messages = alloc_workbuf(sizeof(Protobetty__LogMessage*)*counter_log_messages);
     if (log_messages == NULL)
     {
         printf("Error allocating memory for receiving messages!\n");
