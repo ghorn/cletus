@@ -18,9 +18,10 @@ import Text.Printf ( printf )
 import System.Console.CmdArgs
 
 import qualified ZmqHelpers as ZMQ
-import Messages.Rc
-import Messages.Mode3
-import Messages.UpDown
+import Protobetty.Rc
+import Protobetty.Mode3
+import Protobetty.UpDown
+import Protobetty.Timestamp
 
 import Channels ( chanRc )
 
@@ -127,22 +128,27 @@ toUpDown x
 prettyRc :: Rc -> String
 prettyRc rc =
   printf
-  "Rc {throttle: %.3f, yaw: % .3f, pitch: % .3f, roll: % .3f, gear: %4s, aux2: %s, rightTrim % .3f, fmode %s}"
+--  "Rc {throttle: %.3f, yaw: % .3f, pitch: % .3f, roll: % .3f, gear: %4s, aux2: %s, rightTrim % .3f, fmode %s}"
+  "Rc {throttle: %.3f, yaw: % .3f, pitch: % .3f, roll: % .3f, gear: %4s, aux2: %s, rightTrim %s, fmode %s}"
   (rcThrottle rc) (rcYaw rc) (rcPitch rc) (rcRoll rc)
-  (show (rcGear rc)) (show (rcAux2 rc)) (rcRightTrim rc) (show (rcFmode rc))
+  (show (rcGear rc)) (show (rcAux2 rc)) (show (rcRightTrim rc)) (show (rcFmode rc))
 
 listToRc :: Word8 -> [Word8] -> Rc
 listToRc k7' [k0,k1,k2,k3,k4,k5,k6,k7]
   | k1 /= 0 = error $ "got non-zero channel 1: " ++ show k1
   | otherwise =
-    Rc { rcThrottle = range k0 (0,1)
+    Rc { timestamp = Timestamp 0 0
+       , rcKill = False
+       , rcThrottle = range k0 (0,1)
        , rcYaw = range k4 (1,-1)
        , rcPitch = range k3 (1,-1)
        , rcRoll = range k2 (1,-1)
-       , rcGear = toUpDown k5
-       , rcAux2 = toMode3 k6
-       , rcRightTrim = range rt (-1,1)
-       , rcFmode = toMode3 fm
+       , rcGear = Just $ toUpDown k5
+       , rcAux2 = Just $ toMode3 k6
+       , rcRightTrim = Just $ range rt (-1,1)
+       , rcFmode = Just $ toMode3 fm
+--       , rcTimestamp = 0
+--       , rcKill = ()
        }
     where
       (rt,fm) = case (even k7', even k7) of

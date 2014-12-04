@@ -13,8 +13,8 @@ import Linear hiding ( cross )
 import System.Clock
 import qualified Text.ProtocolBuffers as PB
 
-import qualified Messages.Rc as Msg
-import qualified Messages.SimTelem as Msg
+import qualified Protobetty.Rc as Msg
+import qualified Protobetty.SimTelem as Msg
 
 import Model.Aircraft
 import Model.AeroCoeffs

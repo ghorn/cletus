@@ -13,12 +13,12 @@ import Dyno.DirectCollocation.Dynamic
 import Channels
 import qualified ZmqHelpers as Zmq
 
-sub :: ((DynCollTraj (Vector Double), CollTrajMeta) -> IO ()) -> IO ()
+sub :: (([DynCollTraj (Vector Double)], CollTrajMeta) -> IO ()) -> IO ()
 sub writeChan = Zmq.withContext $ \context ->
   Zmq.withSubscriber context chanDynoPlot "dynoplot" $ \receive ->
     forever $ do
       msg <- receive
-      let decoded :: (DynCollTraj (Vector Double), CollTrajMeta)
+      let decoded :: ([DynCollTraj (Vector Double)], CollTrajMeta)
           decoded = case Zmq.decodeSerial msg of
             Left err -> error err
             Right t -> t

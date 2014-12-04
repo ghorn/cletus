@@ -16,7 +16,7 @@ myConfHook :: (PD.GenericPackageDescription, PD.HookedBuildInfo)
 myConfHook (gpd,hbi) flags = do
   lbi0 <- confHook simpleUserHooks (gpd,hbi) flags
 
-  modules <- fmap (MN.fromString "Messages" :) $ handleEntry [] "Messages"
+  modules <- fmap (MN.fromString "Protobetty" :) $ handleEntry [] "Protobetty"
   let lpd0 = LBI.localPkgDescr lbi0
       newlib = case PD.library lpd0 of
         Nothing -> error "no library"

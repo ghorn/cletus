@@ -17,19 +17,18 @@ import Text.Printf ( printf )
 
 import Dyno.Vectorize
 import Dyno.View
-import Dyno.Ipopt
-import Dyno.Snopt
+import Dyno.Solvers
 import Dyno.Nlp
-import Dyno.NlpSolver ( NlpSolverStuff(..), solveNlp' )
-import Dyno.Casadi.Option
-
+import Dyno.NlpSolver ( solveNlp' )
 import Dyno.Ocp
 import Dyno.DirectCollocation
+import Dyno.DirectCollocation.Quadratures
 import Dyno.DirectCollocation.Types ( CollStage(..), CollPoint(..) )
 import Dyno.DirectCollocation.Formulate ( makeGuess )
 import Dyno.DirectCollocation.Dynamic
-import Dyno.Cov
 import Dyno.Nats
+
+import Casadi.Option
 
 import SpatialMathT
 import MsgHelpers
@@ -38,8 +37,8 @@ import Model.Aircraft
 import Model.AeroCoeffs
 import Model.Betty
 
-import qualified Messages.AcPose as Msg
-import qualified Messages.OptTelem as Msg
+import qualified Protobetty.AcPose as Msg
+import qualified Protobetty.OptTelem as Msg
 
 import Channels
 
@@ -73,8 +72,8 @@ instance Vectorize Bc12
 --getvZ :: V3 a -> a
 --getvZ (V3 _ _ x) = x
 
-lagrange :: Floating a => AcX a -> None a -> AcU a -> None a -> AeroOutputs a -> a -> a
-lagrange (AcX _pos _vit _ _) _ (AcU surfs) _ _ _ = 0
+lagrange :: Floating a => AcX a -> None a -> AcU a -> None a -> AeroOutputs a -> a -> a -> a
+lagrange (AcX _pos _vit _ _) _ (AcU surfs) _ _ _ _endTime = 0
 -- + (scalProd pos pos)-- / sqrt (scalProd pos pos)
  + (elev**2 + rudd**2 + ail**2 + flaps**2)
 -- + 1e4*(elev'**2 + rudd'**2 + ail'**2 + flaps'**2)
@@ -90,7 +89,7 @@ lagrange (AcX _pos _vit _ _) _ (AcU surfs) _ _ _ = 0
     --flaps' = csFlaps surfs'
 
 
-dae :: Floating a => Dae AcX None AcU None AcX AeroOutputs a
+dae :: Floating a => AcX a -> AcX a -> t -> AcU a -> t1 -> t2 -> (AcX a, AeroOutputs a)
 dae x' x _ u _ _ = (x' ^-^ xdot, aos)
   where
     (xdot, (_,aos)) = aircraftOde (mass, inertia) fcs mcs refs x u
@@ -101,9 +100,9 @@ dae x' x _ u _ _ = (x' ^-^ xdot, aos)
     refs = bettyRefs
 
 ocp :: Vectorize bc
-    => (forall a . Floating a => a -> AcX a -> AcX a -> J (Cov JNone) SX -> J (Cov JNone) SX -> a)
+    => (forall a . Floating a => a -> AcX a -> AcX a -> a)
     -> (forall a . Floating a => AcX a -> AcX a -> bc a)
-    -> OcpPhase AcX None AcU None AcX AeroOutputs bc PathC JNone JNone JNone
+    -> OcpPhase AcX None AcU None AcX AeroOutputs bc PathC
 ocp m bc =
   OcpPhase { ocpMayer = m
            , ocpLagrange = lagrange
@@ -118,13 +117,15 @@ ocp m bc =
            , ocpPbnd = None
 --           , ocpTbnd = (Just 0.5, Just 0.5)
            , ocpTbnd = (Just 2, Nothing)
-
-           , ocpSq = 0
-           , ocpSbnd = jfill (Nothing,Nothing)
-           , ocpSbc = \_ _ -> cat JNone
-           , ocpSbcBnds = cat JNone
-           , ocpSh = \_ _ -> cat JNone
-           , ocpShBnds = cat JNone
+           , ocpTScale = Nothing
+           , ocpObjScale = Nothing
+           , ocpXScale = Nothing
+           , ocpZScale = Nothing
+           , ocpUScale = Nothing
+           , ocpPScale = Nothing
+           , ocpResidualScale = Nothing
+           , ocpBcScale = Nothing
+           , ocpPathCScale = Nothing
            }
 
 pathc :: x a -> z a -> u a -> p a -> AeroOutputs a -> a -> PathC a
@@ -186,8 +187,8 @@ bc12 (AcX x0 v0 dcm0 w0) (AcX xF _ _ _) =
 z0 :: Num a => a
 z0 = -2
 
-initialGuess :: CollTraj AcX None AcU None JNone NCollStages CollDeg (Vector Double)
-initialGuess = makeGuess tf guessX (\_ ->  None) guessU None
+initialGuess :: CollTraj AcX None AcU None NCollStages CollDeg (Vector Double)
+initialGuess = makeGuess Legendre tf guessX (\_ ->  None) guessU None
   where
     guessX t = AcX { ac_r_n2b_n = V3T $ V3 (r*(sin (t*w))) (r*(1 - cos (t*w))) z0
                    , ac_v_bn_b = V3T $ V3 (w*r) 0 0
@@ -208,38 +209,42 @@ initialGuess = makeGuess tf guessX (\_ ->  None) guessU None
 norm2 :: Num a => V3T f a -> a
 norm2 (V3T (V3 x y z)) = x*x + y*y + z*z
 
-mayer0 :: Floating a => a -> AcX a -> AcX a -> J (Cov JNone) SX -> J (Cov JNone) SX -> a
-mayer0 t _ (AcX pF _ _ _) _ _ = t + 100*(norm2 (pF - V3T (V3 0 0 z0)))
+mayer0 :: Floating a => a -> AcX a -> AcX a -> a
+mayer0 t _ (AcX pF _ _ _) = t + 100*(norm2 (pF - V3T (V3 0 0 z0)))
 
-mayer1 :: Floating a => a -> AcX a -> AcX a -> J (Cov JNone) SX -> J (Cov JNone) SX -> a
-mayer1 t _ _ _ _ = t
+mayer1 :: Floating a => a -> AcX a -> AcX a -> a
+mayer1 t _ _ = t
 
-mayer2 :: Floating a => a -> AcX a -> AcX a -> J (Cov JNone) SX -> J (Cov JNone) SX -> a
-mayer2 t _ _ _ _ = -t
+mayer2 :: Floating a => a -> AcX a -> AcX a -> a
+mayer2 t _ _ = -t
 
 solver :: NlpSolverStuff
-solver = ipoptSolver
+solver = ipoptSolver { options = [("linear_solver", Opt "ma86")] }
 --solver = snoptSolver { options = [("detect_linear", Opt False)] }
 
 main :: IO ()
 main = do
 --  (nlp0,toDyn0) <- makeCollNlp $ ocp mayer0 bc0
 --  (nlp1,cb1) <- makeCollNlp $ ocp mayer1 bc12
-  (nlp0,toDyn0) <- makeCollNlp $ ocp mayer2 bc12
+  cp <- makeCollProblem $ ocp mayer2 bc12
+  let nlp0 = cpNlp cp
+      toDyn0 = cpCallback cp
   Zmq.withContext $ \context ->
     Zmq.withPublisher context chanDynoPlot $ \sendDynoPlotMsg ->
     Zmq.withPublisher context chanOptTelem $ \sendOptTelemMsg -> do
       let guess0 = cat initialGuess
 
-          callback :: J (CollTraj AcX None AcU None JNone NCollStages CollDeg) (Vector Double)
+          callback :: J (CollTraj AcX None AcU None NCollStages CollDeg) (Vector Double)
                       -> IO Bool
           callback traj = do
             (dyn,_) <- toDyn0 traj
             -- dynoplot
-            let dynoPlotMsg = Zmq.encodeSerial (dyn, toMeta (Proxy :: Proxy AeroOutputs) traj)
+            let dynoPlotMsg = Zmq.encodeSerial (dyn, toMeta Legendre (Proxy :: Proxy AeroOutputs) (reproxy traj))
+                reproxy :: J a b -> Proxy a
+                reproxy = const Proxy
             sendDynoPlotMsg "dynoplot" dynoPlotMsg
             -- 3d vis
-            let CollTraj tf' _ _ stages' xf = split traj
+            let CollTraj tf' _ stages' xf = split traj
                 stages :: [(CollStage (JV AcX) (JV None) (JV AcU) CollDeg) (Vector Double)]
                 stages = map split $ F.toList $ unJVec (split stages')
 

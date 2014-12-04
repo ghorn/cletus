@@ -58,6 +58,7 @@ executable opt-o-mex
                        , vector
                        , containers
                        , protocol-buffers
+                       , casadi-bindings
   default-language:    Haskell2010
 
 executable dynoplot

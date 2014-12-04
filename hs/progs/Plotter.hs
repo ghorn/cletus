@@ -14,12 +14,12 @@ import PlotHo -- ( Lookup(..), SignalTree(..), runPlotter, addChannel, makeSigna
 import Channels
 import qualified ZmqHelpers as ZMQ
 
-import qualified Messages.Xyz as Msg
-import qualified Messages.SimTelem as Msg
-import qualified Messages.AcState as Msg
-import qualified Messages.Dcm as Msg
-import qualified Messages.Actuators as Msg
-import qualified Messages.Timestamp as Msg
+import qualified Protobetty.Xyz as Msg
+import qualified Protobetty.SimTelem as Msg
+import qualified Protobetty.AcState as Msg
+import qualified Protobetty.Dcm as Msg
+import qualified Protobetty.Actuators as Msg
+import qualified Protobetty.Timestamp as Msg
 
 deriving instance Generic Msg.SimTelem
 deriving instance Generic Msg.AcState
@@ -33,6 +33,9 @@ instance Lookup Msg.Dcm
 instance Lookup Msg.Xyz
 instance Lookup Msg.Actuators
 instance Lookup Msg.Timestamp
+
+instance Lookup (Maybe Msg.Timestamp) where
+  toAccessorTree _ _ = Data ("Maybe Timestamp", "Maybe Timestamp") []
 
 instance Lookup (PB.Seq PB.Utf8) where
   toAccessorTree _ _ = Data ("Utf8","Utf8") []

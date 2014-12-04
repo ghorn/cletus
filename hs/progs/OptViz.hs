@@ -14,10 +14,10 @@ import qualified Text.ProtocolBuffers as PB
 import SpatialMath
 import Vis
 
-import qualified Messages.Xyz as Msg
-import qualified Messages.Dcm as Msg
-import qualified Messages.OptTelem as Msg
-import qualified Messages.AcPose as Msg
+import qualified Protobetty.Xyz as Msg
+import qualified Protobetty.Dcm as Msg
+import qualified Protobetty.OptTelem as Msg
+import qualified Protobetty.AcPose as Msg
 
 import qualified ZmqHelpers as Zmq
 
@@ -155,4 +155,9 @@ main = do
 --  threadDelay 5000000
   let simFun _ _ = return ()
       df _ = fmap drawFun (readMVar m)
-  simulateIO (Just ((1260,940),(1930,40))) "baby betty sim" ts () df simFun
+      notGlossOpts =
+        defaultOpts { optWindowName = "baby betty opt"
+--                    , optBackgroundColor = Just white
+                    }
+
+  simulateIO notGlossOpts ts () df simFun
