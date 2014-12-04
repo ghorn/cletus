@@ -12,6 +12,7 @@ import Control.Monad ( forever )
 import Linear hiding ( cross )
 import System.Clock
 import qualified Text.ProtocolBuffers as PB
+--import qualified Numeric.GSL.ODE as ODE
 
 import qualified Protobetty.Rc as Msg
 import qualified Protobetty.SimTelem as Msg
@@ -25,6 +26,13 @@ import Channels ( chanSensors, chanSimTelem, chanRc )
 import MsgHelpers
 
 import SpatialMathT
+
+--rk45 :: (Fractional a, Additive x, Vectorize x) => (x a -> x a) -> a -> x a -> x a
+--rk45 f h x0 = error $ show sol
+--  where
+--
+--    sol = ODE.odeSolve h 1e-6 1e-4 f' x0 (V.singleton h)
+--    f' _ x = vectorize $ f (devectorize x)
 
 rk4 :: (Fractional a, Additive x) => (x a -> x a) -> a -> x a -> x a
 rk4 f h x0 = x0 ^+^ (k1 ^+^ 2 *^ k2 ^+^ 2 *^ k3 ^+^ k4) ^/ 6
@@ -123,7 +131,7 @@ main =
                                           ]
                          , Msg.w0 = 0
                          }
-          ZMQ.sendMulti sensorPublisher (NE.fromList [BSL.toStrict (PB.messagePut yc)])
+--          ZMQ.sendMulti sensorPublisher (NE.fromList [BSL.toStrict (PB.messagePut yc)])
           sendSimTelem "sim_telemetry" (Zmq.encodeProto simTelem)
 
           let x1 = integrate ts x0 u
