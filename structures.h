@@ -135,17 +135,6 @@ typedef struct __attribute__((packed)) {
 } servos_t;
 
 typedef struct __attribute__((packed)) {
-    imu_raw_t imu_raw;
-    imu_all_raw_t imu_all;
-    gps_t gps;
-    ahrs_int_t ahrs_int;
-    ahrs_double_t ahrs_double;
-    rc_t rc;
-    airspeed_t airspeed_raw;
-    servos_t servos_raw;
-} lisa_messages_t;
-
-typedef struct __attribute__((packed)) {
     timestamp_t start;
     timestamp_t stop;
     double flaps;

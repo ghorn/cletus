@@ -59,21 +59,6 @@ message GpsLLH{
     required GpsData position = 2;
 }
 
-message Gyro{
-    required Timestamp timestamp = 1;
-    required Xyz data = 2;
-}
-
-message Accel{
-    required Timestamp timestamp = 1;
-    required Xyz data = 2;
-}
-
-message Mag{
-    required Timestamp timestamp = 1;
-    required Xyz data = 2;
-}
-
 message Airspeed{
     required Timestamp timestamp = 1;
     required double scaled = 2;
@@ -98,6 +83,16 @@ enum Direction {
     required Direction direction = 10;
 }
 
+message IMU
+{
+    required uint32 sequenceNumber =1 [default=0];
+    required Timestamp timestamp = 2;
+    required Xyz accel = 3;
+    required Xyz gyro = 4;
+    required Xyz mag =5;
+};
+
+
 
 
 
@@ -113,11 +108,9 @@ enum Type {
 required Type type = 1;
 
 // One of the following will be filled in.
-  required Gyro gyro = 2;
-  required Accel accel = 3;
-  required Mag mag =4;
-  optional Airspeed airspeed =5;
-  optional Gps gps =6 ;
+  required IMU imu = 2;
+  optional Airspeed airspeed =3;
+  optional Gps gps =4 ;
 }
 
 message Actuators {

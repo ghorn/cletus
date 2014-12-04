@@ -45,13 +45,13 @@
 ////}
 
 void run_demo_controller(const Protobetty__Sensors* const y, Protobetty__Actuators* const u) {
-    if (y->accel->data->y != 0.0)
-        u->rudd = y->accel->data->y;
-    if (y->accel->data->y != 0.0)
+    if (y->imu->accel->y != 0.0)
+        u->rudd = y->imu->accel->y;
+    if (y->imu->accel->y != 0.0)
     {
-        u->flaps = y->accel->data->x;
-        u->elev = y->accel->data->x;
-        u->ail =  -1*y->accel->data->x;
+        u->flaps = y->imu->accel->x;
+        u->elev = y->imu->accel->x;
+        u->ail =  -1*y->imu->accel->x;
     }
     Protobetty__Timestamp timestamp;
     get_protbetty_timestamp(&timestamp);
@@ -76,16 +76,16 @@ void run_pd_demo_controller(const Protobetty__Sensors* const y, Protobetty__Actu
 {
 
     static double rudd_p = 0.0;
-    if ((y->accel->data->y != 0.0) && (y->gyro->data !=0)){
+    if ((y->imu->accel->y != 0.0) && (y->imu->gyro->y !=0.0)){
 
-        u->elev = -1*y->accel->data->y*Kp + y->gyro->data->x*Kd;
-        u->ail =y->accel->data->x*Kp + y->gyro->data->y*Kd;
+        u->elev = -1*y->imu->accel->y *Kp + y->imu->accel->x*Kd;
+        u->ail =y->imu->accel->x*Kp + y->imu->gyro->y*Kd;
         if (y->airspeed != NULL)
         {
             u->flaps = y->airspeed->scaled*(-1)*Kas;
         }
 
-        rudd_p +=  y->gyro->data->z*Kdp;
-        u->rudd = rudd_p + y->gyro->data->z*Kd;
+        rudd_p +=  y->imu->gyro->z*Kdp;
+        u->rudd = rudd_p + y->imu->gyro->z*Kd;
     }
 }

@@ -7,10 +7,16 @@
 #include <stdio.h>
 #include <fcntl.h>
 #include <stdlib.h>
-#include <sys/ioctl.h>
+#include "../ftdi_device.h"
 #include "fifo.h"
 
-
+#define PIKSI_BAUDRATE 115200
+#define PIKSI_DEVICE 1
+#define PIKSI_BIT_TYPE 8
+#define PIKSI_PARITY 0
+#define PIKSI_LATENCY 1
+#define PIKSI_READ_CHUNKSIZE 512
+#define PIKSI_WRITE_CHUNKSIZE 512
 
 /*
  * SBP callback nodes must be statically allocated. Each message ID / callback
@@ -29,7 +35,7 @@ typedef struct {
     sbp_state_t state;
     piksi_nodes_t message_nodes;
     fifo_t fifo;
-    int fd;
+    ftdi_device ftdi;
     void* buffer;
 } piksi_t;
 
@@ -51,9 +57,8 @@ sbp_heartbeat_t    heartbeat;
 
 
 
-int set_interface_attribs(int fd, int speed, int parity);
-void set_blocking (int fd, int should_block);
-u32 read_data(u8 *buff, u32 n, void *context __attribute__((unused)));
+
+u32 piksi_read_data(u8 *buff, u32 n, void *context __attribute__((unused)));
 
 /*
  * Set up SwiftNav Binary Protocol (SBP) nodes; the sbp_process function will
@@ -65,7 +70,7 @@ u32 read_data(u8 *buff, u32 n, void *context __attribute__((unused)));
  * to the FIFO, and then parsed by sbp_process, sbp_pos_llh_callback is called
  * with the data carried by that message.
  */
-void init_message_processing(int buffer_size)
+void piksi_init_message_processing(int buffer_size)
 {
     /* SBP parser state must be initialized before sbp_process is called. */
     sbp_state_init(&piksi.state);
@@ -75,40 +80,40 @@ void init_message_processing(int buffer_size)
 
 }
 
-int register_position_llh_callback(void* callback)
+int piksi_register_position_llh_callback(void* callback)
 {
     return sbp_register_callback(&piksi.state, SBP_POS_LLH, callback,
                                  NULL, &piksi.message_nodes.pos_llh_node);
 }
 
 
-int register_velocity_ned_callback(void* callback)
+int piksi_register_velocity_ned_callback(void* callback)
 {
     return sbp_register_callback(&piksi.state, SBP_VEL_NED, callback,
                                  NULL, &piksi.message_nodes.vel_ned_node);
 }
 
 
-int register_baseline_ned_callback(void* callback)
+int piksi_register_baseline_ned_callback(void* callback)
 {
     return sbp_register_callback(&piksi.state, SBP_BASELINE_NED, callback,
                                  NULL, &piksi.message_nodes.baseline_ned_node);
 }
 
-int register_time_callback(void* callback)
+int piksi_register_time_callback(void* callback)
 {
     return sbp_register_callback(&piksi.state, SBP_GPS_TIME, callback,
                                  NULL, &piksi.message_nodes.gps_time_node);
 }
 
 
-int register_heartbeat_callback(void* callback)
+int piksi_register_heartbeat_callback(void* callback)
 {
     return sbp_register_callback(&piksi.state, SBP_HEARTBEAT, callback,
                                  NULL, &piksi.message_nodes.heartbeat_node);
 
 }
-int register_dops_callback(void* callback)
+int piksi_register_dops_callback(void* callback)
 {
     return sbp_register_callback(&piksi.state, SBP_DOPS, callback,
                                  NULL, &piksi.message_nodes.dops_node);
@@ -118,124 +123,71 @@ int register_dops_callback(void* callback)
 
 
 
-void close_serial_port(void)
+void piksi_close_connection(void)
 {
-    close(piksi.fd);
-}
-
-int set_interface_attribs(int fd, int speed, int parity)
-{
-    struct termios tty;
-    memset (&tty, 0, sizeof tty);
-    if (tcgetattr (fd, &tty) != 0)
+    int ret = close_device(piksi.ftdi);
+    if (ret < 0 )
     {
-        printf("error %d from tcgetattr", errno);
-        return -1;
+        printf ("Error closing PIKSI device\n");
     }
 
-    cfsetospeed (&tty, speed);
-    cfsetispeed (&tty, speed);
-
-    tty.c_cflag = (tty.c_cflag & ~CSIZE) | CS8;     // 8-bit chars
-    // disable IGNBRK for mismatched speed tests; otherwise receive break
-    // as \000 chars
-    tty.c_iflag &= ~IGNBRK;         // disable break processing
-    tty.c_lflag = 0;                // no signaling chars, no echo,
-    // no canonical processing
-    tty.c_oflag = 0;                // no remapping, no delays
-    tty.c_cc[VMIN]  = 0;            // read doesn't block
-    tty.c_cc[VTIME] = 5;            // 0.5 seconds read timeout
-
-    tty.c_iflag &= ~(IXON | IXOFF | IXANY); // shut off xon/xoff ctrl
-
-    tty.c_cflag |= (CLOCAL | CREAD);// ignore modem controls,
-    // enable reading
-    tty.c_cflag &= ~(PARENB | PARODD);      // shut off parity
-    tty.c_cflag |= parity;
-    tty.c_cflag &= ~CSTOPB;
-    tty.c_cflag &= ~CRTSCTS;
-
-    if (tcsetattr (fd, TCSANOW, &tty) != 0)
-    {
-        printf("error %d from tcsetattr", errno);
-        return -1;
-    }
-    return 0;
 }
 
-void set_blocking (int fd, int should_block)
+
+u32 piksi_read_data(u8 *buff, u32 n, void *context __attribute__((unused))){
+    //printf("reading fifo thingy, length %d\n", n);
+    return  read_data_from_device(piksi.ftdi, buff, n);
+
+}
+
+
+int piksi_open_connection(void)
 {
-    struct termios tty;
-    memset (&tty, 0, sizeof tty);
-    if (tcgetattr (fd, &tty) != 0)
+    int ret = 0;
+    open_device(&piksi.ftdi,PIKSI_DEVICE, PIKSI_BAUDRATE, PIKSI_BIT_TYPE, PIKSI_PARITY);
+    if (ret < 0 || piksi.ftdi == NULL)
     {
-        printf("error %d from tggetattr", errno);
-        return;
-    }
-
-    tty.c_cc[VMIN]  = should_block ? 1 : 0;
-    tty.c_cc[VTIME] = 5;            // 0.5 seconds read timeout
-
-    if (tcsetattr (fd, TCSANOW, &tty) != 0)
-        printf("error %d setting term attributes", errno);
-}
-
-
-u32 read_data(u8 *buff, u32 n, void *context __attribute__((unused))){
-    //  printf("reading fifo thingy, length %d\n", n);
-    return fifo_read(&piksi.fifo, buff, n);
-}
-
-
-int open_serial_port(const char* const device, int speed, int parity, int blocking)
-{
-    piksi.fd = open(device, O_RDWR | O_NOCTTY | O_SYNC | O_NONBLOCK);
-    if (piksi.fd < 0)
-    {
-        printf("error %d opening %s: %s\n", errno, device, strerror (errno));
-        return -1;
-    }
-    printf("opened %s successfully, setting up usb read\n", device);
-
-    int ret = set_interface_attribs(piksi.fd, speed, parity);
-    set_blocking(piksi.fd,blocking);
-    flush_serial_port();
-
-    return ret;
-
-}
-
-int flush_serial_port(void)
-{
-    int ret = tcflush(piksi.fd, TCOFLUSH);
-    ret = tcflush(piksi.fd, TCIFLUSH);
-    return ret;
-}
-
-
-int process_messages(void)
-{
-    int bytes_in_file = 0;
-    int ret;
-    ioctl(piksi.fd, FIONREAD, &bytes_in_file);
-    if (bytes_in_file > 0)
-    {
-        if (bytes_in_file < piksi.fifo.size)
-        {
-            ret = read(piksi.fd, piksi.buffer, bytes_in_file);
-        }
-        else
-        {
-            ret = read(piksi.fd, piksi.buffer, piksi.fifo.size);
-        }
-        fifo_write(&piksi.fifo, piksi.buffer, bytes_in_file);
-        do{
-            ret = sbp_process(&piksi.state, &read_data);
-            if (ret< 0)
-                printf("Piksi process error %i", ret);
-        } while (piksi.fifo.tail != piksi.fifo.head);
+        printf("Error opening Piksi device\n");
         return ret;
     }
-    return 0;
+    ret = set_chunksize(piksi.ftdi, PIKSI_READ_CHUNKSIZE, PIKSI_WRITE_CHUNKSIZE);
+    if (ret < 0)
+    {
+        printf("Error setting Piksi chunksize\n");
+        return ret;
+    }
+    ret = set_latency_timer(piksi.ftdi, PIKSI_LATENCY);
+    if (ret < 0)
+    {
+        printf("Error setting Piksi latency");
+        return ret;
+    }
+    flush_device(piksi.ftdi, BOTH);
+    return ret;
+
+
+
+
+
+}
+
+int piksi_flush_buffers(void)
+{
+    return flush_device(piksi.ftdi, BOTH);
+}
+
+
+int piksi_read_message(int* exit)
+{
+
+    int ret;
+    do {
+        ret = sbp_process(&piksi.state, &piksi_read_data);
+        if (*exit)
+            return 0;
+    } while (ret == 0);
+    if (ret < 0)
+        printf("Piksi process Error %d", ret);
+    return ret;
 }
 

@@ -4,3 +4,6 @@
 [submodule "piksi/libswiftnav"]
 	path = piksi/libswiftnav
 	url = https://github.com/swift-nav/libswiftnav.git
+[submodule "libftdi"]
+	path = libftdi
+	url = git://developer.intra2net.com/libftdi

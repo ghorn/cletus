@@ -23,7 +23,9 @@ C_SRC = run_uart.c \
 	sim_uart.c \
 	run_logger.c \
         piksi/piksi.c \
-        piksi/fifo.c
+        piksi/fifo.c \
+        ftdi_device.c \
+        lisa.c
 
 
 
@@ -31,7 +33,7 @@ CXX_SRC = \
 #	main.cpp \
 #	parsing.cpp
 
-LIBS = $(shell pkg-config --libs libzmq) $(shell pkg-config --libs libprotobuf-c)-lm -lrt -lprotobuf  -pthread -Lpiksi/libswiftnav/build/src -lswiftnav-static 
+LIBS = $(shell pkg-config --libs libzmq) $(shell pkg-config --libs libprotobuf-c)-lm -lrt -lprotobuf  -pthread -Lpiksi/libswiftnav/build/src -lswiftnav-static -Llibftdi/build/src -lftdi1
 
 Q ?= @
 
@@ -41,7 +43,7 @@ PROTOS_CXX = protos_cpp/messages.pb.cc \
 PROTOS_C = protos_c/messages.pb-c.c \
            protos_c/messages.pb-c.h
 
-PROTOS_PY = messages_pb2.py
+PROTOS_PY = logviewer/messages_pb2.py
 
 HS_PROTOS = hs/src/Messages.hs
 
@@ -51,7 +53,7 @@ HS_PROTOS = hs/src/Messages.hs
 UNAME := $(shell uname)
 
 LDFLAGS = $(LIBS)
-INCLUDES = -I./protos_c
+INCLUDES = -I./protos_c -I./libftdi/include
 
 
 ifeq ($(UNAME),Darwin)
@@ -127,7 +129,7 @@ $(PROTOS_CXX) : messages.proto
 
 $(PROTOS_PY) : messages.proto
 	@echo protoc $< \(python\)
-	$(Q)protoc --python_out=. $<
+	$(Q)protoc --python_out=./logviewer $<
 
 protos_cpp/messages.pb.o : protos_cpp/messages.pb.cc protos_cpp/messages.pb.h
 	@echo CXX protos_cpp/messages.pb.cc
@@ -161,6 +163,6 @@ clean:
 	rm -rf hs/src/Messages/*
 	rm -f protos_cpp/messages.pb.*
 	rm -f protos_c/messages.pb-c.*
-	rm -f messages_pb2.py messages_pb2.pyc
+	rm -f logviewer/messages_pb2.py messages_pb2.pyc
 	rm -f $(OBJ)
 	rm -f $(HS_STRUCTS)

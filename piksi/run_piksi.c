@@ -6,7 +6,27 @@
 #include <fcntl.h>
 #include <stdlib.h>
 #include <inttypes.h>
+#include <signal.h>
+
 #include "./piksi.h"
+
+
+
+static void __attribute__((noreturn)) die(int code) {
+
+    close_piksi_connection();
+
+
+    printf("Moriturus te saluto!\n");
+    exit(code);
+}
+
+/* Our signal to GTFO */
+static int bail = 0;
+
+static void sigdie(int signum) {
+    bail = signum;
+}
 
 
 /* Structs that messages from Piksi will feed. */
@@ -68,24 +88,36 @@ void sbp_gps_time_callback(u_int16_t sender_id __attribute__((unused)), u_int8_t
 
 
 int main(){
-    const char * const portname = "/dev/ttyUSB0";
-    open_serial_port(portname, B1000000, 0, 1 ); // set speed to 1,000,000 bps, 8n1 (no parity) set blocking
+
+    /* Confignals. */
+    if (signal(SIGINT, &sigdie) == SIG_IGN)
+        signal(SIGINT, SIG_IGN);
+    if (signal(SIGTERM, &sigdie) == SIG_IGN)
+        signal(SIGTERM, SIG_IGN);
+    if (signal(SIGHUP, &sigdie) == SIG_IGN)
+        signal(SIGHUP, SIG_IGN);
+    if (signal(SIGABRT, &sigdie) == SIG_IGN)
+        signal(SIGABRT, SIG_IGN);
+
+
+
+    open_piksi_connection();
 
     init_message_processing(512);
     int ret= 0;
     /* Register a node and callback, and associate them with a specific message ID. */
-//    ret =register_heartbeat_callback(&sbp_heartbeat_callback);
-//    if (0 != ret) {printf("sbp_register_callback error: %d\n", ret); exit(-1);}
-//    ret = register_time_callback(&sbp_gps_time_callback);
+    ret =register_heartbeat_callback(&sbp_heartbeat_callback);
+  if (0 != ret) {printf("sbp_register_callback error: %d\n", ret); exit(-1);}
+    ret = register_time_callback(&sbp_gps_time_callback);
     if (0 != ret) {printf("sbp_register_callback error: %d\n", ret); exit(-1);}
     ret = register_position_llh_callback(&sbp_pos_llh_callback);
     if (0 != ret) {printf("sbp_register_callback error: %d\n", ret); exit(-1);}
     ret = register_baseline_ned_callback(&sbp_baseline_ned_callback);
-//    if (0 != ret) {printf("sbp_register_callback error: %d\n", ret); exit(-1);}
-//    ret = register_velocity_ned_callback(&sbp_vel_ned_callback);
-//    if (0 != ret) {printf("sbp_register_callback error: %d\n", ret); exit(-1);}
-//    ret = register_dops_callback(&sbp_dops_callback);
-//    if (0 != ret) {printf("sbp_register_callback error: %d\n", ret); exit(-1);}
+    if (0 != ret) {printf("sbp_register_callback error: %d\n", ret); exit(-1);}
+    ret = register_velocity_ned_callback(&sbp_vel_ned_callback);
+   if (0 != ret) {printf("sbp_register_callback error: %d\n", ret); exit(-1);}
+    ret = register_dops_callback(&sbp_dops_callback);
+    if (0 != ret) {printf("sbp_register_callback error: %d\n", ret); exit(-1);}
 
     //  sbp_state_set_io_context(&sbp_state, &fd);
 
@@ -96,6 +128,9 @@ int main(){
             printf("sbp_process error: %d\n", (int)ret);
             //return ret;
         }
+        usleep(2);
+        if (bail) die(bail);
+
     }
 
     return 0;

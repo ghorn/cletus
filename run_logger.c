@@ -26,7 +26,11 @@
 #include "./protos_c/messages.pb-c.h"
 
 
+#define BYTES_FOR_LOGGING 10 * 1024 *1024
+#define MAX_NUMBER_OF_MESSAGES BYTES_FOR_LOGGING/50
+
 static long safe_to_file(void);
+int write_to_file(uint8_t* buffer, uint32_t size);
 
 
 /* ZMQ resources */
@@ -36,11 +40,12 @@ void *zsock_print = NULL;
 //pointer to temporal memory in ram
 uint8_t *ptr_temp_memory;
 //counter of elements received
-static uint64_t counter_log_messages = 0;
+static uint32_t counter_log_messages = 0;
 //maximum limit of logs
-const uint64_t NUMBER_OF_LOGS = 10000;
 char* TAG = "RUN_LOGGER";
-Protobetty__LogMessage **log_messages = NULL;
+uint8_t** message_positions;
+int32_t* message_sizes;
+
 
 
 
@@ -49,11 +54,14 @@ int txfails = 0, rxfails = 0;
 
 static void __attribute__((noreturn)) die(int code) {
 
-    send_info(zsock_print,TAG,"Starting Logging now....");
-    safe_to_file();
-    send_info(zsock_print,TAG,"Finished Logging");
+    if (counter_log_messages > 0)
+    {
+        send_info(zsock_print,TAG,"Starting Logging now....");
+        safe_to_file();
+        send_info(zsock_print,TAG,"Finished Logging");
+    }
 
-    free_workbuf(ptr_temp_memory, NUMBER_OF_LOGS*PROTOBETTY__MESSAGE__CONSTANTS__MAX_MESSAGE_SIZE);
+    free_workbuf(ptr_temp_memory, BYTES_FOR_LOGGING);
     zdestroy(zsock_print, NULL);
     zdestroy(zsock_logs, NULL);
     printf("%d TX fails; %d RX fails.\n", txfails, rxfails);
@@ -106,10 +114,6 @@ int main(int argc __attribute__((unused)),
     stack_prefault();
 
 
-
-
-
-
     setbuf(stdin, NULL);
     /* Confignals. */
     if (signal(SIGINT, &sigdie) == SIG_IGN)
@@ -141,21 +145,27 @@ int main(int argc __attribute__((unused)),
 
 
 
-    const long max_mem_size = NUMBER_OF_LOGS*PROTOBETTY__MESSAGE__CONSTANTS__MAX_MESSAGE_SIZE;
-    ptr_temp_memory = alloc_workbuf(max_mem_size);
+    ptr_temp_memory = alloc_workbuf(BYTES_FOR_LOGGING);
     if (ptr_temp_memory == NULL)
     {
-        printf("Error allocating memory!\n");
+        printf("Error allocating memory for logging!\n");
         die(1);
     }
-    log_messages = alloc_workbuf(sizeof(Protobetty__LogMessage*)*NUMBER_OF_LOGS);
-    if (log_messages == NULL)
+    message_sizes = alloc_workbuf(MAX_NUMBER_OF_MESSAGES*sizeof(int32_t));
+    if (message_sizes == NULL)
     {
-        printf("Error allocating memory!\n");
+        printf("Error allocating memory for sizes!\n");
+        die(1);
+    }
+    message_positions = alloc_workbuf(MAX_NUMBER_OF_MESSAGES*sizeof(uint8_t*));
+    if (message_positions == NULL)
+    {
+        printf("Error allocating memory for positions!\n");
         die(1);
     }
 
-    uint64_t byte_counter = 0;
+
+    uint32_t byte_counter = 0;
 
     clock_gettime(CLOCK_MONOTONIC ,&t);
     /* start after one second */
@@ -195,7 +205,7 @@ int main(int argc __attribute__((unused)),
 
 
         if (bail) die(bail);
-        if ((byte_counter) < (max_mem_size - PROTOBETTY__MESSAGE__CONSTANTS__MAX_MESSAGE_SIZE))
+        if ((byte_counter) < (BYTES_FOR_LOGGING - PROTOBETTY__MESSAGE__CONSTANTS__MAX_MESSAGE_SIZE))
         {
             if (poll_logs.revents & ZMQ_POLLIN)
             {
@@ -204,7 +214,8 @@ int main(int argc __attribute__((unused)),
                                                    PROTOBETTY__MESSAGE__CONSTANTS__MAX_MESSAGE_SIZE);
                 if (zmq_received > 0)
                 {
-                    log_messages[counter_log_messages] = protobetty__log_message__unpack(NULL, zmq_received, &ptr_temp_memory[byte_counter]);
+                    message_positions[counter_log_messages] = &ptr_temp_memory[byte_counter];
+                    message_sizes[counter_log_messages] = zmq_received;
                     byte_counter += zmq_received;
                     counter_log_messages++;
                 }
@@ -225,18 +236,21 @@ int main(int argc __attribute__((unused)),
 
 static long safe_to_file(void)
 {
-    FILE *ptr_myfile;
-    //Open file
-    timestamp_t timestamp;
-    gettime(&timestamp);
-    char filename[50];
-    snprintf(filename, sizeof(filename),"%"PRIu64"_logdata.bin",timestamp.tsec);
-    ptr_myfile=fopen(filename,"wb");
-    if (!ptr_myfile)
+
+
+    Protobetty__LogMessage **log_messages = NULL;
+    log_messages = alloc_workbuf(sizeof(Protobetty__LogMessage*)*counter_log_messages);
+    if (log_messages == NULL)
     {
-        printf("Unable to open file!");
-        return -1;
+        printf("Error allocating memory for receiving messages!\n");
+        die(1);
     }
+    for (uint32_t i = 0; i < counter_log_messages; i++)
+    {
+        log_messages[i] = protobetty__log_message__unpack(NULL, message_sizes[i], message_positions[i]);
+    }
+
+
     //Allocate protobuf structure for sensors and set data
     Protobetty__LogContainer log_container = PROTOBETTY__LOG_CONTAINER__INIT;
     log_container.n_log_data = counter_log_messages;
@@ -244,24 +258,75 @@ static long safe_to_file(void)
     // back it to buffer
     const uint64_t packed_size = protobetty__log_container__get_packed_size(&log_container);
     uint8_t* buffer = alloc_workbuf(packed_size);
+    if (buffer == NULL)
+    {
+        printf("Could not allocate enough memory.\nClose all application and press return!\n");
+        getchar();
+        buffer = alloc_workbuf(packed_size);
+        if (buffer == NULL)
+        {
+            printf("Still not enough space. Exiting!\n");
+            exit(EXIT_FAILURE);
+        }
+    }
     protobetty__log_container__pack(&log_container,buffer);
+    //Free unpacked memory
+    for (uint32_t i = 0; i < counter_log_messages; i++)
+    {
+        protobetty__log_message__free_unpacked(log_messages[i], NULL);
+    }
+
+    if (write_to_file(buffer, packed_size) < 0)
+    {
+        printf("Error writing file!\n");
+    }
+    free_workbuf(buffer,packed_size);
+
+
+    return packed_size;
+}
+
+
+int write_to_file(uint8_t* buffer, uint32_t size)
+{
+    FILE *ptr_myfile;
+    //Open file
+    timestamp_t timestamp;
+    gettime(&timestamp);
+    char filename[50];
+    snprintf(filename, sizeof(filename),"cletus_logdata_%"PRIu64".bin",timestamp.tsec);
+    ptr_myfile=fopen(filename,"wb");
+    if (!ptr_myfile)
+    {
+        printf("Unable to open file!");
+        return -1;
+    }
+
     //write bytewise data to file
     send_debug(zsock_print, TAG, "Writing data to file ...\n");
     printf("Writing data to file ...");
 
-    for (uint64_t i = 0; i < packed_size; i++)
+    for (uint32_t i = 0; i < size; i++)
     {
         fwrite(&buffer[i], sizeof(uint8_t), 1, ptr_myfile);
         printf(".");
     }
     send_debug(zsock_print, TAG, "Finsihed writing. Closing File.");
     printf("Finsihed writing. Closing File.\n");
-    free_workbuf(buffer,packed_size);
+
 
     fclose(ptr_myfile);
 
-    return packed_size;
+
+    printf("----------------------------\n");
+    printf("Number of messages: \t %u \n", counter_log_messages);
+    printf("Filename: \t %s \n", filename);
+
+
+    return 1;
+
 
 }
+
 
 

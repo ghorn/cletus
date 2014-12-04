@@ -37,17 +37,17 @@ typedef struct __attribute__((packed)){
 
 
 
-int register_position_llh_callback(void* callback);
-int register_velocity_ned_callback(void* callback);
-int register_baseline_ned_callback(void* callback);
-int register_time_callback(void* callback);
-int register_heartbeat_callback(void* callback);
-int register_dops_callback(void* callback);
-int open_serial_port(const char* const device, int speed, int parity, int blocking);
-void close_serial_port(void);
-int process_messages(void);
-void init_message_processing(int buffer_size);
-int flush_serial_port(void);
+int piksi_register_position_llh_callback(void* callback);
+int piksi_register_velocity_ned_callback(void* callback);
+int piksi_register_baseline_ned_callback(void* callback);
+int piksi_register_time_callback(void* callback);
+int piksi_register_heartbeat_callback(void* callback);
+int piksi_register_dops_callback(void* callback);
+int piksi_open_connection(void);
+void piksi_close_connection(void);
+int piksi_read_message(int *exit);
+void piksi_init_message_processing(int buffer_size);
+int piksi_flush_buffers(void);
 
 
 

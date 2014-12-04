@@ -23,9 +23,6 @@
 #include "./protos_c/messages.pb-c.h"
 
 
-#define MAX_MSG_SIZE 512
-
-
 /* ZMQ resources */
 static void *zctx = NULL;
 static void *zsock_sensors = NULL;
@@ -65,7 +62,6 @@ int main(int argc __attribute__((unused)),
     struct timespec t;
     struct sched_param param;
     int rt_interval= 0;
-    printf("%i", argc);
     if (argc == 7)
     {
         char* arg_ptr;
@@ -187,6 +183,7 @@ int main(int argc __attribute__((unused)),
     for (;;) {
         if (bail) die(bail);
 
+
         /* wait until next shot */
         clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, &t, NULL);
         /* Poll for activity; time out after 10 milliseconds. */
@@ -202,8 +199,6 @@ int main(int argc __attribute__((unused)),
             continue;
         }
 
-
-
         if (bail) die(bail);
         if (poll_sensors.revents & ZMQ_POLLIN) {
             const int zmq_received = zmq_recvm(zsock_sensors, zmq_buffer,
@@ -214,30 +209,22 @@ int main(int argc __attribute__((unused)),
 #ifdef DEBUG
                 switch (sensors_ptr->type) {
                 case PROTOBETTY__SENSORS__TYPE__IMU_ONLY:
-                    send_debug(zsock_print, TAG,"Controller received Sensor data containing: IMU_ONLY\n Latencies: ACCEL=%f \tGYRO=%f \tMAG=%f",
-                               calcCurrentLatencyProto(sensors_ptr->accel->timestamp),
-                               calcCurrentLatencyProto(sensors_ptr->gyro->timestamp),
-                               calcCurrentLatencyProto(sensors_ptr->mag->timestamp));
+                    send_debug(zsock_print, TAG,"Controller received Sensor data containing: IMU_ONLY\n Latencies: IMU=%f",
+                               calcCurrentLatencyProto(sensors_ptr->imu->timestamp));
                     break;
                 case PROTOBETTY__SENSORS__TYPE__IMU_GPS:
-                    send_debug(zsock_print, TAG,"Controller received Sensor data containing: IMU ; GPS\nLatencies: ACCEL=%f \tGYRO=%f \tMAG=%f \tGPS=%f",
-                               calcCurrentLatencyProto(sensors_ptr->accel->timestamp),
-                               calcCurrentLatencyProto(sensors_ptr->gyro->timestamp),
-                               calcCurrentLatencyProto(sensors_ptr->mag->timestamp),
+                    send_debug(zsock_print, TAG,"Controller received Sensor data containing: IMU ; GPS\nLatencies: IMU=%f \tGPS=%f",
+                               calcCurrentLatencyProto(sensors_ptr->imu->timestamp),
                                calcCurrentLatencyProto(sensors_ptr->gps->timestamp));
                     break;
                 case PROTOBETTY__SENSORS__TYPE__IMU_AIRSPEED:
-                    send_debug(zsock_print, TAG,"Controller received Sensor data containing: IMU ; AIRSPEED\nLatencies: ACCEL=%f \tGYRO=%f \tMAG=%f \tAIRSPEED=%f",
-                               calcCurrentLatencyProto(sensors_ptr->accel->timestamp),
-                               calcCurrentLatencyProto(sensors_ptr->gyro->timestamp),
-                               calcCurrentLatencyProto(sensors_ptr->mag->timestamp),
+                    send_debug(zsock_print, TAG,"Controller received Sensor data containing: IMU ; AIRSPEED\nLatencies: IMU=%f \tAIRSPEED=%f",
+                               calcCurrentLatencyProto(sensors_ptr->imu->timestamp),
                                calcCurrentLatencyProto(sensors_ptr->airspeed->timestamp));
                     break;
                 case PROTOBETTY__SENSORS__TYPE__IMU_GPS_AIRSPEED:
-                    send_debug(zsock_print, TAG,"Controller received Sensor data containing: IMU ; GPS ; AIRSPEED\nLatencies: ACCEL=%f \tGYRO=%f \tMAG=%f \tGPS=%f \tAIRSPEED=%f",
-                               calcCurrentLatencyProto(sensors_ptr->accel->timestamp),
-                               calcCurrentLatencyProto(sensors_ptr->gyro->timestamp),
-                               calcCurrentLatencyProto(sensors_ptr->mag->timestamp),
+                    send_debug(zsock_print, TAG,"Controller received Sensor data containing: IMU ; GPS ; AIRSPEED\nLatencies: IMU=%f \tGPS=%f \tAIRSPEED=%f",
+                               calcCurrentLatencyProto(sensors_ptr->imu->timestamp),
                                calcCurrentLatencyProto(sensors_ptr->gps->timestamp),
                                calcCurrentLatencyProto(sensors_ptr->airspeed->timestamp));
                     break;
@@ -249,7 +236,7 @@ int main(int argc __attribute__((unused)),
                     break;
                 }
 #endif
-                actuators.timestamp_sensors = sensors_ptr->accel->timestamp;
+                actuators.timestamp_sensors = sensors_ptr->imu->timestamp;
                 /* Here is where you might run your controller when you get a
                    * complete set of sensor inputs. */
                 run_pd_demo_controller(sensors_ptr, &actuators);
