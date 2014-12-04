@@ -6,17 +6,17 @@ PROJ =  run_uart run_sensors run_controller run_actuators run_function_test test
 # What C or C++ files must we compile to make the executable?
 C_SRC = run_uart.c \
 	run_controller.c \
- 	run_actuators.c \
- 	run_sensors.c \
+	run_actuators.c \
+	run_sensors.c \
 	run_print_output.c \
 	sensors.c \
- 	uart.c \
+	uart.c \
 	controller.c \
 	actuators.c \
 	print_output.c \
- 	misc.c \
- 	zmq.c \
- 	run_function_test.c \
+	misc.c \
+	zmq.c \
+	run_function_test.c \
 	tests/test_uart.c   \
 	tests/test_lisa_message.c \
 	tests/log_lisa.c \
@@ -68,7 +68,7 @@ OBJ = $(C_SRC:%.c=%.o) $(CXX_SRC:%.cpp=%.o) $(CXX_SRC:%.cc=%.o) protos_c/message
 ## Compile pedantically and save pain later
 CXX_WARNINGFLAGS = -Wall -Wextra -Wshadow
 C_WARNINGFLAGS =  -Wall -Wextra -Wshadow -Wstrict-prototypes
-C_WARNINGFLAGS += -Wimplicit -Wswitch-default -Wswitch-enum -Wundef -Wuninitialized -Wpointer-arith -Wstrict-prototypes -Wmissing-prototypes -Wcast-align -Wformat=2 -Wimplicit-function-declaration -Wredundant-decls -Wformat-security -Wstrict-overflow -march=native 
+C_WARNINGFLAGS += -Wimplicit -Wswitch-default -Wswitch-enum -Wundef -Wuninitialized -Wpointer-arith -Wstrict-prototypes -Wmissing-prototypes -Wcast-align -Wformat=2 -Wimplicit-function-declaration -Wredundant-decls -Wformat-security -Wstrict-overflow -march=native
 C_FEATUREFLAGS = -ftree-vectorize -flto -fPIC -D_FORTIFY_SOURCE=2 -fstack-protector-all -fno-strict-overflow -ftrapv
 C_WARNINGFLAGS += -Werror
 CXX_WARNINGFLAGS += -Werror
