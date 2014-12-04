@@ -159,8 +159,8 @@ sim/src/Structs/Structures.hs : sim/src/Structs/Structures.hsc
 clean:
 	rm -f $(PROJ)
 	rm -f $(PROTOS)
-	rm -f hs/src/Messages.hs
-	rm -rf hs/src/Messages/*
+	rm -f hs/src/Protobetty.hs
+	rm -rf hs/src/Protobetty/*
 	rm -f protos_cpp/messages.pb.*
 	rm -f protos_c/messages.pb-c.*
 	rm -f logviewer/messages_pb2.py messages_pb2.pyc

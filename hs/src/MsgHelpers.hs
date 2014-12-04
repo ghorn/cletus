@@ -16,11 +16,9 @@ import System.Clock
 
 --import qualified Messages.Rc as Msg
 import qualified Protobetty.Gps as MsgGps
-import qualified Protobetty.Mag as MsgMag
 import qualified Protobetty.Sensors.Type as MsgType
 import qualified Protobetty.GpsData as MsgGpsData
-import qualified Protobetty.Accel as MsgAcc
-import qualified Protobetty.Gyro as MsgGyro
+import qualified Protobetty.IMU as MsgIMU
 import qualified Protobetty.Sensors as Msg
 import qualified Protobetty.Timestamp as Msg
 import qualified Protobetty.Xyz as Msg
@@ -79,12 +77,12 @@ toCSensors :: Real a => Sensors a -> TimeSpec -> Msg.Sensors
 toCSensors y ts =
   Msg.Sensors
   { Msg.type' = MsgType.IMU_GPS
-  , Msg.gyro = MsgGyro.Gyro { MsgGyro.data' = toXyz $ y_gyro y
-                            , MsgGyro.timestamp = toTimestamp ts
+  , Msg.imu = MsgIMU.IMU { MsgIMU.sequenceNumber = 0
+                         , MsgIMU.timestamp = toTimestamp ts
+                         , MsgIMU.gyro = toXyz $ y_gyro y
+                         , MsgIMU.accel = toXyz $ y_accel y
+                         , MsgIMU.mag = Msg.Xyz 0 0 0
                             }
-  , Msg.accel = MsgAcc.Accel { MsgAcc.data' = toXyz $ y_accel y
-                             , MsgAcc.timestamp = toTimestamp ts
-                             }
   , Msg.gps = Just $
               MsgGps.Gps { MsgGps.timestamp = toTimestamp ts
                          , MsgGps.position = MsgGpsData.GpsData
@@ -103,9 +101,6 @@ toCSensors y ts =
                                              }
                          }
   , Msg.airspeed = Nothing
-  , Msg.mag = MsgMag.Mag { MsgMag.timestamp = toTimestamp ts
-                         , MsgMag.data' = Msg.Xyz 0 0 0
-                         }
   }
 
 
