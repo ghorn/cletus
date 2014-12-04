@@ -16,10 +16,10 @@ enum UpDown {
 
 message Rc {
   required Timestamp timestamp = 1;
-  required int32 rcThrottle = 2;
-  required int32 rcYaw = 3;
-  required int32 rcPitch = 4;
-  required int32 rcRoll = 5;
+  required double rcThrottle = 2;
+  required double rcYaw = 3;
+  required double rcPitch = 4;
+  required double rcRoll = 5;
   required bool rcKill = 6;
   optional UpDown rcGear = 7;
   optional Mode3  rcAux2 = 8;
